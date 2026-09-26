@@ -95,6 +95,7 @@ import expo.modules.vescapecore.watch.WatchSettingsPusher
 import expo.modules.vescapecore.watch.WatchSnapshot
 import expo.modules.vescapecore.watch.WatchTelemetryPusher
 import expo.modules.vescapecore.watch.WatchTick
+import expo.modules.vescapecore.watch.WatchTiltControl
 import expo.modules.vescapecore.watch.WatchWeatherPusher
 import expo.modules.vescapecore.watch.toWatchWeather
 import expo.modules.vescapecore.weather.Weather
@@ -2360,7 +2361,25 @@ private var wearAutoLaunchOnConnect = true
             // fix carries no usable heading, which leaves the wrist drawing the route north-up.
             courseDeg = if (offset != null) rider?.courseDeg else null,
             routeSpanM = WatchRouteMirror.viewportSpanM,
+            remoteTilt = if (current != null) remoteTiltController.currentValue else null,
+            tiltControl = watchTiltControl(),
         )
+    }
+
+    /**
+     * Who may drive Remote Tilt: the arbiter's own refusal first, then the link trust
+     * [lockRemoteTilt] adds on top of it.
+     *
+     * @parity /modules/vescape-core/ios/connection/BoardSessionController.swift `watchTiltControl`
+     */
+    private fun watchTiltControl(): WatchTiltControl = when (remoteInput.manualBlocker) {
+        RemoteInputOwner.SENSOR -> WatchTiltControl.SENSOR
+        RemoteInputOwner.MOVE -> WatchTiltControl.MOVE
+        else -> when {
+            !firmwareCommandsTrusted() -> WatchTiltControl.BLOCKED
+            remoteInput.owner == RemoteInputOwner.MANUAL -> WatchTiltControl.MANUAL
+            else -> WatchTiltControl.FREE
+        }
     }
 
     /** @parity /modules/vescape-core/ios/connection/BoardSessionController.swift `isTelemetryStale` */
@@ -2688,6 +2707,34 @@ private var wearAutoLaunchOnConnect = true
      * [WatchLightsRelay].
      */
     internal fun watchLights(switch: WatchLightsSwitch, on: Boolean) = watchLightsRelay.accept(switch, on)
+
+    /** Whether the last wrist tilt lock was refused, so a refused drag records once, not per tick. */
+    private var watchTiltRefused = false
+
+    /**
+     * A wrist Remote Tilt lock: the same [lockRemoteTilt] the phone pad's lock makes, so the arbiter
+     * refuses it for the same reasons. No dead-man, unlike [watchMove] — a lock is a setpoint that
+     * outlives the wrist on purpose, and a stick drag arrives as a stream of absolute locks.
+     *
+     * @parity /modules/vescape-core/ios/connection/BoardSessionController.swift `watchTiltLock`
+     */
+    fun watchTiltLock(value: Int) = scheduler.post {
+        val refused = !lockRemoteTilt(value)
+        if (refused != watchTiltRefused) {
+            watchTiltRefused = refused
+            recordWatchDiagnostic(if (refused) "watch_tilt_refused" else "watch_tilt_locked", mapOf("value" to value))
+        }
+    }
+
+    /**
+     * A wrist tilt reset: the pad's ungated cancel, eased back to neutral.
+     *
+     * @parity /modules/vescape-core/ios/connection/BoardSessionController.swift `watchTiltCancel`
+     */
+    fun watchTiltCancel() = scheduler.post {
+        watchTiltRefused = false
+        recordWatchDiagnostic("watch_tilt_cancel", mapOf("accepted" to stopRemoteTilt()))
+    }
 
     /**
      * Latest wrist wake level and when it landed. The Mirror re-sends on a heartbeat, so a level

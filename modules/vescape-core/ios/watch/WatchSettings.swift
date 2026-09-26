@@ -24,7 +24,14 @@ enum WatchSettingsKey {
   /// Whether the wrist draws the direction arrow over the route. Off hides the arrow, not the route.
   static let navArrowEnabled = "navArrowEnabled"
   static let unitSystem = "unitSystem"
+  /// Tilt stick speed at full deflection, percent of full tilt per second. Applied on the wrist.
+  static let tiltRatePercent = "tiltRatePercent"
 }
+
+/// Stick speed until a phone new enough to send ``WatchSettingsKey/tiltRatePercent`` has pushed.
+///
+/// @parity /watch/wearos/src/main/java/app/vescape/wear/WatchSettings.kt `DEFAULT_TILT_RATE_PERCENT`
+let watchDefaultTiltRatePercent = 10
 
 /// Channel this bag occupies inside the shared Application Context (see `WatchColdState`).
 let watchSettingsChannel = "settings"
@@ -33,6 +40,21 @@ let watchSettingsChannel = "settings"
 /// old to send a key leaves the wrist on the Android default rather than on a zero.
 ///
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/WatchSettings.kt `WatchSettings`
+/// Every app settings key the wrist depends on: the ones the settings push mirrors (Board Move's wrist
+/// relay also reads `boardMoveStrengthPercent`), plus the push cadence. A JS write to any of them
+/// must reload the watch settings, or the wrist and the relay keep the old value until the app
+/// restarts.
+///
+/// @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/watch/WatchSettings.kt `WATCH_SOURCE_SETTING_KEYS`
+let watchSourceSettingKeys: Set<String> = [
+  "riderColor",
+  "boardMoveStrengthPercent",
+  "wearNavArrowEnabled",
+  "unitSystem",
+  "wearTiltRatePercent",
+  "wearPushRateHz",
+]
+
 struct WatchSettings: Equatable {
   /// `#RRGGBB` / `#AARRGGBB` as the phone's rider palette stores it; nil when the rider has none.
   var riderColor: String?
@@ -41,6 +63,7 @@ struct WatchSettings: Equatable {
   /// Off by default: an older phone never sends the key, and the arrow is opt-in until it works.
   var navArrowEnabled: Bool = false
   var unitSystem: String = "metric"
+  var tiltRatePercent: Int = watchDefaultTiltRatePercent
 
   /// What the wrist holds before the first push lands, and what a cleared channel reads as.
   static let wristDefaults = WatchSettings()
@@ -54,6 +77,7 @@ struct WatchSettings: Equatable {
       WatchSettingsKey.riderColor: riderColor ?? "",
       WatchSettingsKey.navArrowEnabled: navArrowEnabled,
       WatchSettingsKey.unitSystem: unitSystem,
+      WatchSettingsKey.tiltRatePercent: tiltRatePercent,
     ]
     if let boardMoveStrengthPercent { payload[WatchSettingsKey.boardMoveStrengthPercent] = boardMoveStrengthPercent }
     return payload
@@ -71,7 +95,11 @@ struct WatchSettings: Equatable {
       riderColor: (color?.isEmpty ?? true) ? nil : color,
       boardMoveStrengthPercent: (payload[WatchSettingsKey.boardMoveStrengthPercent] as? NSNumber)?.intValue,
       navArrowEnabled: payload[WatchSettingsKey.navArrowEnabled] as? Bool ?? wristDefaults.navArrowEnabled,
-      unitSystem: payload[WatchSettingsKey.unitSystem] as? String == "imperial" ? "imperial" : "metric"
+      unitSystem: payload[WatchSettingsKey.unitSystem] as? String == "imperial" ? "imperial" : "metric",
+      // Held to the range the phone repositories accept (1–100) on read too: the wrist integrates
+      // this every frame, and a rate from a newer or broken phone must not spin the stick.
+      tiltRatePercent: (payload[WatchSettingsKey.tiltRatePercent] as? NSNumber)
+        .map { min(100, max(1, $0.intValue)) } ?? watchDefaultTiltRatePercent
     )
   }
 

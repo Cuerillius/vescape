@@ -30,17 +30,39 @@ internal const val WATCH_SETTING_NAV_ARROW = "navArrowEnabled"
 /** App-wide speed and distance preference; older phones default to metric. */
 internal const val WATCH_SETTING_UNIT_SYSTEM = "unitSystem"
 
+/** Tilt stick speed at full deflection, percent of full tilt per second. Applied on the wrist. */
+internal const val WATCH_SETTING_TILT_RATE = "tiltRatePercent"
+
+/**
+ * Every [AppSettings] key the wrist depends on: the ones [toWatchSettings] mirrors (Board Move's
+ * wrist relay also reads `boardMoveStrengthPercent`), plus the push cadence. A JS write to any of
+ * them must reload native settings, or the wrist and the relay keep the old value until the app
+ * restarts — which is how a Move strength change once never reached the watch.
+ *
+ * @parity /modules/vescape-core/ios/watch/WatchSettings.swift `watchSourceSettingKeys`
+ */
+internal val WATCH_SOURCE_SETTING_KEYS = setOf(
+    "riderColor",
+    "boardMoveStrengthPercent",
+    "wearNavArrowEnabled",
+    "unitSystem",
+    "wearTiltRatePercent",
+    "wearPushRateHz",
+)
+
 /** The wrist-relevant slice of [AppSettings]. Equality is what decides whether a push is needed. */
 internal data class WatchSettings(
     val riderColor: String?,
     val boardMoveStrengthPercent: Int,
     val navArrowEnabled: Boolean,
     val unitSystem: String = "metric",
+    val tiltRatePercent: Int = 10,
 )
 
 /**
  * Everything the wrist mirrors from the phone's settings. Adding a setting means adding a field
- * here, a key constant above, a `putX` in [WatchSettingsPusher], and a read on the wrist.
+ * here, a key constant above, its [AppSettings] key to [WATCH_SOURCE_SETTING_KEYS], a `putX` in
+ * [WatchSettingsPusher], and a read on the wrist.
  */
 internal fun AppSettings.toWatchSettings(): WatchSettings = WatchSettings(
     // Sent verbatim; the wrist is the one place that parses the colour, so garbage degrades there.
@@ -48,4 +70,5 @@ internal fun AppSettings.toWatchSettings(): WatchSettings = WatchSettings(
     boardMoveStrengthPercent = boardMoveStrengthPercent,
     navArrowEnabled = wearNavArrowEnabled,
     unitSystem = unitSystem,
+    tiltRatePercent = wearTiltRatePercent,
 )

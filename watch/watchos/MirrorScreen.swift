@@ -17,7 +17,7 @@ import SwiftUI
 /// gauges, so going in and out of the Always On state never rebuilds the screen or restarts the
 /// idle clock. What ambient changes is inside ``AmbientMode``.
 ///
-/// Leaving reports an asleep wake level. Move and Lights also gate on the active scene phase.
+/// Leaving reports an asleep wake level. Tilt, Move and Lights also gate on the active scene phase.
 ///
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/MirrorScreen.kt `MirrorScreen`
 /// @platform-diff watchOS uses system navigation to leave the app, without Wear OS's close prompt.
@@ -34,12 +34,12 @@ struct MirrorScreen: View {
   @State private var pagePositions: [Axis: Double] = [:]
   @State private var settledPositions: [Axis: Double] = [:]
   @State private var verticalPagingEnabled = true
-  /// A Board Move hold in progress. Both pagers lock while it is true and the idle return is
-  /// suspended: a hold must not be read as a page swipe, and the page must never move out from
-  /// under a finger that is driving a motor.
+  /// A control page holding the rider's finger: a Board Move hold or a Tilt stick drag. Both pagers
+  /// lock while it is true and the idle return is suspended: a hold must not be read as a page
+  /// swipe, and the page must never move out from under a finger that is driving the board.
   ///
-  /// @parity /watch/wearos/src/main/java/app/vescape/wear/MirrorScreen.kt `moveHeld`
-  @State private var moveHeld = false
+  /// @parity /watch/wearos/src/main/java/app/vescape/wear/MirrorScreen.kt `controlHeld`
+  @State private var controlHeld = false
   @State private var lastInteraction = Date()
   /// Foreground/background, which is what decides whether the Mirror is awake at all. Ambient is a
   /// second, narrower question asked only while it is.
@@ -109,10 +109,10 @@ struct MirrorScreen: View {
       }
       // A hold both suspends the countdown and, on release, restarts it: the 45 s is measured from
       // the last thing the rider did, and a long hold is very much something they did.
-      .onChange(of: moveHeld) { _, _ in lastInteraction = Date() }
+      .onChange(of: controlHeld) { _, _ in lastInteraction = Date() }
       .task(id: lastInteraction) {
         try? await Task.sleep(for: .seconds(CONTROL_IDLE_RETURN_SECONDS))
-        guard !Task.isCancelled, !moveHeld, !isLuminanceReduced, control != .gauges
+        guard !Task.isCancelled, !controlHeld, !isLuminanceReduced, control != .gauges
         else { return }
         withAnimation { control = .gauges }
       }
@@ -211,7 +211,7 @@ struct MirrorScreen: View {
     .scrollIndicators(.hidden)
     // Ambient has already parked the axis, and a page animation there is wasted panel.
     // Set the axis's environment directly so the nested horizontal pager can override it.
-    .environment(\.isScrollEnabled, !isLuminanceReduced && verticalPagingEnabled && !moveHeld)
+    .environment(\.isScrollEnabled, !isLuminanceReduced && verticalPagingEnabled && !controlHeld)
     .onChange(of: vertical) { _, _ in lastInteraction = Date() }
   }
 
@@ -266,9 +266,9 @@ struct MirrorScreen: View {
     .scrollPosition(id: $control)
     .scrollIndicators(.hidden)
     // Override the outer vertical scroll lock: returning horizontally must remain possible. A held
-    // Move is the one thing that closes this axis too — leaving the Move page mid-hold would cancel
-    // the press and strand the rider's intent somewhere the page no longer shows.
-    .environment(\.isScrollEnabled, !isLuminanceReduced && !moveHeld)
+    // Move or a Tilt drag is the one thing that closes this axis too — leaving the page mid-hold
+    // would cancel the press and strand the rider's intent somewhere the page no longer shows.
+    .environment(\.isScrollEnabled, !isLuminanceReduced && !controlHeld)
     .onChange(of: control) { _, _ in lastInteraction = Date() }
   }
 
@@ -284,6 +284,12 @@ struct MirrorScreen: View {
         // Keep the pager slot; weather and telemetry are pinned above it.
         Color.clear
       }
+    case .tilt:
+      TiltScreen(
+        link: link,
+        interactionEnabled: interactionEnabled(.tilt),
+        onHoldChanged: { controlHeld = $0 }
+      )
     case .move:
       MoveScreen(
         link: link,
@@ -291,7 +297,7 @@ struct MirrorScreen: View {
         // *start* a hold on a page that has not settled, the locks stop a started hold from being
         // taken away by a swipe.
         interactionEnabled: interactionEnabled(.move),
-        onHoldChanged: { moveHeld = $0 }
+        onHoldChanged: { controlHeld = $0 }
       )
     case .lights:
       LightsScreen(link: link, interactionEnabled: interactionEnabled(.lights))
@@ -403,11 +409,12 @@ enum VerticalPage: Int, CaseIterable, Identifiable {
   var id: Int { rawValue }
 }
 
-/// Gauges centre, Board Move, board Lights, diagnostics.
+/// Gauges centre, Remote Tilt, Board Move, board Lights, diagnostics.
 ///
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/MirrorScreen.kt `CONTROL_PAGE_GAUGES`
 enum ControlPage: Int, CaseIterable, Identifiable {
   case gauges
+  case tilt
   case move
   case lights
   case diagnostics
