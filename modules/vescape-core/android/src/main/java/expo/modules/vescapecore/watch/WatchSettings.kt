@@ -56,7 +56,7 @@ internal data class WatchSettings(
     val boardMoveStrengthPercent: Int,
     val navArrowEnabled: Boolean,
     val unitSystem: String = "metric",
-    val tiltRatePercent: Int = 10,
+    val tiltRatePercent: Int = 20,
 )
 
 /**

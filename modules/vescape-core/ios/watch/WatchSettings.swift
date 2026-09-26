@@ -31,7 +31,7 @@ enum WatchSettingsKey {
 /// Stick speed until a phone new enough to send ``WatchSettingsKey/tiltRatePercent`` has pushed.
 ///
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/WatchSettings.kt `DEFAULT_TILT_RATE_PERCENT`
-let watchDefaultTiltRatePercent = 10
+let watchDefaultTiltRatePercent = 20
 
 /// Channel this bag occupies inside the shared Application Context (see `WatchColdState`).
 let watchSettingsChannel = "settings"

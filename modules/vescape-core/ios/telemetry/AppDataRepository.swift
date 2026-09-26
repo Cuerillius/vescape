@@ -648,7 +648,7 @@ final class AppDataRepository {
     // exists here only so getSettings() returns the full settings shape.
     "wearAutoLaunchOnConnect": true,
     "wearNavArrowEnabled": false,
-    "wearTiltRatePercent": 10,
+    "wearTiltRatePercent": 20,
     "boardMoveStrengthPercent": 60,
     "connectionSoundsEnabled": true,
     "soundPack": "retro",

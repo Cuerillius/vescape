@@ -21,7 +21,7 @@ class WatchSettingsTest {
     @Test
     fun `tilt rate defaults until a phone sends it and is held to a sane range`() {
         assertEquals(DEFAULT_TILT_RATE_PERCENT, WatchSettings.decode(emptyMap()).tiltRatePercent)
-        assertEquals(20, WatchSettings.decode(mapOf(SETTING_TILT_RATE to 20)).tiltRatePercent)
+        assertEquals(30, WatchSettings.decode(mapOf(SETTING_TILT_RATE to 30)).tiltRatePercent)
         assertEquals(100, WatchSettings.decode(mapOf(SETTING_TILT_RATE to 5000)).tiltRatePercent)
         assertEquals(DEFAULT_TILT_RATE_PERCENT, WatchSettings.decode(mapOf(SETTING_TILT_RATE to "fast")).tiltRatePercent)
     }

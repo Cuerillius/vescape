@@ -92,7 +92,7 @@ const e2eSettings: AppSettings = {
   wearPushRateHz: 4,
   wearAutoLaunchOnConnect: true,
   wearNavArrowEnabled: false,
-  wearTiltRatePercent: 10,
+  wearTiltRatePercent: 20,
   riderId: null,
   riderName: null,
   riderColor: null,

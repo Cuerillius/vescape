@@ -33,7 +33,7 @@ const val SETTING_UNIT_SYSTEM = "unitSystem"
 const val SETTING_TILT_RATE = "tiltRatePercent"
 
 /** Stick speed until a phone new enough to send [SETTING_TILT_RATE] has pushed. */
-const val DEFAULT_TILT_RATE_PERCENT = 10
+const val DEFAULT_TILT_RATE_PERCENT = 20
 
 /** Phone settings the wrist mirrors. Every field defaults to the wrist's own look. */
 data class WatchSettings(

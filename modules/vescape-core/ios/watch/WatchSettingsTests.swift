@@ -27,7 +27,7 @@ final class WatchSettingsTests: XCTestCase {
 
   func testTiltRateDefaultsUntilAPhoneSendsItAndIsHeldToASaneRange() {
     XCTAssertEqual(WatchSettings.decode([:]).tiltRatePercent, watchDefaultTiltRatePercent)
-    XCTAssertEqual(WatchSettings.decode([WatchSettingsKey.tiltRatePercent: 20]).tiltRatePercent, 20)
+    XCTAssertEqual(WatchSettings.decode([WatchSettingsKey.tiltRatePercent: 30]).tiltRatePercent, 30)
     XCTAssertEqual(WatchSettings.decode([WatchSettingsKey.tiltRatePercent: 5000]).tiltRatePercent, 100)
     XCTAssertEqual(WatchSettings.decode([WatchSettingsKey.tiltRatePercent: "fast"]).tiltRatePercent, watchDefaultTiltRatePercent)
     XCTAssertEqual(WatchSettings.decode(WatchSettings(tiltRatePercent: 35).payload).tiltRatePercent, 35)

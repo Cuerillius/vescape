@@ -439,7 +439,7 @@ class AppDataRepository private constructor(private val context: Context) {
       wearPushRateHz = req("wearPushRateHz", 4, ::validWearPushRateHz),
       wearAutoLaunchOnConnect = req("wearAutoLaunchOnConnect", true) { it as? Boolean },
       wearNavArrowEnabled = req("wearNavArrowEnabled", false) { it as? Boolean },
-      wearTiltRatePercent = req("wearTiltRatePercent", 10, ::validWearTiltRatePercent),
+      wearTiltRatePercent = req("wearTiltRatePercent", 20, ::validWearTiltRatePercent),
       companionPresenceEnabled = req("companionPresenceEnabled", false) { it as? Boolean },
       boardWarningsEnabled = req("boardWarningsEnabled", true) { it as? Boolean },
       vescFaultCollectionEnabled = req("vescFaultCollectionEnabled", true) { it as? Boolean },
