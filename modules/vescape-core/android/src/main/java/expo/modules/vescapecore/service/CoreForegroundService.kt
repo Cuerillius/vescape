@@ -418,8 +418,9 @@ class CoreForegroundService : Service() {
             name: String?,
             lat: Double,
             lng: Double,
+            auto: Boolean,
         ) {
-            instance?.controller?.createGroupRide(riderId, riderName, riderColor, name, lat, lng)
+            instance?.controller?.createGroupRide(riderId, riderName, riderColor, name, lat, lng, auto)
         }
 
         fun joinGroupRide(

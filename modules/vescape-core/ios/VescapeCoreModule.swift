@@ -447,14 +447,15 @@ public class VescapeCoreModule: Module {
       self.coordinator.stopGroupRideObserve()
     }
 
-    Function("createGroupRide") { (riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double) in
+    Function("createGroupRide") { (riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double, auto: Bool) in
       self.coordinator.createGroupRide(
         riderId: riderId,
         riderName: riderName,
         riderColor: riderColor,
         name: name,
         lat: lat,
-        lng: lng
+        lng: lng,
+        auto: auto
       )
     }
 

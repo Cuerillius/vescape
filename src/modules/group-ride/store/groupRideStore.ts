@@ -56,6 +56,8 @@ interface GroupRideState {
   stopObserving: () => void
   /** Create a Group Ride from the device's own location; result arrives via `ride-created`. */
   createRide: (name: string) => void
+  /** Public riding: join the nearest Group Ride in range, or create one when none is. */
+  autoRide: () => void
   joinRide: (rideId: string) => void
   leaveRide: () => void
   focusRider: (riderId: string) => void
@@ -209,22 +211,11 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
   },
 
   createRide(name) {
-    const { ownLocation } = get()
-    if (!ownLocation) return
-    const { riderId, riderName, riderColor } = currentIdentity()
-    if (!riderId) return
-    set((state) => ({
-      ...deriveRoster({ activeRideId: null, roster: [] }, state),
-      error: null,
-    }))
-    createGroupRide({
-      riderId,
-      riderName,
-      riderColor,
-      name: name.trim() || null,
-      lat: ownLocation.lat,
-      lng: ownLocation.lng,
-    })
+    startRide(get, set, name.trim() || null, false)
+  },
+
+  autoRide() {
+    startRide(get, set, null, true)
   },
 
   joinRide(rideId) {
@@ -298,4 +289,30 @@ function deriveRoster(
     // freshness tick and GPS ticks don't fan out to selectors as new arrays.
     rosterRows: rosterRowsEqual(rows, current.rosterRows) ? current.rosterRows : rows,
   }
+}
+
+/** Shared create path; `auto` lets the relay join the nearest ride instead of creating. */
+function startRide(
+  get: () => GroupRideState,
+  set: (partial: (state: GroupRideState) => Partial<GroupRideState>) => void,
+  name: string | null,
+  auto: boolean,
+) {
+  const { ownLocation } = get()
+  if (!ownLocation) return
+  const { riderId, riderName, riderColor } = currentIdentity()
+  if (!riderId) return
+  set((state) => ({
+    ...deriveRoster({ activeRideId: null, roster: [] }, state),
+    error: null,
+  }))
+  createGroupRide({
+    riderId,
+    riderName,
+    riderColor,
+    name,
+    lat: ownLocation.lat,
+    lng: ownLocation.lng,
+    auto,
+  })
 }

@@ -2664,6 +2664,7 @@ type VescapeCoreNativeModule = NativeEventEmitter<VescapeCoreEvents> & {
     name: string | null,
     lat: number,
     lng: number,
+    auto: boolean,
   ): void
   joinGroupRide(riderId: string, riderName: string, riderColor: string | null, rideId: string): void
   leaveGroupRide(): void
@@ -3047,6 +3048,8 @@ export interface CreateGroupRideParams {
   name: string | null
   lat: number
   lng: number
+  /** Public riding: the relay joins the nearest ride in range and only creates when none is. */
+  auto: boolean
 }
 
 /**
@@ -3061,9 +3064,10 @@ export function createGroupRide({
   name,
   lat,
   lng,
+  auto,
 }: CreateGroupRideParams): void {
   if (E2E_ENABLED) return
-  native.createGroupRide(riderId, riderName, riderColor, name, lat, lng)
+  native.createGroupRide(riderId, riderName, riderColor, name, lat, lng, auto)
 }
 
 export interface JoinGroupRideParams {

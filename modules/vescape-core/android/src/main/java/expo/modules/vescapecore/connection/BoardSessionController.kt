@@ -1096,8 +1096,8 @@ private var wearAutoLaunchOnConnect = true
         stopIfIdle()
     }
 
-    fun createGroupRide(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double) {
-        groupRideObserver.create(riderId, riderName, riderColor, name, lat, lng)
+    fun createGroupRide(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double, auto: Boolean) {
+        groupRideObserver.create(riderId, riderName, riderColor, name, lat, lng, auto)
     }
 
     fun joinGroupRide(riderId: String, riderName: String, riderColor: String?, rideId: String) {

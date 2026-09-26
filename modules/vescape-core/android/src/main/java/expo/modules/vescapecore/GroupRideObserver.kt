@@ -197,8 +197,9 @@ internal class GroupRideObserver(
      * `hello`, then send `create` carrying the creator's location and optional name. This is
      * the only location egress while observing. The server fans the result back as
      * `ride-created`, so there is no local optimistic insert here. No-op when not connected.
+     * With [auto] the relay joins the nearest ride in range instead, creating only when none is.
      */
-    fun create(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double) {
+    fun create(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double, auto: Boolean) {
         handler.post {
             val ws = webSocket
             if (stopped || ws == null) {
@@ -217,6 +218,7 @@ internal class GroupRideObserver(
                 .put("type", "create")
                 .put("location", JSONObject().put("lat", lat).put("lng", lng))
             if (!name.isNullOrBlank()) create.put("name", name)
+            if (auto) create.put("auto", true)
             send(ws, create)
         }
     }

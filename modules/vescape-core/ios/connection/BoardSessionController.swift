@@ -1005,8 +1005,8 @@ internal final class BoardSessionController: VescGattListener {
     groupRideObserver.stop()
   }
 
-  func createGroupRide(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double) {
-    groupRideObserver.create(riderId: riderId, riderName: riderName, riderColor: riderColor, name: name, lat: lat, lng: lng)
+  func createGroupRide(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double, auto: Bool) {
+    groupRideObserver.create(riderId: riderId, riderName: riderName, riderColor: riderColor, name: name, lat: lat, lng: lng, auto: auto)
   }
 
   func joinGroupRide(riderId: String, riderName: String, riderColor: String?, rideId: String) {

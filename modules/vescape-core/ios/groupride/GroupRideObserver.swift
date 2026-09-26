@@ -171,8 +171,9 @@ internal final class GroupRideObserver: NSObject {
   /// Create a Group Ride over the live observe socket: bind this connection's Rider with `hello`,
   /// then send `create` carrying the creator's location and optional name. This is the only
   /// location egress while observing. The server fans the result back as `ride-created`, so there
-  /// is no local optimistic insert here. No-op when not connected.
-  func create(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double) {
+  /// is no local optimistic insert here. No-op when not connected. With `auto` the relay joins the
+  /// nearest ride in range instead, creating only when none is.
+  func create(riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double, auto: Bool) {
     onMain { [self] in
       guard !stopped, let ws = webSocket else {
         NSLog("[GroupRide] create ignored: observe socket not connected")
@@ -188,6 +189,7 @@ internal final class GroupRideObserver: NSObject {
       lastPresence = RiderPresence(lat: lat, lng: lng)
       var create: [String: Any] = ["type": "create", "location": ["lat": lat, "lng": lng]]
       if let name, !name.trimmingCharacters(in: .whitespaces).isEmpty { create["name"] = name }
+      if auto { create["auto"] = true }
       send(ws, create)
     }
   }

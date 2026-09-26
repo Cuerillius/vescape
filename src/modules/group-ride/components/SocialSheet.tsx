@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/base/Button'
 import { Placeholder } from '@/components/base/Placeholder'
 import { ColorPicker } from '@/components/forms/ColorPicker'
+import { Switch } from '@/components/controls/Switch'
 import { CanvasWidget } from '@/components/widgets/CanvasWidget'
 import { InputWidget } from '@/components/widgets/InputWidget'
 import { riderColorOptions } from '@/modules/group-ride/constants/riderColors'
@@ -95,6 +96,7 @@ function GroupRideWidget() {
   const createRide = useGroupRideStore((s) => s.createRide)
   const leaveRide = useGroupRideStore((s) => s.leaveRide)
   const joinRide = useGroupRideStore((s) => s.joinRide)
+  const autoRide = useGroupRideStore((s) => s.autoRide)
 
   const [nearbyDismissed, setNearbyDismissed] = useState(false)
 
@@ -163,7 +165,7 @@ function GroupRideWidget() {
     />
   )
 
-  const action = active ? (
+  const status = active ? (
     <LiveBadge connected={connection === 'connected'} />
   ) : showNearby ? (
     <Pressable
@@ -174,6 +176,19 @@ function GroupRideWidget() {
       <XIcon size={18} color={theme.neutral.textSecondary} weight="bold" />
     </Pressable>
   ) : null
+
+  const action = (
+    <View style={styles.headerActions}>
+      {status}
+      <Switch
+        value={active}
+        onValueChange={(on) => (on ? autoRide() : leaveRide())}
+        disabled={!active && (!connected || !hasLocation)}
+        accent={accent}
+        accessibilityLabel="Auto join public group ride"
+      />
+    </View>
+  )
 
   return (
     <CanvasWidget
@@ -264,6 +279,11 @@ const styles = StyleSheet.create({
   },
   fill: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   list: {
     gap: 12,

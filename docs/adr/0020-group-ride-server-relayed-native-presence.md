@@ -16,6 +16,8 @@ The durable, long-lived work (the WebSocket connection and the location pushes t
 
 - **Discovery is push-driven and filtered client-side; only creators/joiners send location.** The server pushes Group Ride lifecycle events (`ride-created`, `ride-updated`, `ride-ended`) to every connected client, and sends an active-ride **snapshot** on connect followed by deltas. Each client computes distance **locally** against its own GPS (never sent while merely observing) and highlights the Social button when any Group Ride is within **20 km**. Tapping "New group ride" fans out `ride-created` instantly, so nearby Riders' Social button lights up immediately. Location leaves the device **only** when creating a Group Ride or while joined and pushing **Rider Presence**.
 
+- **Public riding auto-groups on the server.** The Group Ride header switch sends `create` with `auto: true`: the relay joins the nearest active Group Ride within 10 km, and creates one only when none is in range. The relay serializes auto creates, so Riders who switch on side by side land in the same ride instead of each creating one. Switching off leaves. Turning the switch on is the Rider's opt-in to be discovered, the same as creating a ride by hand.
+
 - **Privacy Zones suppress Rider Presence.** While a Rider is inside a **Privacy Zone**, Rider Presence is not broadcast (the dot freezes/hides for the group, resumes on exit), reusing the native zone check already in the location path — consistent with ADR-0009. Observing never sends location at all, so it needs no zone gating.
 
 - **Stale handling is server heartbeat + WS close.** A Rider with no recent Rider Presence greys after ~5 s and drops from the Group Ride after ~30 s or on clean disconnect/leave.

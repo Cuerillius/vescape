@@ -551,25 +551,7 @@ class VescapeCoreModule : Module() {
     // for itself.
     // @parity /modules/vescape-core/ios/VescapeCoreModule.swift `refreshLocationDemand`
     Function("refreshLocationDemand") { refreshLocationDemand() }
-    // @parity /modules/vescape-core/ios/VescapeCoreModule.swift `startGroupRideObserve`
-    Function("startGroupRideObserve") { serverUrl: String ->
-      CoreForegroundService.startGroupRideObserve(context.applicationContext, serverUrl)
-    }
-    Function("stopGroupRideObserve") {
-      CoreForegroundService.stopGroupRideObserve(context.applicationContext)
-    }
-    Function("createGroupRide") { riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double ->
-      CoreForegroundService.createGroupRide(context.applicationContext, riderId, riderName, riderColor, name, lat, lng)
-    }
-    Function("joinGroupRide") { riderId: String, riderName: String, riderColor: String?, rideId: String ->
-      CoreForegroundService.joinGroupRide(context.applicationContext, riderId, riderName, riderColor, rideId)
-    }
-    Function("leaveGroupRide") {
-      CoreForegroundService.leaveGroupRide(context.applicationContext)
-    }
-    Function("updateGroupRideIdentity") { riderId: String, riderName: String, riderColor: String? ->
-      CoreForegroundService.updateGroupRideIdentity(context.applicationContext, riderId, riderName, riderColor)
-    }
+    registerGroupRide()
     Function("setWatchRouteSpanM") { spanM: Double? ->
       WatchRouteMirror.viewportSpanM = spanM
     }
@@ -1481,6 +1463,28 @@ class VescapeCoreModule : Module() {
       ) {
         CoreForegroundService.reloadTelemetrySettings(context.applicationContext)
       }
+    }
+  }
+
+  private fun ModuleDefinitionBuilder.registerGroupRide() {
+    // @parity /modules/vescape-core/ios/VescapeCoreModule.swift `startGroupRideObserve`
+    Function("startGroupRideObserve") { serverUrl: String ->
+      CoreForegroundService.startGroupRideObserve(context.applicationContext, serverUrl)
+    }
+    Function("stopGroupRideObserve") {
+      CoreForegroundService.stopGroupRideObserve(context.applicationContext)
+    }
+    Function("createGroupRide") { riderId: String, riderName: String, riderColor: String?, name: String?, lat: Double, lng: Double, auto: Boolean ->
+      CoreForegroundService.createGroupRide(context.applicationContext, riderId, riderName, riderColor, name, lat, lng, auto)
+    }
+    Function("joinGroupRide") { riderId: String, riderName: String, riderColor: String?, rideId: String ->
+      CoreForegroundService.joinGroupRide(context.applicationContext, riderId, riderName, riderColor, rideId)
+    }
+    Function("leaveGroupRide") {
+      CoreForegroundService.leaveGroupRide(context.applicationContext)
+    }
+    Function("updateGroupRideIdentity") { riderId: String, riderName: String, riderColor: String? ->
+      CoreForegroundService.updateGroupRideIdentity(context.applicationContext, riderId, riderName, riderColor)
     }
   }
 
