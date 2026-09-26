@@ -2,6 +2,11 @@ import type { BundledReleaseNote } from '../lib/releaseNotes'
 
 export const bundledReleaseNotes = [
   {
+    version: '0.97.0',
+    markdown:
+      '## New\n\n- Turn on the Group Ride switch to automatically join the nearest public ride within 10 km, or create one if none is nearby. Turn it off to leave.\n',
+  },
+  {
     version: '0.96.0',
     markdown:
       "## Fixed\n\n- Fixed hard-to-read dropdown options in light theme, with clearer selected choices and switch states.\n\n## Watch\n\n- Added Remote Tilt control on Apple Watch and Wear OS. Drag up or down to adjust tilt, release to hold it, and double-tap to ease back to neutral. Tilt stays set when the watch sleeps or disconnects. The gauges show active tilt, and Board Move warns when moving will clear it. Adjust the stick's speed in Watch settings on your phone.\n",
