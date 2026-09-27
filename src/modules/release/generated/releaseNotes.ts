@@ -2,6 +2,11 @@ import type { BundledReleaseNote } from '../lib/releaseNotes'
 
 export const bundledReleaseNotes = [
   {
+    version: '0.97.1',
+    markdown:
+      '## Watch\n\n- Fixed sideways swipes getting stuck on the Remote Tilt page on Apple Watch.\n- Remote Tilt now defaults to 20% per second instead of 10% on Apple Watch and Wear OS, making adjustments faster. Your saved speed setting is preserved.\n',
+  },
+  {
     version: '0.97.0',
     markdown:
       '## New\n\n- Turn on the Group Ride switch to automatically join the nearest public ride within 10 km, or create one if none is nearby. Turn it off to leave.\n',
