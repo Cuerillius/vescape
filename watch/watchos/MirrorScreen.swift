@@ -288,7 +288,11 @@ struct MirrorScreen: View {
       TiltScreen(
         link: link,
         interactionEnabled: interactionEnabled(.tilt),
-        onHoldChanged: { controlHeld = $0 }
+        onHoldChanged: { controlHeld = $0 },
+        onPageSwipe: { step in
+          guard let next = ControlPage(rawValue: ControlPage.tilt.rawValue + step) else { return }
+          withAnimation { control = next }
+        }
       )
     case .move:
       MoveScreen(

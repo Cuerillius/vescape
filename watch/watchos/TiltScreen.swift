@@ -16,27 +16,28 @@ import WatchKit
 /// the phone reports the last lock back, it shows the wrist's own value instead so it never lags.
 ///
 /// Vertical drags belong to this page: the vertical axis is already parked off the gauges, and a
-/// drag that goes horizontal first is left to the control pager, so the rider can still swipe away.
+/// drag that goes horizontal first pages the control pager, so the rider can still swipe away.
 /// A drag that goes vertical first holds both pagers for as long as it lasts, the way a Move hold
 /// does.
 ///
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/TiltScreen.kt `TiltScreen`
 /// @platform-diff Only the active scene phase drives, as on Move and Lights: watchOS keeps an
 ///   inactive app on screen, and a stick nobody is looking at must not keep steering.
+/// @platform-diff A drivable page steps the pager itself on a sideways release instead of the pager
+///   following the finger: on watchOS the stick's drag gesture takes every touch from the pager.
 struct TiltScreen: View {
   @ObservedObject var link: PhoneLink
   /// False while the page is mid-transition; a touch then belongs to the pager, not to the board.
   let interactionEnabled: Bool
   /// Reported to the screen so a drag locks both pagers and suspends the idle return.
   let onHoldChanged: (Bool) -> Void
+  /// A sideways swipe the stick gesture took from the control pager: +1 next page, -1 previous.
+  let onPageSwipe: (Int) -> Void
 
   @Environment(\.scenePhase) private var scenePhase
 
   /// The touch in flight, reset by the system if the gesture is cancelled mid-way.
   @GestureState private var touch: StickTouch?
-  /// The press as a tap candidate. Plain state rather than gesture state, because the tap is decided
-  /// in `onEnded`, by which point gesture state may already be reset.
-  @State private var press: Press?
   @State private var dragging = false
   /// Thumb travel from where it touched down, points, positive up.
   @State private var deflection: CGFloat = 0
@@ -97,9 +98,10 @@ struct TiltScreen: View {
       .allowsHitTesting(false)
     }
     .contentShape(Rectangle())
-    // Simultaneous, so the control pager keeps its own swipe: a drag that goes sideways first is
-    // classified as the pager's and ignored here, one that goes vertical first is the stick's.
-    .simultaneousGesture(stickGesture, including: canDrive || canReset ? .all : .subviews)
+    // Only while drivable: otherwise the pager swipes natively. The tap stays separate, so a reset
+    // never waits for the drag to fail.
+    .simultaneousGesture(stickGesture, including: canDrive ? .all : .subviews)
+    .onTapGesture { if canReset { onTap(at: Date()) } }
     .onChange(of: touch) { _, next in
       let steering = canDrive && next?.kind == .stick
       deflection = steering ? next?.deflection ?? 0 : 0
@@ -145,31 +147,23 @@ struct TiltScreen: View {
 
   // MARK: - Input
 
+  /// Any drag gesture here takes the touch from the control pager on watchOS, the sideways ones
+  /// too, so a drag that goes sideways first pages the pager itself on release.
   private var stickGesture: some Gesture {
-    DragGesture(minimumDistance: 0)
+    DragGesture(minimumDistance: TOUCH_SLOP)
       .updating($touch) { value, state, _ in
-        var next = state ?? StickTouch()
         let dx = value.translation.width
         let dy = value.translation.height
-        // Only a drag that goes vertical first is the stick's; one that goes sideways belongs to the
-        // pager, and one that never moves is a tap.
-        if next.kind == .pending, hypot(dx, dy) > TOUCH_SLOP {
-          next.kind = abs(dy) > abs(dx) ? .stick : .pager
-        }
+        // Classified once, on the first move past the slop: vertical is the stick's, sideways the
+        // pager's.
+        var next = state ?? StickTouch(kind: abs(dy) > abs(dx) ? .stick : .pager)
         if next.kind == .stick { next.deflection = -dy }
         state = next
       }
-      .onChanged { value in
-        // A zero translation is a fresh touch-down; it also re-arms a press a cancelled gesture left.
-        if press == nil || value.translation == .zero { press = Press(startedAt: value.time) }
-        if hypot(value.translation.width, value.translation.height) > TOUCH_SLOP { press?.moved = true }
-      }
       .onEnded { value in
-        defer { press = nil }
-        guard canReset, let press, !press.moved,
-          value.time.timeIntervalSince(press.startedAt) <= TAP_MAX_SECONDS
-        else { return }
-        onTap(at: value.time)
+        let dx = value.translation.width
+        guard abs(dx) > abs(value.translation.height), abs(dx) >= PAGE_SWIPE_MIN else { return }
+        onPageSwipe(dx < 0 ? 1 : -1)
       }
   }
 
@@ -320,17 +314,11 @@ struct TiltScreen: View {
 
 /// One touch on the stick page, classified once it has moved far enough to say what it is.
 private struct StickTouch: Equatable {
-  enum Kind { case pending, stick, pager }
+  enum Kind { case stick, pager }
 
-  var kind: Kind = .pending
+  let kind: Kind
   /// Thumb travel from touch-down, points, positive up. Only meaningful for `.stick`.
   var deflection: CGFloat = 0
-}
-
-/// A touch that may still turn out to be a tap: it has not moved past the slop, and it started when.
-private struct Press {
-  let startedAt: Date
-  var moved = false
 }
 
 /// Everything the echo wait re-decides on; a change to any of it restarts the wait.
@@ -365,11 +353,6 @@ private let LOCAL_HOLD_MS = 1_500
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/TiltScreen.kt `RESET_WINDOW_MS`
 private let RESET_WINDOW_MS = 700
 
-/// A press held longer than this is not a tap.
-///
-/// @parity /watch/wearos/src/main/java/app/vescape/wear/TiltScreen.kt `TAP_MAX_MS`
-private let TAP_MAX_SECONDS: TimeInterval = 0.4
-
 /// One haptic tick per this many percent of tilt.
 ///
 /// @parity /watch/wearos/src/main/java/app/vescape/wear/TiltScreen.kt `HAPTIC_NOTCH_PERCENT`
@@ -378,6 +361,9 @@ private let HAPTIC_NOTCH_PERCENT = 5.0
 /// Travel before a touch is read as a drag, and which way it went decides whose drag it is.
 /// Compose supplies its own touch slop on Wear OS; SwiftUI exposes none to read.
 private let TOUCH_SLOP: CGFloat = 8
+
+/// Sideways travel that pages the control pager when the stick gesture holds the touch.
+private let PAGE_SWIPE_MIN: CGFloat = 24
 
 /// Stick integration step: the display's frame rate, as `withFrameMillis` paces it on Wear OS.
 private let FRAME_MS = 16
