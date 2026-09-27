@@ -40,6 +40,10 @@ function subscribe<T>(listeners: Listener<T>[], listener: Listener<T>) {
   }
 }
 
+// Load the real board store against the real native surface before narrowing `vescape-core`;
+// public riding only reads its `status`, which stays idle here.
+await import('@/modules/board/store/bleStore')
+
 mock.module('vescape-core', () => ({
   addGroupRideConnectionListener: (listener: Listener<{ state: string }>) =>
     subscribe(connectionListeners, listener),

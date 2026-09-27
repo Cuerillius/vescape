@@ -46,6 +46,7 @@ const BASE: AppSettings = {
   riderId: null,
   riderName: null,
   riderColor: null,
+  groupRidePublicEnabled: false,
   legalPolicy: null,
   dismissedCommunityMessageIds: [],
 }

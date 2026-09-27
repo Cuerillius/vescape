@@ -68,7 +68,7 @@ function RiderNameWidget() {
         }
         editingContent={
           <View style={styles.colorEditor}>
-            <Text style={styles.colorLabel}>Color</Text>
+            <Text style={styles.fieldLabel}>Color</Text>
             <ColorPicker
               value={riderColor}
               colors={riderColorOptions}
@@ -96,7 +96,8 @@ function GroupRideWidget() {
   const createRide = useGroupRideStore((s) => s.createRide)
   const leaveRide = useGroupRideStore((s) => s.leaveRide)
   const joinRide = useGroupRideStore((s) => s.joinRide)
-  const autoRide = useGroupRideStore((s) => s.autoRide)
+  const publicRiding = useGroupRideStore((s) => s.publicRiding)
+  const setPublicRiding = useGroupRideStore((s) => s.setPublicRiding)
 
   const [nearbyDismissed, setNearbyDismissed] = useState(false)
 
@@ -180,12 +181,12 @@ function GroupRideWidget() {
   const action = (
     <View style={styles.headerActions}>
       {status}
+      <Text style={styles.fieldLabel}>Auto</Text>
       <Switch
-        value={active}
-        onValueChange={(on) => (on ? autoRide() : leaveRide())}
-        disabled={!active && (!connected || !hasLocation)}
+        value={publicRiding}
+        onValueChange={setPublicRiding}
         accent={accent}
-        accessibilityLabel="Auto join public group ride"
+        accessibilityLabel="Ride publicly"
       />
     </View>
   )
@@ -207,6 +208,11 @@ function GroupRideWidget() {
         ) : (
           <Placeholder icon={UsersIcon} description="Waiting for other riders to join." />
         )
+      ) : publicRiding ? (
+        <Placeholder
+          icon={BroadcastIcon}
+          description="Auto is on. When your board connects, you join the nearest group ride or start one."
+        />
       ) : showNearby ? (
         <NearbyRideBody nearby={nearby} />
       ) : !connected ? (
@@ -270,7 +276,7 @@ const styles = StyleSheet.create({
     marginLeft: 36,
     gap: 8,
   },
-  colorLabel: {
+  fieldLabel: {
     color: theme.neutral.textMuted,
     fontSize: 11,
     fontWeight: '700',

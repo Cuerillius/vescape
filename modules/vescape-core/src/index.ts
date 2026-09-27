@@ -1664,6 +1664,9 @@ export interface AppSettings {
   riderName: string | null
   /** Rider-chosen marker color (hex) shown on other Riders' maps. Null when unset. */
   riderColor: string | null
+  /** Group Ride header switch: ride publicly, auto-joining the nearest Group Ride or creating one. */
+  groupRidePublicEnabled: boolean
+  /** Native-resolved| null
   /** Native-resolved app-wide jurisdiction reference. Policy values live in shared catalog data. */
   legalPolicy: LegalPolicyReference | null
   /**

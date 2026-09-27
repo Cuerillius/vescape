@@ -569,7 +569,7 @@ final class AppDataRepository {
     } else if key == "wearTiltRatePercent" {
       guard let percent = Self.wearTiltRatePercent(rawValue) else { return }
       value = percent
-    } else if key == "wearAutoLaunchOnConnect" || key == "wearNavArrowEnabled" {
+    } else if key == "wearAutoLaunchOnConnect" || key == "wearNavArrowEnabled" || key == "groupRidePublicEnabled" {
       // Strict Bool, like Android: a truthy string persisted here would reach the wrist as a
       // setting the rider never chose.
       guard let flag = rawValue as? Bool else { return }
@@ -625,6 +625,7 @@ final class AppDataRepository {
     "riderId": NSNull(),
     "riderName": NSNull(),
     "riderColor": NSNull(),
+    "groupRidePublicEnabled": false,
     "lastGpsLatitude": NSNull(),
     "lastGpsLongitude": NSNull(),
     "directionPointLatitude": NSNull(),

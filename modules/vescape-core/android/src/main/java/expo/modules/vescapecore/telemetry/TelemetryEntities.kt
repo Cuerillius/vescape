@@ -535,6 +535,7 @@ data class AppSettings(
   val riderId: String? = null,
   val riderName: String? = null,
   val riderColor: String? = null,
+  val groupRidePublicEnabled: Boolean = false,
   val legalPolicy: Map<String, String>? = null,
   val dismissedCommunityMessageIds: List<String> = emptyList(),
 )

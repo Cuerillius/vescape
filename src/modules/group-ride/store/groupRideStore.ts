@@ -10,16 +10,19 @@ import {
   addGroupRideUpdatedListener,
   addLocationListener,
   createGroupRide,
+  getSettings,
   joinGroupRide,
   leaveGroupRide,
   startGroupRideObserve,
   stopGroupRideObserve,
   updateGroupRideIdentity,
+  updateSetting,
   type GroupRideConnectionState,
   type GroupRideRider,
   type GroupRideSummary,
 } from 'vescape-core'
 
+import { useBleStore } from '@/modules/board/store/bleStore'
 import { nearbyRides, type NearbyRide } from '@/modules/group-ride/lib/nearby'
 import { riderRoster, rosterRowsEqual, type RosterRider } from '@/modules/group-ride/lib/roster'
 import { useRiderStore } from '@/modules/group-ride/store/riderStore'
@@ -50,14 +53,16 @@ interface GroupRideState {
   error: string | null
   focusRequest: { riderId: string; nonce: number } | null
   observing: boolean
+  /** Persisted header switch: ride publicly, re-auto-joining whenever not in a ride. */
+  publicRiding: boolean
   /** Open the native observe WebSocket and mirror its lifecycle events into the store. */
   startObserving: () => void
   /** Close the observe WebSocket and clear observed state. */
   stopObserving: () => void
   /** Create a Group Ride from the device's own location; result arrives via `ride-created`. */
   createRide: (name: string) => void
-  /** Public riding: join the nearest Group Ride in range, or create one when none is. */
-  autoRide: () => void
+  /** Turn public riding on (auto join nearest / create) or off (leave), and persist the choice. */
+  setPublicRiding: (on: boolean) => void
   joinRide: (rideId: string) => void
   leaveRide: () => void
   focusRider: (riderId: string) => void
@@ -66,6 +71,8 @@ interface GroupRideState {
 
 let subscriptions: { remove: () => void }[] = []
 let rosterFreshnessTimer: TimerHandle | null = null
+/** An auto `create` is in flight; cleared by `joined`, an error, or a connection change. */
+let autoPending = false
 
 export const useGroupRideStore = create<GroupRideState>((set, get) => ({
   connection: 'idle',
@@ -79,11 +86,13 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
   error: null,
   focusRequest: null,
   observing: false,
+  publicRiding: false,
 
   startObserving() {
     if (get().observing) return
     subscriptions = [
-      addGroupRideConnectionListener(({ state }) =>
+      addGroupRideConnectionListener(({ state }) => {
+        autoPending = false
         // Native gates the relay socket: on `blocked` (Online/App Block) it tore the connection
         // down, so clear the now-stale online ride/roster the Social surface would otherwise show.
         set(
@@ -99,8 +108,8 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
                 error: null,
               }
             : { connection: state },
-        ),
-      ),
+        )
+      }),
       addGroupRideSnapshotListener(({ rides }) =>
         set((state) => ({
           ...deriveNearby({ rides }, state),
@@ -135,12 +144,13 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
             : {}),
         })),
       ),
-      addGroupRideJoinedListener(({ rideId }) =>
+      addGroupRideJoinedListener(({ rideId }) => {
+        autoPending = false
         set((state) => ({
           ...deriveRoster({ activeRideId: rideId, roster: [] }, state),
           error: null,
-        })),
-      ),
+        }))
+      }),
       addGroupRideRosterListener(({ rideId, riders }) =>
         set((state) => {
           if (!rideId) {
@@ -161,7 +171,10 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
           return { ...deriveRoster({ activeRideId: rideId, roster: riders }, state), error: null }
         }),
       ),
-      addGroupRideErrorListener(({ message }) => set({ error: message })),
+      addGroupRideErrorListener(({ message }) => {
+        autoPending = false
+        set({ error: message })
+      }),
       addLocationListener(({ latitude, longitude }) =>
         set((state) => ({
           ...deriveNearby({ ownLocation: { lat: latitude, lng: longitude } }, state),
@@ -182,8 +195,17 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
     rosterFreshnessTimer = setInterval(() => {
       set((state) => deriveRoster({}, state))
     }, 1_000)
+    // Re-join publicly whenever the switch is on, a board is connected and nothing holds a ride:
+    // board connect, reconnect, or the ride ending. Every trigger lands here as a store change.
+    subscriptions.push({ remove: useGroupRideStore.subscribe(ensurePublicRide) })
+    subscriptions.push({ remove: useRiderStore.subscribe(ensurePublicRide) })
+    subscriptions.push({ remove: useBleStore.subscribe(ensurePublicRide) })
     set({ observing: true })
     startGroupRideObserve(SERVER_WS_URL)
+    // intentional-suppression: the switch stays off when settings can't load
+    getSettings()
+      .then((settings) => set({ publicRiding: settings.groupRidePublicEnabled }))
+      .catch(() => undefined)
   },
 
   stopObserving() {
@@ -208,14 +230,17 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
       error: null,
       focusRequest: null,
     })
+    autoPending = false
   },
 
   createRide(name) {
     startRide(get, set, name.trim() || null, false)
   },
 
-  autoRide() {
-    startRide(get, set, null, true)
+  setPublicRiding(on) {
+    if (!on) return get().leaveRide()
+    set({ publicRiding: true })
+    void updateSetting('groupRidePublicEnabled', true)
   },
 
   joinRide(rideId) {
@@ -229,6 +254,11 @@ export const useGroupRideStore = create<GroupRideState>((set, get) => ({
   },
 
   leaveRide() {
+    // Leaving is an explicit opt-out, or public riding would re-join right away.
+    if (get().publicRiding) {
+      set({ publicRiding: false })
+      void updateSetting('groupRidePublicEnabled', false)
+    }
     leaveGroupRide()
     set({ activeRideId: null, roster: [], rosterRows: [], error: null })
   },
@@ -289,6 +319,23 @@ function deriveRoster(
     // freshness tick and GPS ticks don't fan out to selectors as new arrays.
     rosterRows: rosterRowsEqual(rows, current.rosterRows) ? current.rosterRows : rows,
   }
+}
+
+function ensurePublicRide() {
+  const state = useGroupRideStore.getState()
+  if (
+    autoPending ||
+    !state.publicRiding ||
+    state.activeRideId ||
+    state.connection !== 'connected' ||
+    !state.ownLocation ||
+    // Only while riding: opening the app or browsing old trails must not go public.
+    useBleStore.getState().status !== 'connected' ||
+    !useRiderStore.getState().riderId
+  )
+    return
+  autoPending = true
+  startRide(useGroupRideStore.getState, useGroupRideStore.setState, null, true)
 }
 
 /** Shared create path; `auto` lets the relay join the nearest ride instead of creating. */
