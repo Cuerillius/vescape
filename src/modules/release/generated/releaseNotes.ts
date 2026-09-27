@@ -2,6 +2,11 @@ import type { BundledReleaseNote } from '../lib/releaseNotes'
 
 export const bundledReleaseNotes = [
   {
+    version: '0.97.2',
+    markdown:
+      "## Improved\n\n- Group Ride now remembers your Auto setting between app sessions. When enabled, it joins the nearest public group ride or starts one once your board is connected and your location is available. Leaving a ride turns Auto off so you won't automatically rejoin.\n",
+  },
+  {
     version: '0.97.1',
     markdown:
       '## Watch\n\n- Fixed sideways swipes getting stuck on the Remote Tilt page on Apple Watch.\n- Remote Tilt now defaults to 20% per second instead of 10% on Apple Watch and Wear OS, making adjustments faster. Your saved speed setting is preserved.\n',
