@@ -215,7 +215,10 @@ adb -s <serial> shell am start -S -n app.vescape.dev/app.vescape.wear.MainActivi
 ```
 
 `-S` because a running activity keeps the intent it was started with. `--es replay sweep` walks every
-lane's full range instead of replaying the ride. Add `--ez lowBit true` or `--ez burnIn true` to
+lane's full range instead of replaying the ride. `bun run wear:replay ride --group` (`--ez group true`)
+also joins the replay to a Group Ride: `watch-group-ride.json` is fed into `GroupRideState` at 1 Hz, a
+cast covering in-range dots, far triangles, stale, battery and heat levels, no Board, and more than
+five rows. Without `--group` the not-joined layout replays. Add `--ez lowBit true` or `--ez burnIn true` to
 render for those panels. Screenshot with `adb -s <serial> exec-out screencap -p > shot.png`.
 
 The emulator renders ambient at full brightness with normal colour, so it answers layout questions
@@ -226,15 +229,55 @@ Always-on screen, then `adb shell input keyevent 26`.
 
 Three channels, split by how often the data changes:
 
-| Path         | Transport            | Cadence             | Payload                                       |
-| ------------ | -------------------- | ------------------- | --------------------------------------------- |
-| `/telemetry` | `MessageClient`      | every watch tick    | Watch Frame: packed Float32 lanes, positional |
-| `/route`     | Data Layer item      | per route change    | encoded polyline, versioned binary            |
-| `/settings`  | Data Layer `DataMap` | per settings change | rider settings, key-value                     |
+| Path          | Transport            | Cadence             | Payload                                       |
+| ------------- | -------------------- | ------------------- | --------------------------------------------- |
+| `/telemetry`  | `MessageClient`      | every watch tick    | Watch Frame: packed Float32 lanes, positional |
+| `/group-ride` | `MessageClient`      | 1 Hz while joined   | Group Ride Frame: versioned binary            |
+| `/route`      | Data Layer item      | per route change    | encoded polyline, versioned binary            |
+| `/settings`   | Data Layer `DataMap` | per settings change | rider settings, key-value                     |
 
 `MessageClient` drops undelivered sends, which is right for a frame that is stale in 250 ms and wrong
 for cold state — hence the Data Layer for the other two, where the last value stays on the watch
 across a disconnect and is read again on every watch app start.
+
+`/group-ride` carries the Group Ride Frame (ADR-0039): the Rider's course, the phone map's span, and
+each other Rider's id, name, colour, stale flag, east/north offset from the Rider's latest GPS Fix,
+battery % (none without a Board Session), battery level and heat level. The phone derives both
+levels (normal, warning, critical) from the app's telemetry thresholds in
+`telemetry/TelemetryThresholds.kt` / `.swift`, the native mirror of `telemetryThresholds.ts`: battery
+warns below 30% and is critical below 10%; heat is the worse of motor and controller temperature,
+warning above 70 °C and critical above 80 °C. The wrist never classifies. Its marks project with the
+same eased zoom and course as the route (`WatchMapView`, one per frame layout), so a Rider on the
+route stays on it through a zoom or a turn; without Navigation the Group Ride's own span and course
+drive that map view. In nav focus it labels
+every live Rider's mark with their distance ("680m"),
+followed by a thermometer when they run hot, else their battery % when it is low. Labels are
+placed nearest Rider first and never overlap the nav distance readout, each other or another Rider's
+mark: a crowded label flips to the dot's other side or moves up to one label height (along the edge
+for a triangle), and one with no clear spot is dropped — the list page has it. The gauges carry no
+Group Ride text. The phone pushes it only while the Rider is joined and the wrist reports `ACTIVE` — never in
+ambient, and never to a wrist too old to report its wake level. The wrist drops the group after
+3.5 s without a frame. The codec is one file, `watch/GroupRideFrame.kt`, compiled by the phone and
+copied into the Wear module by `withWearMirror` along with the `TelemetryLevel` wire enum it carries (`telemetry/TelemetryLevel.kt`; watchOS symlinks
+the Swift peer); the thresholds stay phone-only. watchOS gets the same bytes under the
+`groupRide` key of a `sendMessage`. Rider records are length-prefixed, so a new field is appended
+without a version bump; the version byte moves only for a change older wrists must not read. The
+battery and level bytes were appended this way: an older wrist skips them, and a record from an
+older phone decodes as no battery and normal levels.
+
+While the wrist holds a Group Ride, the vertical axis gains a last page one swipe below nav focus:
+the Group Ride page. Title "Group · N", then every other Rider nearest first — colour dot, name cut
+to five characters, an arrow to their bearing off the Rider's course, distance, and one status slot:
+"lost" when stale, else a thermometer in the heat level's colour when hot, else "—" without a Board,
+else battery % (orange or red at its level). Alone it reads "Waiting for riders". Five rows fit;
+past that the list scrolls under a fixed five-row window: a vertical drag moves it with the finger
+and flings, settling on a whole row, and the crown steps it a row at a time, sliding the rows. A pull
+down that begins at the list's top pages back to nav focus; a flick back up the list stops at its
+top. While the list fits, every swipe stays the pager's. A position indicator on the
+right shows where the window sits: a thin arc just below 3 o'clock on Wear OS, a short bar just
+below the right edge's midpoint on watchOS, both clear of the duty head tick. The map, route, nav readout and Group Ride marks
+fade out as the page arrives. The group dropping while the page is shown lands the rider on nav
+focus. Not joined, the axis is exactly radar, weather, gauges, nav focus.
 
 `/settings` is a `DataMap` rather than a packed frame because settings accrete one at a time: an
 unknown key is ignored by an older watch, and a key an older phone never sends leaves the watch on

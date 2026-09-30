@@ -18,6 +18,8 @@ import com.google.android.gms.wearable.DataItem
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.Wearable
+import expo.modules.vescapecore.watch.GroupRideFrameCodec
+import expo.modules.vescapecore.watch.WATCH_GROUP_RIDE_PATH
 
 /**
  * Wear OS Mirror entry point. Renders the live [WatchFrame] pushed from the phone over
@@ -43,7 +45,20 @@ class MainActivity : ComponentActivity() {
         if (isGranted) ongoingActivityController.start()
     }
 
+    /**
+     * Telemetry and Group Ride Frames share this listener; watchOS takes the Group Ride branch in its
+     * own message handler.
+     *
+     * @parity /watch/watchos/PhoneLink.swift `session(_:didReceiveMessage:)`
+     */
     private val listener = MessageClient.OnMessageReceivedListener { event ->
+        if (event.path == WATCH_GROUP_RIDE_PATH) {
+            // A frame this build cannot read (another wire version) is dropped; the group then
+            // times out rather than drawing something misread.
+            val group = GroupRideFrameCodec.decode(event.data) ?: return@OnMessageReceivedListener
+            runOnUiThread { GroupRideState.accept(group) }
+            return@OnMessageReceivedListener
+        }
         if (event.path != TELEMETRY_PATH) {
             runOnUiThread { WatchDiagnostics.recordUnknownPath(event.path) }
             return@OnMessageReceivedListener
@@ -156,7 +171,7 @@ class MainActivity : ComponentActivity() {
         // paired phone exactly like physical Wear OS hardware.
         if (replayEnabled) {
             commandSender.replayTiltEcho = frameReplayer::echoTilt
-            frameReplayer.start(replayFixture())
+            frameReplayer.start(replayFixture(), group = replayGroup())
             return
         }
         publishWakeLevel()
@@ -200,9 +215,16 @@ class MainActivity : ComponentActivity() {
      * without a rebuild:
      * `adb shell am start -S -n <pkg>/app.vescape.wear.MainActivity --es replay sweep`
      * (`-S` because a running instance keeps its original intent).
+     * @parity /watch/watchos/FrameReplay.swift `FrameReplayer.requestedFixture`
      */
     private fun replayFixture(): String =
         if (intent?.getStringExtra("replay") == "sweep") REPLAY_FIXTURE_SWEEP else REPLAY_FIXTURE_RIDE
+
+    /**
+     * `--ez group true` beside `--es replay`: also replay a joined Group Ride.
+     * @parity /watch/watchos/FrameReplay.swift `FrameReplayer.requestedGroup`
+     */
+    private fun replayGroup(): Boolean = intent?.getBooleanExtra("group", false) == true
 
     /**
      * Emulator-only: render as if the watch were in ambient, without asking the emulator to actually

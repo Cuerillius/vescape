@@ -293,10 +293,23 @@ internal final class BoardSessionController: VescGattListener {
   private lazy var watchTick = WatchTick(
     scheduler: scheduler,
     snapshot: { [weak self] in self?.watchSnapshot() ?? WatchSnapshot() },
-    isStale: { [weak self] in self?.isTelemetryStale() ?? true },
+    // No telemetry is no Board, not a frozen one: a board-less frame (Navigation, Group Ride) is
+    // fresh, or the wrist would dim the route and nav distance as if they had stopped (ADR-0039).
+    isStale: { [weak self] in
+      guard let self else { return true }
+      return self.latestTelemetry != nil && self.isTelemetryStale()
+    },
     canPush: { [weak self] in self?.watchPusher.canPush ?? false },
     push: { [weak self] frame in self?.watchPusher.pushFrame(frame) },
     intervalMs: WATCH_FRAME_INTERVAL_MS
+  )
+  /// @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/connection/BoardSessionController.kt `groupRideTick`
+  private lazy var groupRideTick = GroupRideFrameTick(
+    scheduler: scheduler,
+    canPushWatchFrame: { [weak self] in self?.watchPusher.canPush ?? false },
+    wakeLevel: { [weak self] in self?.effectiveWatchWakeLevel() ?? .asleep },
+    frame: { [weak self] in self?.groupRideFrame() },
+    push: { [weak self] frame in self?.watchPusher.pushGroupRideFrame(frame) }
   )
   /// Critical local notifications are a narrow interruptive path only. Permission is explicit and
   /// never requested from the telemetry/connect path.
@@ -1496,6 +1509,7 @@ internal final class BoardSessionController: VescGattListener {
     if let restored = boardConfigValues { syncBoardLightsFromConfig(restored) }
     // No scope key to match on: the board's MCCONF signature is unknown until it answers, so the
     // latest row is restored optimistically and replaced when this session's own read lands.
+    // @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/connection/BoardSessionController.kt `restoreMotorConfigValues`
     do { motorConfigValues = try MotorConfigStore.shared.loadLatest(boardId: config.appBoardId) }
     catch { RecordingStorageFailure.reportRead(operation: "motor_config_restore", error: error); motorConfigValues = nil }
     alertCoordinator.updateBoardConfigValues(boardConfigValues?.values ?? [:])
@@ -2674,6 +2688,7 @@ internal final class BoardSessionController: VescGattListener {
       self?.watchPusher.pushColdState(channel: watchRouteChannel, payload: payload)
     }
     watchTick.start()
+    groupRideTick.start()
   }
 
   /// Last forecast handed to the cold-state channel. Compared with `WatchWeather`'s own equality,
@@ -2807,6 +2822,23 @@ internal final class BoardSessionController: VescGattListener {
       routeSpanM: WatchRouteMirror.shared.viewportSpanM,
       remoteTilt: current != nil ? remoteTiltController.currentValue : nil,
       tiltControl: watchTiltControl()
+    )
+  }
+
+  /// The joined Group Ride as the wrist draws it, or nil while the Rider is not in one. Measured from
+  /// the Rider's latest GPS Fix, never from Board telemetry, so it needs no Board Session.
+  ///
+  /// @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/connection/BoardSessionController.kt `groupRideFrame`
+  private func groupRideFrame() -> GroupRideFrame? {
+    guard let roster = groupRideObserver.joinedRoster else { return nil }
+    let rider = locationTracker.riderPosition
+    return GroupRideFrameBuilder.build(
+      roster: roster,
+      own: rider.map { WatchGeoPoint(latitude: $0.latitude, longitude: $0.longitude) },
+      // The course survives a stop on the phone, so heading-up holds the last direction.
+      courseDeg: rider?.courseDeg,
+      spanM: WatchRouteMirror.shared.viewportSpanM,
+      nowMs: Int64(Date().timeIntervalSince1970 * 1000)
     )
   }
 

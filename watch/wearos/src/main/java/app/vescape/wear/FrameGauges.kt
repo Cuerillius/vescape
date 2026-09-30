@@ -69,6 +69,8 @@ import kotlin.math.sin
  * - [focus] — nav focus (up-drag over the gauges): readouts leave, the nav stack stays and grows.
  * - [controlFocus] — the horizontal control pager (Move, diagnostics): readouts and nav stack leave.
  * - [weatherFocus] — the forecast page above: readouts and nav stack leave.
+ * - [groupFocus] — the Group Ride page below nav focus: the nav stack leaves too; readouts are
+ *   already gone with [focus].
  *
  * The clock and the forecast readout at the top rim gap fade with the readouts; on the weather
  * centre they would otherwise duplicate the fuller forecast underneath.
@@ -84,6 +86,7 @@ internal fun FrameLayout(
     focus: () -> Float = { 0f },
     controlFocus: () -> Float = { 0f },
     weatherFocus: () -> Float = { 0f },
+    groupFocus: () -> Float = { 0f },
     onWeatherClick: (() -> Unit)? = null,
     ambient: AmbientMode = AmbientOff,
     showReadouts: Boolean = true,
@@ -107,19 +110,37 @@ internal fun FrameLayout(
 
     // Readouts leave for any focus mode; the nav stack survives nav focus alone.
     val readoutFocus = { maxOf(focus(), controlFocus(), weatherFocus()) }
-    val navStackAlpha = { fadeOut(maxOf(controlFocus(), weatherFocus())) }
+    // The Group Ride page below nav focus hides the map, route, readout and Group Ride marks too.
+    // @parity /watch/watchos/MirrorScreen.swift `awayFocus`
+    val navStackAlpha = { fadeOut(maxOf(controlFocus(), weatherFocus(), groupFocus())) }
 
     val navBearing = frame.navBearing
     val navDistance = frame.navDistanceM
     val hasNav = navBearing != null && navDistance != null
+
+    // One eased zoom and course for every map layer, so the Group Ride marks sit where the route is
+    // drawn mid-zoom and mid-turn. Navigation's lanes drive it; without Navigation, the Group Ride's.
+    // Nothing draws the map in ambient or with neither, so it snaps there instead of animating.
+    val group = GroupRideState.group.value
+    val mapFollowsGroup = !hasNav && group != null
+    val mapView = rememberWatchMapView(
+        targetSpanM = WatchMapProjection.clampRouteSpanM(if (mapFollowsGroup) group?.spanM else frame.routeSpanM),
+        targetCourseDeg = (if (mapFollowsGroup) group?.courseDeg else frame.courseDeg)?.toFloat(),
+        animate = !ambient.active && (hasNav || group != null),
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Bottom layer: route ahead + rider dot, under every gauge and readout. Ambient skips it:
         // the lanes animate their zoom, and a moving map is the most expensive thing on the panel.
         if (hasNav && !ambient.active) {
             Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = navStackAlpha() }) {
-                NavRoute(frame = frame, muted = muted, navFocus = focus)
+                NavRoute(frame = frame, mapView = mapView, muted = muted, navFocus = focus)
             }
+        }
+
+        // Group Ride dots: over the route, under every gauge and number. Hidden in ambient.
+        if (!ambient.active) {
+            GroupRideLayer(mapView = mapView, muted = muted, drawOwnRing = !hasNav, navFocus = focus, alpha = navStackAlpha)
         }
 
         // Rim gauges on one shared screen-centred circle.
@@ -176,7 +197,8 @@ internal fun FrameLayout(
             )
             // Nav focus with nothing to show would be a blank circle. Say why, but only once the
             // drag is nearly done, so it never flickers under the departing readouts.
-            NavAbsentHint(focus = focus, stackAlpha = navStackAlpha)
+            // A joined Group Ride is something to show on the map page: no "no navigation" over it.
+            if (GroupRideState.group.value == null) NavAbsentHint(focus = focus, stackAlpha = navStackAlpha)
         }
 
         // Center each label/value stack on its full gauge arc, independent of font width or fill.
@@ -242,6 +264,11 @@ internal fun FrameLayout(
                     translationY = f * BATTERY_FOCUS_DROP.toPx()
                 },
         )
+
+        // Group Ride edge triangles: last, so they sit over the rim arcs. Hidden in ambient.
+        if (!ambient.active) {
+            GroupRideEdgeLayer(mapView = mapView, navFocus = focus, alpha = navStackAlpha)
+        }
     }
 }
 

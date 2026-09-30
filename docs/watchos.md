@@ -256,6 +256,16 @@ gauges, navigation. The control axis nests inside the gauges page — gauges, Ti
 diagnostics — and shows no page dots, because they land on the battery gauge and Android has none
 either. The pages those slices fill arrived with later slices (#486–#491); the axes are the point.
 
+The Group Ride page follows navigation while the Rider is joined. Its list takes the crown and the
+vertical drag only while it is the settled page and has more than five Riders; once the page is left
+the crown pages the vertical axis again. Wear OS's pager has no crown binding, so its list takes the
+crown whenever the page has settled.
+
+The list's drag is a SwiftUI `DragGesture` on the page, which takes the touch from the paging scroll
+view outright — same-axis nested scroll views have no hand-off here. The list rubber-bands past
+either end; a pull down of at least 24 pt that began at the top pages back to navigation on release.
+Wear OS hands the same pull to its pager as it happens, through Compose nested scroll.
+
 ### Where the wrist logic lives
 
 The parts with a right answer — the reducer, the gauge fractions, the readout strings, the fixture
@@ -273,6 +283,8 @@ the wrist. `WatchGauge` rounds away from zero explicitly, and a test pins it.
 `bun run watchos:build` builds the watch simulator target. `bun run watchos:replay` rebuilds,
 installs and relaunches ride replay on the single booted watch simulator. With multiple watches
 booted, select one using `WATCHOS_UDID=<uuid> bun run watchos:replay`. A booted iPhone is ignored.
+`bun run watchos:replay --group` also passes `--group`, feeding `watch-group-ride.json` (beside the
+JSONL) into `PhoneLink.groupRide` at 1 Hz, the same fixture Group Ride as `wear:replay ride --group`.
 These commands use the selected Xcode's watch simulator SDK and discover the generated project,
 app path and bundle identifier. Generate `ios/` first with `bun run native:sync ios` if missing.
 
@@ -337,6 +349,15 @@ Board Move (#490) connects its hold lifecycle to both pager locks and to command
 `moveHeld` is true the vertical axis is disabled, the horizontal axis loses its returning override,
 and the idle return is suspended. Cancelled drags, crown scrolling, nested diagnostics scrolling and
 long holds are still unverified on a device.
+
+The Tilt page is the one control page with its own drag recognizer, and on watchOS any drag gesture
+there takes the touch from the paging scroll view, sideways ones too; `.gesture` or dropping the
+gesture mid-touch does not hand it back. So a sideways drag on a drivable Tilt page offsets the
+control pager's content by the finger's travel and, on release, animates to the next page or back —
+the same half-page-or-fling rule the native pager uses. The gesture's mask stays on for a touch in
+flight, because a moving page stops being settled and changing the mask cancels the gesture. A
+cancelled touch is detected through `@GestureState` and settles the pager and the stick lock the same
+way a release does.
 
 ### Paging regression findings (2026-09-15)
 
@@ -628,10 +649,13 @@ and the wrist draws the route at the scale the rider set on the phone.
   because a round panel's drawing bounds are square and the line would otherwise run to the bezel.
   Here the clip is the display's own rounded rectangle one step inside the rim gauges, so the route
   uses the corners the rectangle has.
-- **Motion is a shape's `animatableData`, not four `Animatable`s.** The rider offset, the course and
-  the zoom interpolate together as one animatable pair rather than as three independent springs. The
-  course is kept unwrapped so a heading crossing north turns the short way, which is the same rule
-  `shortestAngleDelta` encodes on Android.
+- **The rider offset is a shape's `animatableData`; the zoom and course are the map's.** The offset
+  interpolates as one animatable pair. The zoom and course live in `WatchMapView`, which
+  `FrameLayout` retargets and the route and Group Ride layers sample on `TimelineView`s, because a
+  `Canvas` cannot read a shape's `animatableData` and the Group Ride marks must project with the
+  exact zoom and course the route is drawn with. Those timelines run only while the map eases (or a
+  stale Rider pulses). The course is kept unwrapped so a heading crossing north turns the short way,
+  the same `shortestAngleDelta` rule Android uses, and the zoom uses Android's fast-out-slow-in curve.
 - **The empty-nav hint draws the ported Phosphor map-pin**, the same artwork Wear OS bundles. The
   chevron and the pin beside the distance are drawn by hand on both wrists, so those match stroke
   for stroke too.

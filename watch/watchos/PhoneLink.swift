@@ -80,6 +80,13 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
   /// restart from the new numbers rather than glide across a jump that never happened.
   @Published private(set) var routeGeneration = 0
 
+  /// The joined Group Ride, as last pushed; nil when the Rider is in none or the frames stopped.
+  /// Hot state like the Watch Frame, so it ages out in `refresh()` instead of surviving a restart.
+  ///
+  /// @parity /watch/wearos/src/main/java/app/vescape/wear/WatchGroupRide.kt `GroupRideState`
+  @Published private(set) var groupRide: WatchGroupRide?
+  private var lastGroupRideAtMs: Int64?
+
   /// Latest wake level reported to the phone, and the heartbeat that keeps re-asserting it.
   private var wakeLevel: WatchMirrorWakeLevel = .asleep
   private var wakeHeartbeat: Timer?
@@ -236,7 +243,13 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
   /// this off its own timeline, so the tick slows down in the Always On state with everything else.
   ///
   /// @parity /watch/wearos/src/main/java/app/vescape/wear/TelemetryState.kt `refresh`
+  /// @parity /watch/wearos/src/main/java/app/vescape/wear/WatchGroupRide.kt `refresh`
   func refresh() {
+    // Leaving the ride, losing the phone and ambient all look the same from here: the frames stop.
+    if let at = lastGroupRideAtMs, Self.nowMs() - at > WatchGroupRide.timeoutMs {
+      groupRide = nil
+      lastGroupRideAtMs = nil
+    }
     mirror = MirrorStateReducer.reduce(
       frame: latestFrame,
       lastFrameAtMs: lastFrameAtMs,
@@ -318,6 +331,13 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
     }
   }
 
+  /// Replay's Group Ride Frames, landing exactly where a decoded phone frame does.
+  /// @parity /watch/wearos/src/main/java/app/vescape/wear/FrameReplay.kt `pushGroupRide`
+  @MainActor
+  func acceptReplayGroupRide(_ frame: GroupRideFrame) {
+    acceptGroupRide(frame, nowMs: Self.nowMs())
+  }
+
   /// Same forecast decoder as the phone context, without replacing unrelated channels.
   /// @parity /watch/wearos/src/main/java/app/vescape/wear/FrameReplay.kt `loadScene`
   @MainActor
@@ -376,6 +396,23 @@ final class PhoneLink: NSObject, ObservableObject, WCSessionDelegate {
 
   func sessionCompanionAppInstalledDidChange(_ session: WCSession) {
     DispatchQueue.main.async { self.syncCounterpart(session) }
+  }
+
+  /// Group Ride Frames (ADR-0039), on their own message key. A frame this build cannot read (another
+  /// wire version) is dropped; the group then times out rather than drawing something misread.
+  ///
+  /// @parity /watch/wearos/src/main/java/app/vescape/wear/MainActivity.kt `listener`
+  func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    guard let data = message[watchGroupRideMessageKey] as? Data,
+          let frame = GroupRideFrameCodec.decode(data)
+    else { return }
+    let nowMs = Self.nowMs()
+    DispatchQueue.main.async { self.acceptGroupRide(frame, nowMs: nowMs) }
+  }
+
+  private func acceptGroupRide(_ frame: GroupRideFrame, nowMs: Int64) {
+    groupRide = WatchGroupRide.accepting(frame, previous: groupRide)
+    lastGroupRideAtMs = nowMs
   }
 
   func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
