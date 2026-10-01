@@ -15,9 +15,6 @@ import SwiftUI
 ///   uses the corners the rectangle actually has instead of the circle it does not.
 struct NavRoute: View {
   let route: WatchRoute?
-  /// Bumped by ``PhoneLink`` on every route change, so the motion animators reset with the origin
-  /// they are measured against rather than gliding across a jump that never happened.
-  let generation: Int
   let frame: WatchFrame
   /// The map's eased zoom and course, shared with the Group Ride marks so a Rider on the route
   /// stays on it mid-zoom and mid-turn. `mapMoving` runs the timeline only while it eases.
@@ -32,15 +29,15 @@ struct NavRoute: View {
 
   var body: some View {
     GeometryReader { geometry in
-      let centre = WatchMapProjection.riderPoint(in: geometry.size)
       ZStack {
         if let route, let east = frame.riderEastM, let north = frame.riderNorthM {
           TimelineView(.animation(paused: !mapMoving)) { timeline in
             let at = mapMoving ? timeline.date : .distantFuture
+            let offset = mapView.motion.offset(at: at)
             RouteShape(
               route: route,
-              eastM: east,
-              northM: north,
+              eastM: east - offset.eastM,
+              northM: north - offset.northM,
               courseDeg: mapView.courseDeg(at: at),
               spanM: mapView.spanM(at: at)
             )
@@ -56,15 +53,8 @@ struct NavRoute: View {
             // the rim gauges. On the gauge guides' own path, so the line at least touches them
             // instead of stopping visibly short of the ring.
             .clipShape(Rim.path(in: geometry.size, inset: Rim.inset))
-            .animation(.linear(duration: ROUTE_MOTION_EASE), value: east)
-            .animation(.linear(duration: ROUTE_MOTION_EASE), value: north)
           }
-          // Offsets are metres from *this* route's origin. A new route moves the origin, so the
-          // animators would glide the rider across a jump that never happened: a new generation is
-          // a new view identity, which starts them from the new route's own numbers.
-          .id(generation)
         }
-        Canvas { context, _ in context.drawRiderDot(at: centre, color: color) }
       }
     }
   }
@@ -90,24 +80,13 @@ extension GraphicsContext {
 /// The polyline in screen space: route points are metres east/north of the route origin, placed
 /// around the rider and rotated heading-up.
 ///
-/// A `Shape` rather than a `Canvas` for one reason: the rider's position moves continuously, and a
-/// shape's `animatableData` is what interpolates it between frames. Drawing the same geometry in a
-/// canvas would jump once per push. The course and zoom are the map's (``WatchMapView``), eased for
-/// every map layer at once, so they arrive here already interpolated.
+/// Translation, course and zoom arrive already interpolated by the shared map.
 private struct RouteShape: Shape {
   let route: WatchRoute
-  var eastM: Double
-  var northM: Double
+  let eastM: Double
+  let northM: Double
   let courseDeg: Double
   let spanM: Double
-
-  var animatableData: AnimatablePair<Double, Double> {
-    get { AnimatablePair(eastM, northM) }
-    set {
-      eastM = newValue.first
-      northM = newValue.second
-    }
-  }
 
   func path(in rect: CGRect) -> Path {
     guard route.points.count > 1, spanM > 0 else { return Path() }
@@ -132,8 +111,6 @@ private struct RouteShape: Shape {
     )
   }
 }
-
-private let ROUTE_MOTION_EASE = 0.3
 
 private let ROUTE_WIDTH: CGFloat = 2
 /// Width and opacity on the nav page, where the line is the page and has to read in daylight.

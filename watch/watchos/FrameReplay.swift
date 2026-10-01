@@ -74,9 +74,12 @@ final class FrameReplayer {
     guard
       let text = try? String(contentsOfFile: fixture, encoding: .utf8)
     else { return }
-    samples = ReplayFixtureParser.parse(text: text)
+    samples = ReplayFixtureParser.parse(text: text, wander: ProcessInfo.processInfo.arguments.contains("--wander"))
     guard !samples.isEmpty else { return }
     task = Task { @MainActor [samples, link, weak self] in
+      link.acceptReplaySettings([
+        WatchSettingsKey.telemetryTrailEnabled: !ProcessInfo.processInfo.arguments.contains("--no-telemetry-trail"),
+      ])
       link.recordReplay(fixture: (fixture as NSString).lastPathComponent, sampleCount: samples.count)
       // Same companion asset as Wear OS, beside either ride or sweep telemetry.
       // @parity /watch/wearos/src/main/java/app/vescape/wear/FrameReplay.kt `loadScene`
@@ -116,6 +119,12 @@ final class FrameReplayer {
           if let tilt = self?.tilt {
             frame.remoteTilt = tilt
             frame.tiltControl = tilt == WatchTiltStick.center ? .free : .manual
+          }
+          if ProcessInfo.processInfo.arguments.contains("--no-navigation") {
+            frame.navBearing = nil
+            frame.navDistanceM = nil
+            frame.riderEastM = nil
+            frame.riderNorthM = nil
           }
           link.acceptReplayFrame(frame)
         }

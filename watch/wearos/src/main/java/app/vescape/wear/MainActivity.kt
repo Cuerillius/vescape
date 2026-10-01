@@ -177,8 +177,16 @@ class MainActivity : ComponentActivity() {
         // Fixture replay is opt-in via `bun run wear:replay`; an ordinary emulator mirrors its
         // paired phone exactly like physical Wear OS hardware.
         if (replayEnabled) {
+            SettingsState.accept(WatchSettings.decode(mapOf(
+                SETTING_TELEMETRY_TRAIL to (intent?.getBooleanExtra("telemetryTrail", true) != false),
+            )))
             commandSender.replayTiltEcho = frameReplayer::echoTilt
-            frameReplayer.start(replayFixture(), group = replayGroup(), routeLoading = intent?.getBooleanExtra("route-loading", false) == true)
+            frameReplayer.start(
+                replayFixture(), group = replayGroup(),
+                navigation = intent?.getBooleanExtra("navigation", true) != false,
+                routeLoading = intent?.getBooleanExtra("route-loading", false) == true,
+                wander = intent?.getBooleanExtra("wander", false) == true,
+            )
             return
         }
         publishWakeLevel()

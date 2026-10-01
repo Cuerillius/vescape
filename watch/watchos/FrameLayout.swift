@@ -40,13 +40,14 @@ struct FrameLayout: View {
   /// rider cleared — the frame then renders exactly as it did before there was one.
   var route: WatchRoute?
   var routeStatus: WatchRouteStatus?
-  var routeGeneration: Int = 0
   /// The joined Group Ride; nil draws no group. Hidden in ambient.
   var groupRide: WatchGroupRide?
   /// The rider's own colour, so route, chevron and rider dot match the phone map.
   var navColor: Color = Palette.nav
+  var trailColor: Color = Palette.trail
   /// Whether the rider turned the direction arrow on (phone: Settings > Watch).
   var navArrowEnabled: Bool = false
+  var telemetryTrailEnabled: Bool = true
   var unitSystem: String = "metric"
 
   /// One eased zoom and course for every map layer, so the Group Ride marks sit where the route is
@@ -82,14 +83,13 @@ struct FrameLayout: View {
   /// course already holds across a stop; a nil frame course holds too.
   private var mapTarget: MapTarget {
     if navLanes == nil, let groupRide {
-      return MapTarget(spanM: WatchMapProjection.clampedSpanM(groupRide.spanM), courseDeg: groupRide.courseDeg)
+      return MapTarget(spanM: WatchMapProjection.clampedSpanM(groupRide.spanM), courseDeg: groupRide.courseDeg, position: frame.mapPosition)
     }
-    return MapTarget(spanM: WatchMapProjection.clampedSpanM(frame.routeSpanM), courseDeg: frame.courseDeg)
+    return MapTarget(spanM: WatchMapProjection.clampedSpanM(frame.routeSpanM), courseDeg: frame.courseDeg, position: frame.mapPosition)
   }
 
-  /// Nothing draws the map in ambient or with neither Navigation nor a Group Ride, so it lands
-  /// there instead of easing.
-  private var mapAnimates: Bool { !ambient.active && (navLanes != nil || groupRide != nil) }
+  /// The Rider and trail remain without Navigation or a Group Ride. Ambient skips the moving map.
+  private var mapAnimates: Bool { !ambient.active }
 
   var body: some View {
     // A stale frame in ambient is the one case with nothing to say: the readings it would keep are
@@ -103,7 +103,6 @@ struct FrameLayout: View {
       if navLanes != nil, !ambient.active {
         NavRoute(
           route: route,
-          generation: routeGeneration,
           frame: frame,
           mapView: mapView,
           mapMoving: mapMoving,
@@ -113,18 +112,25 @@ struct FrameLayout: View {
         .opacity(navStackAlpha)
       }
 
-      // Group Ride dots: over the route, under every gauge and number. Hidden in ambient.
+      if !ambient.active {
+        RiderTrail(points: frame.trail, mapView: mapView, mapMoving: mapMoving, color: muted ? Palette.dimText : trailColor)
+          .opacity(navStackAlpha * (telemetryTrailEnabled ? 1 : min(1, max(0, navFocus))))
+      }
+
+      // Group Ride dots: over the paths, under every gauge and number. Hidden in ambient.
       if let groupRide, !ambient.active {
         GroupRideLayer(
           group: groupRide,
           mapView: mapView,
           mapMoving: mapMoving,
-          drawOwnRing: navLanes == nil,
-          ownColor: muted ? Palette.dimText : navColor,
           focus: navFocus,
           unitSystem: unitSystem
         )
         .opacity(navStackAlpha)
+      }
+
+      if !ambient.active {
+        RiderPosition(color: muted ? Palette.dimText : navColor).opacity(navStackAlpha)
       }
 
       gauges(blind: blind)
@@ -151,7 +157,7 @@ struct FrameLayout: View {
         // Nav focus with nothing to show would be a blank rectangle. Say why, but only once the
         // drag is nearly done, so it never flickers under the departing readouts.
         // A joined Group Ride is something to show on the map page: no "no navigation" over it.
-        if groupRide == nil {
+        if groupRide == nil, frame.trail.isEmpty {
           NavAbsentHint(focus: navFocus, stackAlpha: navStackAlpha)
         }
         // No navigation: the tilt badge keeps the distance's slot to itself.
@@ -214,7 +220,7 @@ struct FrameLayout: View {
 
   private func retargetMap(animate: Bool) {
     let now = Date()
-    mapView.retarget(spanM: mapTarget.spanM, courseDeg: mapTarget.courseDeg, at: now, animate: animate)
+    mapView.retarget(spanM: mapTarget.spanM, courseDeg: mapTarget.courseDeg, at: now, animate: animate, position: mapTarget.position)
     mapMoving = mapView.settlesAt > now
   }
 
@@ -409,4 +415,5 @@ private let TEMP_FOCUS_SPREAD = 0.06
 private struct MapTarget: Equatable {
   let spanM: Double
   let courseDeg: Double?
+  let position: WatchMapPosition?
 }

@@ -314,6 +314,9 @@ async function pairEmulator(requestedPhone: string | null) {
 async function startReplay(
   fixture: string,
   group: boolean,
+  wander: boolean,
+  navigation: boolean,
+  telemetryTrail: boolean,
   requested: string | null,
   routeLoading: boolean,
 ) {
@@ -336,6 +339,15 @@ async function startReplay(
     '--ez',
     'group',
     String(group),
+    '--ez',
+    'wander',
+    String(wander),
+    '--ez',
+    'navigation',
+    String(navigation),
+    '--ez',
+    'telemetryTrail',
+    String(telemetryTrail),
     '--ez',
     'route-loading',
     String(routeLoading),
@@ -373,11 +385,25 @@ if (command === 'replay') {
   if (routeLoadingFlag !== -1) args.splice(routeLoadingFlag, 1)
   const groupFlag = args.indexOf('--group')
   if (groupFlag !== -1) args.splice(groupFlag, 1)
+  const wanderFlag = args.indexOf('--wander')
+  if (wanderFlag !== -1) args.splice(wanderFlag, 1)
+  const noNavigationFlag = args.indexOf('--no-navigation')
+  if (noNavigationFlag !== -1) args.splice(noNavigationFlag, 1)
+  const noTelemetryTrailFlag = args.indexOf('--no-telemetry-trail')
+  if (noTelemetryTrailFlag !== -1) args.splice(noTelemetryTrailFlag, 1)
   const fixture = args[1] ?? 'ride'
   if (!REPLAY_FIXTURES.includes(fixture as (typeof REPLAY_FIXTURES)[number])) {
     fail(`unknown fixture ${fixture} — expected ${REPLAY_FIXTURES.join(' | ')}`)
   }
-  await startReplay(fixture, groupFlag !== -1, requested, routeLoadingFlag !== -1)
+  await startReplay(
+    fixture,
+    groupFlag !== -1,
+    wanderFlag !== -1,
+    noNavigationFlag === -1,
+    noTelemetryTrailFlag === -1,
+    requested,
+    routeLoadingFlag !== -1,
+  )
   process.exit(0)
 }
 
