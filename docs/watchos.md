@@ -439,8 +439,8 @@ across two Gradle modules, which is why it has two `WatchSettings.kt`.
 
 ### Cadence
 
-`wearPushRateHz` (1–20, default 4) is re-read by `BoardSessionController.reloadWatchSettings()` and
-re-arms the live tick; `WatchTick.setIntervalMs` already cancels and reschedules, so a lowered
+`wearPushRateHz` (1–20, default 4) is applied by `WatchMirrorCoordinator` when App Settings change and
+re-arms the live tick; `WatchTick.setIntervalMs` cancels and reschedules, so a lowered
 interval takes effect immediately rather than after the current, longer delay.
 
 This deliberately does **not** ride on `reloadTelemetrySettings`, which returns early with no Board
@@ -592,9 +592,9 @@ are on the rectangle.
 
 Route Progress is recalculated from the latest GPS Fix as soon as a path is published, so selecting
 a route while stationary does not wait for movement. A separate `route-status` live message carries
-creation/failure state and the expected polyline fingerprint. The watch displays **Creating route…**,
-then **Receiving route…** until its decoded route matches, or **Waiting for GPS…** when placement is
-missing. The gauges remain visible. Clearing navigation dismisses the loader; losing the live frame
+creation/failure state and the expected polyline fingerprint. The watch displays an animated ring around the rider position
+while creating or receiving the route, or when GPS placement is missing. Loading has no visible
+text; a failed request still shows **Route unavailable**. The gauges remain visible. Clearing navigation dismisses the loader; losing the live frame
 stream clears transient status. Ambient mode suppresses the spinner.
 
 Status is sent on route actions and repeated alongside live Watch Frames. Its separate message key
@@ -665,11 +665,9 @@ and the wrist draws the route at the scale the rider set on the phone.
   because a round panel's drawing bounds are square and the line would otherwise run to the bezel.
   Here the clip is the display's own rounded rectangle one step inside the rim gauges, so the route
   uses the corners the rectangle has.
-- **The rider offset is a shape's `animatableData`; the zoom and course are the map's.** The offset
-  interpolates as one animatable pair. The zoom and course live in `WatchMapView`, which
-  `FrameLayout` retargets and the route and Group Ride layers sample on `TimelineView`s, because a
-  `Canvas` cannot read a shape's `animatableData` and the Group Ride marks must project with the
-  exact zoom and course the route is drawn with. Those timelines run only while the map eases (or a
+- **The map layers share motion.** `WatchMapScene` retargets `WatchMapView` using one absolute GPS
+  anchor, heading and zoom. Route and trail share position animation; Group Ride marks use the
+  same heading and zoom. Layers sample that state on `TimelineView`s. Those timelines run only while the map eases (or a
   stale Rider pulses). The course is kept unwrapped so a heading crossing north turns the short way,
   the same `shortestAngleDelta` rule Android uses, and the zoom uses Android's fast-out-slow-in curve.
 - **The empty-nav hint draws the ported Phosphor map-pin**, the same artwork Wear OS bundles. The
