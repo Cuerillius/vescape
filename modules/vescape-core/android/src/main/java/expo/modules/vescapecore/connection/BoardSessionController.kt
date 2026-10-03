@@ -187,7 +187,6 @@ private const val FAULT_OBSERVATION_INTERVAL_MS = 1_000L
 private const val MANUAL_FAULT_LOG_MAX_SPEED_KMH = 1.0
 
 private const val GATT_CONNECT_TIMEOUT_MS = 6_000L
-private const val GATT_READY_TIMEOUT_MS = 6_000L
 
 /** @parity /modules/vescape-core/ios/connection/BoardSessionController.swift `legalModeEnableError` */
 internal fun legalModeEnableError(
@@ -245,6 +244,7 @@ internal class BoardSessionController(private val service: CoreForegroundService
         scheduler = scheduler,
         isCurrentSession = ::isCurrentBoardSession,
     )
+    private val gattHandshakeDeadline = GattHandshakeDeadline()
     private val remoteTiltController = RemoteTiltController(
         scheduler = scheduler,
         transport = {
@@ -1200,6 +1200,7 @@ internal class BoardSessionController(private val service: CoreForegroundService
         packetReassembler.reset()
         diagnosticsRecorder.resetTelemetryParseFailedCounters()
         connectionCoordinator.reset()
+        gattHandshakeDeadline.reset()
         reconnectScheduler.cancelAndReset()
         recordingCoordinator.beginBoardSession(start.boardConfig)
         // Unknown fault state: the first frame of the session always reaches the fault coordinator,
@@ -1317,7 +1318,7 @@ internal class BoardSessionController(private val service: CoreForegroundService
             )
             setStatus(BoardPhase.Discovering)
             connectionCoordinator.pendingConnect?.let {
-                armConnectPhaseTimeout(it, "gatt_ready", GATT_READY_TIMEOUT_MS)
+                armConnectPhaseTimeout(it, "gatt_ready", gattHandshakeDeadline.timeoutMs)
             }
         }
 
@@ -2439,6 +2440,7 @@ internal class BoardSessionController(private val service: CoreForegroundService
             startPolling()
         }
         if (boardStatus == BoardPhase.Connected) return
+        gattHandshakeDeadline.reset()
         reconnectScheduler.resetAttempts()
         boardError = null
         recordLocalDiagnostic(
@@ -3654,6 +3656,7 @@ internal class BoardSessionController(private val service: CoreForegroundService
     }
 
     private fun onConnectPhaseTimeout(timeout: ConnectPhaseTimeout) {
+        if (timeout.phase == "gatt_ready") gattHandshakeDeadline.timedOut()
         Log.w(
             VESC_SESSION_TAG,
             "connect phase timeout phase=${timeout.phase} device=${timeout.start.boardConfig.deviceId} attempt=${timeout.attempt} elapsedMs=${timeout.elapsedMs} status=${timeout.boardStatus} canId=${timeout.canId}",
