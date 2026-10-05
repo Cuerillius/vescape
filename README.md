@@ -43,7 +43,7 @@ Kotlin and Swift implementations of roughly equal size, linked by `@parity` tags
 - TypeScript
 - Zustand
 - Reanimated + React Native Skia (gauges, charts)
-- `phosphor-react-native` icons
+- `@tabler/icons-react-native` icons
 - Styling via `StyleSheet` + design tokens in `src/constants/theme.ts` (no NativeWind/Tailwind)
 - Bun
 - Custom Expo native module for BLE: `modules/vescape-core`

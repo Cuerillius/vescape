@@ -66,6 +66,7 @@
     "@rnmapbox/maps": "^10.3.2",
     "@sentry/react-native": "~7.11.0",
     "@shopify/react-native-skia": "2.9.0",
+    "@tabler/icons-react-native": "^3.48.0",
     "dequal": "^2.0.3",
     "expo": "~57.0.24",
     "expo-build-properties": "~57.0.21",
@@ -89,7 +90,6 @@
     "expo-video": "~57.0.4",
     "ink": "^7.1.1",
     "markdown-it": "^14.3.2",
-    "phosphor-react-native": "^3.0.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -129,7 +129,6 @@
   "patchedDependencies": {
     "@bacons/apple-targets@4.0.7": "patches/@bacons%2Fapple-targets@4.0.7.patch",
     "@rnmapbox/maps@10.3.2": "patches/@rnmapbox%2Fmaps@10.3.2.patch",
-    "phosphor-react-native@3.0.6": "patches/phosphor-react-native@3.0.6.patch",
     "react-native@0.86.3": "patches/react-native@0.86.3.patch",
     "expo-modules-autolinking@57.0.13": "patches/expo-modules-autolinking@57.0.13.patch"
   },
