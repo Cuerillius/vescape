@@ -15,52 +15,65 @@
 # never return early.
 appId: ${APP_ID}
 ---
-# Weather is a layer on the map, not a mode: the cloud button that switched it on is the way out.
+# Known callers provide the exit control, avoiding six hierarchy scans on a live screen.
+# Screenshot callers can still omit it and use the existing panel discovery below.
 - runFlow:
     when:
-      visible:
-        id: weather-panel
+      true: ${typeof HOME_EXIT_ID !== 'undefined'}
     commands:
       - tapOn:
-          id: map-mode-weather
+          id: ${HOME_EXIT_ID}
+          waitToSettleTimeoutMs: 1000
 - runFlow:
     when:
-      visible:
-        id: legal-limits-panel
+      true: ${typeof HOME_EXIT_ID === 'undefined'}
     commands:
-      - tapOn:
-          id: map-mode-legal-limits
-- runFlow:
-    when:
-      visible:
-        id: history-back
-    commands:
-      - tapOn:
-          id: history-back
-- runFlow:
-    when:
-      visible:
-        id: social-drawer-backdrop
-    commands:
-      # A point, not the element: the backdrop is a full-screen `Pressable` *behind* the drawer, so
-      # tapping its centre lands on the drawer content and the drawer stays open. The lower screen
-      # is backdrop everywhere the drawer does not reach.
-      - tapOn:
-          point: 50%, 90%
-- runFlow:
-    when:
-      visible:
-        id: header-back
-    commands:
-      - tapOn:
-          id: header-back
-- runFlow:
-    when:
-      visible:
-        id: map-mode-weather
-    commands:
-      - tapOn:
-          id: main-tab-ride
+      # Weather is a layer on the map, not a mode: the cloud button that switched it on is the way out.
+      - runFlow:
+          when:
+            visible:
+              id: weather-panel
+          commands:
+            - tapOn:
+                id: map-mode-weather
+      - runFlow:
+          when:
+            visible:
+              id: legal-limits-panel
+          commands:
+            - tapOn:
+                id: map-mode-legal-limits
+      - runFlow:
+          when:
+            visible:
+              id: history-back
+          commands:
+            - tapOn:
+                id: history-back
+      - runFlow:
+          when:
+            visible:
+              id: social-drawer-backdrop
+          commands:
+            # A point, not the element: the backdrop is a full-screen `Pressable` *behind* the drawer, so
+            # tapping its centre lands on the drawer content and the drawer stays open. The lower screen
+            # is backdrop everywhere the drawer does not reach.
+            - tapOn:
+                point: 50%, 90%
+      - runFlow:
+          when:
+            visible:
+              id: header-back
+          commands:
+            - tapOn:
+                id: header-back
+      - runFlow:
+          when:
+            visible:
+              id: map-mode-weather
+          commands:
+            - tapOn:
+                id: main-tab-ride
 - extendedWaitUntil:
     visible:
       id: battery-bar

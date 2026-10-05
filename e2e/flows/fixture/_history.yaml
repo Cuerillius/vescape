@@ -1,0 +1,16 @@
+# Open the Profile tab, which lists the last rides, from the live dashboard. A tap can be swallowed
+# while telemetry is rendering. Retry only this navigation and require the rides list before
+# continuing to either history flow. A failed attempt leaves the screen where it started, so tapping
+# again is safe.
+appId: ${APP_ID}
+---
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          id: main-tab-profile
+          waitToSettleTimeoutMs: 1000
+      - extendedWaitUntil:
+          visible:
+            id: profile-last-rides
+          timeout: 15000

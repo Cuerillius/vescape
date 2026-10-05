@@ -524,6 +524,7 @@ data class AppSettings(
   val wearPushRateHz: Int = 4,
   val wearAutoLaunchOnConnect: Boolean = true,
   val wearNavArrowEnabled: Boolean = false,
+  val wearTelemetryTrailEnabled: Boolean = true,
   val wearTiltRatePercent: Int = 20,
   val companionPresenceEnabled: Boolean = false,
   val boardWarningsEnabled: Boolean = true,

@@ -1,7 +1,36 @@
 # Watch Mirror
 
-The Watch Mirror is a Wear OS companion app under `watch/wearos/`. The phone app owns the Board
-Session and pushes Watch Frames from native code; the watch only renders received frames.
+The Watch Mirror has native wrist implementations under `watch/wearos/` and `watch/watchos/`.
+The phone owns Board state, Navigation and location history. The wrist renders received state,
+sends rider commands and reports its wake level.
+
+## Ownership
+
+Three modules separate phone coordination, incoming wrist state and map presentation:
+
+- `WatchMirrorCoordinator` in `modules/vescape-core` owns the Watch Frame and Group Ride Frame
+  ticks, wake/cadence policy and source subscriptions. Android scopes it to the core service;
+  iOS scopes it to the process. `BoardSessionController` supplies Board snapshots and retains
+  the existing command actions and safety checks. Ending a Board Session does not end Navigation
+  or Group Ride delivery.
+- `WatchMirrorIntake` on the wrist decodes and applies streamed frames and retained state. It
+  owns receipt times, freshness and replacement/clearing rules. Live transport and fixture replay
+  enter through the same intake; the UI adapters publish its individual channels. Transport,
+  diagnostics and rider commands stay outside this state module.
+- `WatchMapScene` owns the Watch Map's camera target, shared motion, route-loading notices,
+  layer ordering and visibility settings. The gauge layout supplies its gauge/readout content
+  without deciding how map layers behave. Paths remain below gauges and offscreen Rider marks
+  remain above them. `WatchMapSceneState` holds the decisions that can be tested without drawing.
+
+Tests exercise coordination with a controlled clock and transport, intake with encoded message
+sequences, and map decisions with combinations of Navigation, Group Ride, ambient and settings.
+Replay passes fixture data through the phone encoders and the production wrist decoders before
+rendering. It checks application behavior; physical radio delivery and wrist-down runtime still
+require hardware verification.
+
+Wear's shared native sources are listed once in `plugins/wearSharedSources.ts`. The config plugin
+copies them into their package directories and native-sync fingerprints that same list, so changing
+an encoder regenerates the copied watch source. watchOS reuses Swift sources through symlinks.
 
 ## Google Play Release
 
@@ -225,20 +254,87 @@ The emulator renders ambient at full brightness with normal colour, so it answer
 only. Readability belongs to a physical watch, entered the real way: enable Settings → Display →
 Always-on screen, then `adb shell input keyevent 26`.
 
+## Rider position and recent trail
+
+The active gauge and map pages always show the Rider's position ring, including without Navigation
+or a Group Ride. Settings → Watch → **Trail on telemetry screen** is enabled by default. Turning it
+off hides the trail behind the telemetry gauges; the map page still shows it, and the position ring
+stays visible. The preference persists on the phone and syncs to both watch platforms.
+
+The recent ridden trail uses the same native precise GPS history as the phone's
+live map. Its 3-point stroke fades from transparent at the oldest end to 60% opacity at the
+newest end, measured along the full retained path. The lower peak than the phone's 85% distinguishes
+the trail from the planned route. It uses the Rider's colour or the phone dark-map
+violet by default. There is no watch-only distance cutoff or shortened fade. At a close zoom the
+old, transparent end may be offscreen, just as on the phone. It shares the route/group map's heading
+and zoom. Route and trail also share one 300 ms position animation, driven by an absolute GPS
+anchor in the same frame. It works without Navigation and survives route-origin changes and
+history trimming. The trail tip stays pinned to the Rider while the newest segment grows.
+Overlapping stroke joins composite once, avoiding bright dotted joins. The ring sits above
+paths and other Riders. Ambient continues to skip the map.
+
+The phone sends a complete trail snapshot with each Watch Frame, capped at 120 evenly sampled
+points with both endpoints retained. Points are metres east/north of the current Rider, independent
+of the route origin. Route changes cannot move or reset the trail, and a reconnect receives current
+history rather than starting a watch-local recording. Empty history clears the trail. Approximate
+fixes can move the Rider but do not enter the precise history or extend its line.
+
+The fixed 13-lane telemetry header is unchanged. A trailer follows it: ASCII `TR`, version `2`,
+unsigned point count, Float64 Rider latitude/longitude, then Float32 east/north pairs, all
+little-endian. Two NaNs mean no GPS anchor. Older wrists ignore the trailer;
+new wrists show no trail for absent, unknown, malformed, or non-finite trail data and keep decoding
+telemetry. This adds at most 980 bytes per frame and stores nothing on the watch.
+
+Both replay commands accept `--no-telemetry-trail` to verify the disabled telemetry setting while
+the map page retains its trail.
+
+Emulator replay derives the trail from earlier fixture positions. Simulated GPS continues beyond
+the destination, so ending Navigation does not erase the trail. Add `--ez navigation false` to the
+Wear launch intent to verify the standalone or group-only map; watchOS replay accepts
+`--no-navigation`. Both replay commands accept `--wander` for smooth seeded detours up to 35 m on
+each axis, rejoining the recorded path every two minutes. The simulated position, heading, and
+trail move together while the planned route stays fixed. Replays use the same seed on both watch
+platforms for repeatable screenshots. For example:
+
+```bash
+bun run wear:replay ride --wander --group --device emulator-5554
+bun run wear:replay ride --wander --no-navigation --device emulator-5554
+bun run watchos:replay --wander --group
+```
+
+These switches remain inside the existing emulator/simulator replay gates.
+
 ## Phone → Watch Channels
 
-Three channels, split by how often the data changes:
+Channels are split by how often the data changes:
 
-| Path          | Transport            | Cadence             | Payload                                       |
-| ------------- | -------------------- | ------------------- | --------------------------------------------- |
-| `/telemetry`  | `MessageClient`      | every watch tick    | Watch Frame: packed Float32 lanes, positional |
-| `/group-ride` | `MessageClient`      | 1 Hz while joined   | Group Ride Frame: versioned binary            |
-| `/route`      | Data Layer item      | per route change    | encoded polyline, versioned binary            |
-| `/settings`   | Data Layer `DataMap` | per settings change | rider settings, key-value                     |
+| Path            | Transport            | Cadence                       | Payload                                       |
+| --------------- | -------------------- | ----------------------------- | --------------------------------------------- |
+| `/telemetry`    | `MessageClient`      | every watch tick              | Watch Frame: packed Float32 lanes, positional |
+| `/group-ride`   | `MessageClient`      | 1 Hz while joined             | Group Ride Frame: versioned binary            |
+| `/route-status` | `MessageClient`      | route actions and watch ticks | phase and route fingerprint                   |
+| `/route`        | Data Layer item      | per route change              | encoded polyline, versioned binary            |
+| `/settings`     | Data Layer `DataMap` | per settings change           | rider settings, key-value                     |
 
 `MessageClient` drops undelivered sends, which is right for a frame that is stale in 250 ms and wrong
 for cold state — hence the Data Layer for the other two, where the last value stays on the watch
 across a disconnect and is read again on every watch app start.
+
+Route actions immediately publish `/route-status`; live watch ticks repeat it after a dropped
+message or reconnect. The wrist shows an animated ring around the rider position while Directions runs, until it
+decodes the expected polyline, or while GPS placement is missing. Loading has no visible text.
+A failed request or rejected route write shows **Route unavailable**. Clearing navigation ends the
+loader even if an older request is still running. Gauges remain visible; ambient suppresses the
+spinner. A disconnected telemetry stream clears the transient status.
+
+The route fingerprint is a nonzero uint32 FNV-1a of the encoded `/route` bytes, including the origin.
+A cached previous route cannot satisfy a newer route's loader. A successful Data Layer write only
+queues synchronization; the wrist checks its own decoded polyline before replacing the loader with
+the map. Route Progress is recalculated from the latest phone GPS Fix when a path is published,
+so a stationary rider does not need another location update to see navigation.
+
+Preview the receiving state with `bun run wear:replay ride --route-loading`. This is an emulator
+fixture using the live rendering state, not a measurement of Bluetooth transfer latency.
 
 `/group-ride` carries the Group Ride Frame (ADR-0039): the Rider's course, the phone map's span, and
 each other Rider's id, name, colour, stale flag, east/north offset from the Rider's latest GPS Fix,

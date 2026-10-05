@@ -5,14 +5,14 @@
 # native total query completed and rendered its result grid.
 appId: ${APP_ID}
 ---
-- tapOn:
-    id: main-tab-profile
+- runFlow: ../fixture/_history.yaml
 - extendedWaitUntil:
     visible:
       id: profile-stats-details
     timeout: 15000
 - tapOn:
     id: profile-stats-details
+    waitToSettleTimeoutMs: 1000
 
 - extendedWaitUntil:
     visible:
@@ -30,4 +30,7 @@ appId: ${APP_ID}
     id: profile-period-select-option-2026-8
 - assertVisible: 'August 2026'
 
-- runFlow: ../fixture/_home.yaml
+- runFlow:
+    file: ../fixture/_home.yaml
+    env:
+      HOME_EXIT_ID: header-back

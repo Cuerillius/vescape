@@ -58,6 +58,9 @@ export function ZincLiveLayers({
               lineWidth: MAP_DEFAULTS.trailWidth,
               lineCap: 'round',
               lineJoin: 'round',
+              // @platform-diff Watch trail peaks at 60% opacity to separate it from the planned route.
+              // @parity /watch/wearos/src/main/java/app/vescape/wear/RiderTrail.kt
+              // @parity /watch/watchos/RiderTrail.swift
               lineGradient: [
                 'interpolate',
                 ['linear'],
