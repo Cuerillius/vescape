@@ -4,26 +4,22 @@ import { speedFromKmh, speedInputToKmh, speedUnit } from '@/helpers/units'
 import { stepDelta } from '@/helpers/numberStep'
 import { StyleSheet, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import {
-  GaugeIcon,
-  ArrowsOutLineHorizontalIcon,
-  ProhibitIcon,
-  ClockCounterClockwiseIcon,
-  PathIcon,
-} from 'phosphor-react-native'
+import IconArrowsHorizontal from '@tabler/icons-react-native/IconArrowsHorizontal'
+import IconBan from '@tabler/icons-react-native/IconBan'
+import IconGauge from '@tabler/icons-react-native/IconGauge'
+import IconRoute from '@tabler/icons-react-native/IconRoute'
 import { useShallow } from 'zustand/react/shallow'
-
-import { Text } from '@/components/base/Text'
 
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 import { useHistoryStore } from '@/modules/history/store/historyStore'
 import { DEFAULT_RIDE_SPLIT_GAP_MINUTES } from '@/modules/history/lib/sessions'
 import { theme } from '@/constants/theme'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
-import { Stepper } from '@/components/forms/Stepper'
-import { IconHero } from '@/components/settings/IconHero'
+import { Stepper } from '@/components/ui/Stepper'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 
 const MIN_RIDE_SPLIT_GAP_MINUTES = 1
 const MAX_RIDE_SPLIT_GAP_MINUTES = 240
@@ -51,18 +47,19 @@ export default function HistorySettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={ClockCounterClockwiseIcon}
-          description="How recorded telemetry becomes rides in your history."
-        />
+        <SettingsDescription>
+          How recorded telemetry becomes rides in your history.
+        </SettingsDescription>
 
-        <SettingsCard>
-          <SettingsRow
-            icon={PathIcon}
+        <SettingsGroup title="Rides">
+          <SettingsLink
+            icon={IconRoute}
             label="Split older rides after"
             hint={`Older rides only. A stop longer than this splits them into separate rides.\nRides recorded now keep their own start and end, whatever happens in between.\nDefault: ${DEFAULT_RIDE_SPLIT_GAP_MINUTES} min.`}
             right={
               <Stepper
+                label="ride split gap"
+                step={1}
                 value={rideSplitGapMinutes}
                 unit="min"
                 min={MIN_RIDE_SPLIT_GAP_MINUTES}
@@ -78,20 +75,16 @@ export default function HistorySettingsScreen() {
               />
             }
           />
-        </SettingsCard>
+        </SettingsGroup>
 
-        <SettingsSectionTitle>Filters</SettingsSectionTitle>
-        <Text style={styles.sectionHint}>
-          Changes apply to new rides only. Rebuild history to reprocess past rides.
-        </Text>
-
-        <SettingsCard>
-          <SettingsRow
-            icon={GaugeIcon}
+        <SettingsGroup title="Filters">
+          <SettingsLink
+            icon={IconGauge}
             label="Moving speed threshold"
             hint={`Speeds below this are ignored for avg speed.\nDefault: ${formatSpeedWithUnit(3, units === 'imperial' ? 1 : 0)}.`}
             right={
               <Stepper
+                label="moving speed threshold"
                 value={speedFromKmh(movingSpeedThresholdKmh, units)}
                 formatValue={(value) => String(Number(value.toFixed(1)))}
                 step={stepDelta}
@@ -113,12 +106,13 @@ export default function HistorySettingsScreen() {
               />
             }
           />
-          <SettingsRow
-            icon={ArrowsOutLineHorizontalIcon}
+          <SettingsLink
+            icon={IconArrowsHorizontal}
             label="Free spin speed delta"
             hint={`Max board-vs-GPS speed gap before sample is excluded as free spin. Lower will increase the number of excluded samples.\nDefault: ${formatSpeedWithUnit(12, units === 'imperial' ? 1 : 0)}.`}
             right={
               <Stepper
+                label="free spin speed delta"
                 value={speedFromKmh(freeSpinMaxSpeedDeltaKmh, units)}
                 formatValue={(value) => String(Number(value.toFixed(1)))}
                 step={stepDelta}
@@ -140,12 +134,13 @@ export default function HistorySettingsScreen() {
               />
             }
           />
-          <SettingsRow
-            icon={ProhibitIcon}
+          <SettingsLink
+            icon={IconBan}
             label="Free spin stationary cap"
             hint={`Max board speed allowed when GPS is nearly stationary. Lower will increase the number of excluded samples.\nDefault: ${formatSpeedWithUnit(15, units === 'imperial' ? 1 : 0)}.`}
             right={
               <Stepper
+                label="free spin stationary cap"
                 value={speedFromKmh(freeSpinStationaryBoardCapKmh, units)}
                 formatValue={(value) => String(Number(value.toFixed(1)))}
                 step={stepDelta}
@@ -167,7 +162,10 @@ export default function HistorySettingsScreen() {
               />
             }
           />
-        </SettingsCard>
+        </SettingsGroup>
+        <SettingsDescription>
+          Filter changes apply to new rides only. Rebuild history to reprocess past rides.
+        </SettingsDescription>
       </ScrollView>
     </SafeAreaView>
   )
@@ -176,17 +174,11 @@ export default function HistorySettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
-  },
-  sectionHint: {
-    color: theme.neutral.textDim,
-    fontSize: 12,
-    marginTop: -4,
-    marginBottom: 4,
-    marginLeft: 4,
+    paddingBottom: 32,
+    gap: 24,
   },
 })

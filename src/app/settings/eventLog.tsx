@@ -2,20 +2,23 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   StyleSheet,
   View,
   type ListRenderItemInfo,
 } from 'react-native'
-import { Text } from '@/components/base/Text'
 import { useNavigation } from 'expo-router'
-import { ListIcon, TrashIcon } from 'phosphor-react-native'
+import IconList from '@tabler/icons-react-native/IconList'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
 import { clearDiagnosticEvents, getDiagnosticEvents, type LocalDiagnosticEvent } from 'vescape-core'
 
-import { ConfirmModal } from '@/components/modals/ConfirmModal'
-import { IconButton } from '@/components/base/IconButton'
-import { IconHero } from '@/components/settings/IconHero'
+import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { MessageCard } from '@/components/ui/MessageCard'
+import { Separator } from '@/components/ui/Separator'
 import { theme, type ThemeColor } from '@/constants/theme'
+import { SettingsDescription } from '@/modules/settings/components/SettingsGroup'
 
 const PAGE_SIZE = 50
 
@@ -82,11 +85,11 @@ const BAD_EVENTS = new Set([
 ])
 
 function getEventColor(eventName: string): ThemeColor {
-  if (GOOD_EVENTS.has(eventName)) return theme.palette.green.color
+  if (GOOD_EVENTS.has(eventName)) return theme.status.success.color
   if (INFO_EVENTS.has(eventName)) return theme.status.info.color
-  if (WARNING_EVENTS.has(eventName)) return theme.palette.yellow.color
+  if (WARNING_EVENTS.has(eventName)) return theme.status.warning.color
   if (BAD_EVENTS.has(eventName)) return theme.status.error.color
-  return theme.palette.yellow.color
+  return theme.status.warning.color
 }
 
 function formatProperties(json: string): string {
@@ -109,7 +112,7 @@ function EventItem({ event, expanded, onToggle }: EventItemProps) {
   const dotColor = getEventColor(event.eventName)
 
   return (
-    <Pressable style={styles.eventRow} onPress={() => onToggle(event.id)}>
+    <Card style={styles.eventRow} onPress={() => onToggle(event.id)}>
       <View style={styles.eventHeader}>
         <View style={[styles.dot, { backgroundColor: dotColor }]} />
         <Text style={styles.eventTime}>{time}</Text>
@@ -125,25 +128,26 @@ function EventItem({ event, expanded, onToggle }: EventItemProps) {
       ) : null}
       {expanded ? (
         <View style={styles.eventExpanded}>
-          <Text style={styles.fieldLabel}>timestamp</Text>
+          <Separator />
+          <Text style={styles.fieldLabel}>Timestamp</Text>
           <Text style={styles.fieldValue} selectable>
             {new Date(event.occurredAtMs).toLocaleString()}
           </Text>
           {event.boardId ? (
             <>
-              <Text style={[styles.fieldLabel, styles.fieldGap]}>boardId</Text>
+              <Text style={[styles.fieldLabel, styles.fieldGap]}>Board ID</Text>
               <Text style={styles.fieldValue} selectable>
                 {event.boardId}
               </Text>
             </>
           ) : null}
-          <Text style={[styles.fieldLabel, styles.fieldGap]}>properties</Text>
+          <Text style={[styles.fieldLabel, styles.fieldGap]}>Properties</Text>
           <Text style={styles.eventJson} selectable>
             {formatProperties(event.propertiesJson)}
           </Text>
         </View>
       ) : null}
-    </Pressable>
+    </Card>
   )
 }
 
@@ -160,13 +164,14 @@ export default function DiagnosticEventsScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <IconButton
-          icon={TrashIcon}
-          destructive
+        <Button
+          icon={IconTrash}
+          variant="ghost"
+          color={theme.status.error.color}
+          accessibilityLabel="Clear event log"
           disabled={events.length === 0}
           loading={clearing}
           onPress={() => setClearConfirmVisible(true)}
-          style={styles.headerAction}
         />
       ),
     })
@@ -238,7 +243,9 @@ export default function DiagnosticEventsScreen() {
         style={styles.list}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
-          <IconHero icon={ListIcon} description="Browse locally persisted diagnostic events." />
+          <View style={styles.description}>
+            <SettingsDescription>Browse locally persisted diagnostic events.</SettingsDescription>
+          </View>
         }
         data={events}
         keyExtractor={keyExtractor}
@@ -250,73 +257,63 @@ export default function DiagnosticEventsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           loading ? null : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No local diagnostic events</Text>
-            </View>
+            <MessageCard
+              icon={IconList}
+              title="No events"
+              description="Diagnostic events recorded on this phone appear here."
+            />
           )
         }
         ListFooterComponent={
           loading && events.length > 0 ? (
-            <ActivityIndicator color={theme.palette.slate.color} style={styles.footer} />
+            <ActivityIndicator color={theme.ui.mutedForeground} style={styles.footer} />
           ) : !hasMore && events.length > 0 ? (
             <Text style={styles.footerText}>— end —</Text>
           ) : null
         }
       />
-      <ConfirmModal
+      <ConfirmDialog
         visible={clearConfirmVisible}
         title="Clear event log"
         message="Delete all local diagnostic events?"
         confirmLabel="Clear"
         destructive
         onConfirm={() => void clearEvents()}
-        onCancel={() => setClearConfirmVisible(false)}
+        cancelLabel="Cancel"
+        onDismiss={() => setClearConfirmVisible(false)}
       />
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  headerAction: {
-    marginRight: 4,
-  },
   list: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
-    padding: 12,
+    padding: 16,
+    paddingBottom: 32,
+  },
+  description: {
+    marginBottom: 24,
   },
   separator: {
-    height: 4,
-  },
-  emptyCard: {
-    backgroundColor: theme.neutral.surfaceDeep,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    padding: 14,
-  },
-  emptyText: {
-    color: theme.neutral.textMuted,
-    fontSize: 14,
+    height: 8,
   },
   footer: {
     paddingVertical: 16,
   },
   footerText: {
-    color: theme.neutral.border,
+    color: theme.ui.faintForeground,
     fontSize: 12,
     textAlign: 'center',
     paddingVertical: 16,
   },
   eventRow: {
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    padding: 10,
-    gap: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
   },
   eventHeader: {
     flexDirection: 'row',
@@ -330,48 +327,47 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   eventTime: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
+    color: theme.ui.mutedForeground,
+    fontSize: 12,
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
     flexShrink: 0,
   },
   eventName: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
+    color: theme.ui.foreground,
+    fontSize: 14,
     fontWeight: '600',
     flex: 1,
   },
   eventMeta: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
+    color: theme.ui.mutedForeground,
+    fontSize: 12,
+    fontWeight: '500',
   },
   eventMessage: {
-    color: theme.neutral.textSecondary,
-    fontSize: 12,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
   },
   eventExpanded: {
     marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: theme.neutral.border,
     gap: 2,
   },
   fieldLabel: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: '500',
+    marginTop: 8,
   },
   fieldGap: {
-    marginTop: 6,
+    marginTop: 8,
   },
   fieldValue: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontVariant: ['tabular-nums'],
   },
   eventJson: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 11,
     fontFamily: 'monospace',
   },

@@ -1,12 +1,11 @@
 import { useMemo } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { BracketsCurlyIcon } from 'phosphor-react-native'
 
-import { IconHero } from '@/components/settings/IconHero'
 import { RawSection } from '@/components/settings/RawSection'
 import { theme } from '@/constants/theme'
 import { useBoardStore } from '@/modules/board/store/boardStore'
+import { SettingsDescription } from '@/modules/settings/components/SettingsGroup'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 
 // Store keys that are actions/flags, not persisted setting data.
@@ -38,10 +37,9 @@ export default function RawSettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={BracketsCurlyIcon}
-          description="Raw app settings and current board record, exactly as stored."
-        />
+        <SettingsDescription>
+          Raw app settings and current board record, exactly as stored.
+        </SettingsDescription>
 
         <RawSection title="App settings" data={appData} exportName="app-settings" />
 
@@ -59,10 +57,11 @@ export default function RawSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
+    paddingBottom: 32,
+    gap: 24,
   },
 })

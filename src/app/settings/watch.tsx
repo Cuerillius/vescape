@@ -1,19 +1,19 @@
 import { Platform, StyleSheet, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import {
-  AngleIcon,
-  ClockCountdownIcon,
-  NavigationArrowIcon,
-  WatchIcon,
-} from 'phosphor-react-native'
+import IconAngle from '@tabler/icons-react-native/IconAngle'
+import IconClock from '@tabler/icons-react-native/IconClock'
+import IconDeviceWatch from '@tabler/icons-react-native/IconDeviceWatch'
+import IconNavigation from '@tabler/icons-react-native/IconNavigation'
 import { useShallow } from 'zustand/react/shallow'
 
 import { theme } from '@/constants/theme'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { Switch } from '@/components/controls/Switch'
-import { Stepper } from '@/components/forms/Stepper'
-import { IconHero } from '@/components/settings/IconHero'
+import { Stepper } from '@/components/ui/Stepper'
+import { Switch } from '@/components/ui/Switch'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 
 /**
@@ -46,11 +46,10 @@ export default function WatchSettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero icon={WatchIcon} description="Live telemetry on your watch while you ride." />
-        <SettingsCard>
-          <SettingsRow
-            icon={WatchIcon}
-            iconColor={theme.palette.amber.color}
+        <SettingsDescription>Live telemetry on your watch while you ride.</SettingsDescription>
+        <SettingsGroup title="Launch">
+          <SettingsLink
+            icon={IconDeviceWatch}
             label="Open on connect"
             hint={
               AUTO_LAUNCH_SUPPORTED
@@ -59,24 +58,28 @@ export default function WatchSettingsScreen() {
             }
             right={
               <Switch
+                accessibilityLabel="Open on connect"
                 value={AUTO_LAUNCH_SUPPORTED && wearAutoLaunchOnConnect}
                 disabled={!AUTO_LAUNCH_SUPPORTED}
                 onValueChange={(v) => void set('wearAutoLaunchOnConnect', v)}
               />
             }
           />
-          <SettingsRow
-            icon={ClockCountdownIcon}
-            iconColor={theme.palette.cyan.color}
+        </SettingsGroup>
+
+        <SettingsGroup title="Display">
+          <SettingsLink
+            icon={IconClock}
             label="Push rate"
             hint="Frames per second sent to the wrist. Higher = faster updates (stress test)"
             right={
               <Stepper
+                label="push rate"
                 value={wearPushRateHz}
                 unit="Hz"
                 min={1}
                 max={20}
-                step={() => 1}
+                step={1}
                 onChange={(nextValue) => {
                   const clampedValue = Math.min(20, Math.max(1, nextValue))
                   if (clampedValue !== wearPushRateHz) {
@@ -86,25 +89,28 @@ export default function WatchSettingsScreen() {
               />
             }
           />
-          <SettingsRow
-            icon={NavigationArrowIcon}
-            iconColor={theme.palette.violet.color}
+          <SettingsLink
+            icon={IconNavigation}
             label="Navigation arrow"
             hint="Draw the direction chevron over the route. Route and distance show either way"
             right={
               <Switch
+                accessibilityLabel="Navigation arrow"
                 value={wearNavArrowEnabled}
                 onValueChange={(v) => void set('wearNavArrowEnabled', v)}
               />
             }
           />
-          <SettingsRow
-            icon={AngleIcon}
-            iconColor={theme.palette.green.color}
+        </SettingsGroup>
+
+        <SettingsGroup title="Controls">
+          <SettingsLink
+            icon={IconAngle}
             label="Tilt speed"
             hint="How fast the watch Tilt stick changes tilt when pushed all the way"
             right={
               <Stepper
+                label="tilt speed"
                 value={wearTiltRatePercent}
                 unit="%/s"
                 min={TILT_RATE_MIN}
@@ -119,7 +125,7 @@ export default function WatchSettingsScreen() {
               />
             }
           />
-        </SettingsCard>
+        </SettingsGroup>
       </ScrollView>
     </SafeAreaView>
   )
@@ -128,10 +134,11 @@ export default function WatchSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
+    paddingBottom: 32,
+    gap: 24,
   },
 })

@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { DevBadge } from '@/modules/diagnostics/components/DevBadge'
 import { DiagnosticErrorBoundary } from '@/modules/diagnostics/DiagnosticErrorBoundary'
-import { HeaderBackButton } from '@/components/base/HeaderBackButton'
+import { useStackHeaderOptions } from '@/components/ui/useStackHeaderOptions'
 import { initSentry } from '@/config/sentry'
 import { stackScreens } from '@/navigation/routes'
 import { startAccessoryStateMirror } from '@/modules/accessories/store/accessoryStore'
@@ -45,9 +45,25 @@ import { startWeatherSync } from '@/modules/weather/store/weatherStore'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 import { ThemeController } from '@/modules/settings/components/ThemeController'
 import { useThemeStore } from '@/hooks/useTheme'
-import { neutralColors, theme } from '@/constants/theme'
 import { DeviceAuthSync } from '@/modules/profile/components/DeviceAuthSync'
 import { AppStorageFailureBanner } from '@/screens/AppStorageFailureBanner'
+
+const COMPONENT_SHOWCASE_PAGES = [
+  ['tokens', 'Tokens'],
+  ['primitives', 'Primitives'],
+  ['navbar', 'IconTab & ConnectButton'],
+  ['profile', 'Account & stats'],
+  ['profile-rides', 'Rides'],
+  ['history', 'Ride history'],
+  ['map', 'Zinc map & pins'],
+  ['map-marks', 'Map marks'],
+  ['metrics', 'Metrics & quick controls'],
+  ['dashboard', 'BatteryCard, SpeedRing & TuningCard'],
+  ['faults', 'VESC faults'],
+  ['alerts-battery', 'Alerts & battery'],
+  ['weather', 'Weather'],
+  ['chart', 'ChartStack'],
+] as const
 
 const clerkPublishableKey = requireClerkPublishableKey()
 
@@ -57,7 +73,7 @@ function requireClerkPublishableKey(): string {
   return key
 }
 
-// Keep the native splash visible until Raleway loads so there is no font-flash
+// Keep the native splash visible until Geist loads so there is no font-flash
 // on cold start. `expo-router` already prevents auto-hide; this makes the gate
 // explicit and ties `hideAsync()` to font readiness.
 void SplashScreen.preventAutoHideAsync()
@@ -72,19 +88,19 @@ function RootLayout() {
   const unitSystem = useSettingsStore((state) => state.unitSystem)
   const insets = useSafeAreaInsets()
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme)
-  const resolvedNeutral = neutralColors[resolvedTheme]
+  const headerOptions = useStackHeaderOptions()
   const [fontsLoaded, fontError] = useFonts({
-    'Raleway-300': require('../../assets/fonts/Raleway-300.ttf'),
-    'Raleway-400': require('../../assets/fonts/Raleway-400.ttf'),
-    'Raleway-500': require('../../assets/fonts/Raleway-500.ttf'),
-    'Raleway-600': require('../../assets/fonts/Raleway-600.ttf'),
-    'Raleway-700': require('../../assets/fonts/Raleway-700.ttf'),
-    'Raleway-800': require('../../assets/fonts/Raleway-800.ttf'),
-    'Raleway-900': require('../../assets/fonts/Raleway-900.ttf'),
-    'JetBrainsMono-500': require('../../assets/fonts/JetBrainsMono-500.ttf'),
-    'JetBrainsMono-600': require('../../assets/fonts/JetBrainsMono-600.ttf'),
-    'JetBrainsMono-700': require('../../assets/fonts/JetBrainsMono-700.ttf'),
-    'JetBrainsMono-800': require('../../assets/fonts/JetBrainsMono-800.ttf'),
+    'Geist-300': require('../../assets/fonts/Geist-300.ttf'),
+    'Geist-400': require('../../assets/fonts/Geist-400.ttf'),
+    'Geist-500': require('../../assets/fonts/Geist-500.ttf'),
+    'Geist-600': require('../../assets/fonts/Geist-600.ttf'),
+    'Geist-700': require('../../assets/fonts/Geist-700.ttf'),
+    'Geist-800': require('../../assets/fonts/Geist-800.ttf'),
+    'Geist-900': require('../../assets/fonts/Geist-900.ttf'),
+    'GeistTabular-500': require('../../assets/fonts/GeistTabular-500.ttf'),
+    'GeistTabular-600': require('../../assets/fonts/GeistTabular-600.ttf'),
+    'GeistTabular-700': require('../../assets/fonts/GeistTabular-700.ttf'),
+    'GeistTabular-800': require('../../assets/fonts/GeistTabular-800.ttf'),
   })
 
   useEffect(() => {
@@ -133,7 +149,7 @@ function RootLayout() {
     }
   }, [fixturesReady])
 
-  // Hold the splash until Raleway is ready (or fails to load). Returning null
+  // Hold the splash until Geist is ready (or fails to load). Returning null
   // keeps the native splash up without an unmount/mount churn.
   if (!fontsLoaded && !fontError) return null
   if (!fixturesReady) return null
@@ -152,19 +168,7 @@ function RootLayout() {
         <DiagnosticErrorBoundary>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemeController />
-            <Stack
-              screenOptions={{
-                headerStyle: { backgroundColor: resolvedNeutral.bg },
-                headerTintColor: resolvedNeutral.textPrimary,
-                headerTitleStyle: { fontFamily: theme.font('600'), fontSize: 14 },
-                headerTitleAlign: 'center',
-                headerShadowVisible: false,
-                headerLeft: () => <HeaderBackButton />,
-                headerLeftContainerStyle: { paddingLeft: 10 },
-                headerRightContainerStyle: { paddingRight: 10 },
-                cardStyle: { backgroundColor: resolvedNeutral.bg },
-              }}
-            >
+            <Stack screenOptions={headerOptions}>
               <Stack.Screen name={stackScreens.home} options={{ headerShown: false }} />
               <Stack.Screen name={stackScreens.profileStats} options={{ title: 'Profile stats' }} />
               {/* Clerk's own dismiss control is off (its native header carries system
@@ -181,10 +185,13 @@ function RootLayout() {
                 name={stackScreens.settingsComponents}
                 options={{ title: 'Components' }}
               />
-              <Stack.Screen
-                name={stackScreens.settingsComponentsTheme}
-                options={{ title: 'Theme foundations' }}
-              />
+              {COMPONENT_SHOWCASE_PAGES.map(([name, title]) => (
+                <Stack.Screen
+                  key={name}
+                  name={`${stackScreens.settingsComponents}/${name}`}
+                  options={{ title }}
+                />
+              ))}
               <Stack.Screen
                 name={stackScreens.settingsNavigationDiagnostic}
                 options={{ title: 'Navigation diagnostics' }}
@@ -219,8 +226,9 @@ function RootLayout() {
               <Stack.Screen name={stackScreens.settingsWatch} options={{ title: 'Watch' }} />
               <Stack.Screen name={stackScreens.settingsHistory} options={{ title: 'History' }} />
               <Stack.Screen name={stackScreens.settingsGraphs} options={{ title: 'Graphs' }} />
-              <Stack.Screen name={stackScreens.settingsDatabase} options={{ title: 'Database' }} />
+              <Stack.Screen name={stackScreens.settingsDatabase} options={{ title: 'Storage' }} />
               <Stack.Screen name={stackScreens.settingsAbout} options={{ title: 'About us' }} />
+              <Stack.Screen name={stackScreens.settingsLegal} options={{ title: 'Legal' }} />
               <Stack.Screen
                 name={stackScreens.settingsReleaseNotes}
                 options={{ title: 'Release notes' }}
@@ -230,8 +238,13 @@ function RootLayout() {
                 options={{ title: 'Camera playground' }}
               />
               <Stack.Screen name={stackScreens.historyCharts} options={{ headerShown: false }} />
+              <Stack.Screen
+                name={stackScreens.controlBatteryCells}
+                options={{ title: 'Cell balance' }}
+              />
               <Stack.Screen name={stackScreens.controlBatteryRaw} options={{ title: 'Raw BMS' }} />
-              <Stack.Screen name={stackScreens.tune} options={{ title: 'Tune' }} />
+              <Stack.Screen name={stackScreens.tune} options={{ title: 'Tunes' }} />
+              <Stack.Screen name={stackScreens.tuneEdit} options={{ title: 'Tune' }} />
               <Stack.Screen name={stackScreens.tuneHistory} options={{ title: 'Tune History' }} />
               <Stack.Screen name={stackScreens.addBoardScan} options={{ title: 'Pair Board' }} />
               <Stack.Screen name={stackScreens.addBoard} options={{ title: 'Add Board' }} />
@@ -242,6 +255,7 @@ function RootLayout() {
                 options={{ title: 'Board Config' }}
               />
               <Stack.Screen name={stackScreens.accessories} options={{ title: 'Accessories' }} />
+              <Stack.Screen name={stackScreens.alerts} options={{ title: 'Alerts' }} />
               <Stack.Screen
                 name={stackScreens.accessoryScan}
                 options={{ title: 'Add Accessory' }}

@@ -39,10 +39,13 @@ export default function IndexRoute() {
         boards={connection.boards}
         boardsLoaded={boardsLoaded}
         bleStatus={connection.bleStatus}
+        recordingState={connection.recordingState}
         onStopScan={connection.handleCancel}
         onRetryConnect={connection.handleRetryConnect}
-        onSelectBoard={(id) => void connection.handleSelectBoard(id)}
+        onConnectBoard={(id) => void connection.handleConnectBoard(id)}
         onAddBoard={connection.handleAddBoard}
+        onEndRide={connection.handleEndRide}
+        onStartRecording={connection.handleStartRecording}
       />
     </View>
   )
@@ -51,6 +54,6 @@ export default function IndexRoute() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
 })

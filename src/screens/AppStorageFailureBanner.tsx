@@ -33,6 +33,6 @@ const styles = StyleSheet.create({
     zIndex: 200,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: theme.neutral.surface,
+    backgroundColor: theme.ui.card,
   },
 })

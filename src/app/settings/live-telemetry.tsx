@@ -1,13 +1,17 @@
-import { StyleSheet, ScrollView } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ClockCountdownIcon, GaugeIcon, WaveformIcon } from 'phosphor-react-native'
+import IconClock from '@tabler/icons-react-native/IconClock'
+import IconGauge from '@tabler/icons-react-native/IconGauge'
+import IconWaveSine from '@tabler/icons-react-native/IconWaveSine'
 import { useShallow } from 'zustand/react/shallow'
 
 import { theme } from '@/constants/theme'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { Stepper } from '@/components/forms/Stepper'
-import { IconHero } from '@/components/settings/IconHero'
+import { Stepper } from '@/components/ui/Stepper'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 
 export default function LiveTelemetrySettingsScreen() {
@@ -23,21 +27,22 @@ export default function LiveTelemetrySettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={GaugeIcon}
-          description="Control live graph history, telemetry request rate, and battery display smoothing."
-        />
-        <SettingsCard>
-          <SettingsRow
-            icon={ClockCountdownIcon}
-            iconColor={theme.palette.sky.color}
+        <SettingsDescription>
+          Control live graph history, telemetry request rate, and battery display smoothing.
+        </SettingsDescription>
+        <SettingsGroup title="Graphs">
+          <SettingsLink
+            icon={IconClock}
             label="Live history limit"
             hint="Minutes of telemetry visible in live graphs"
             right={
               <Stepper
+                label="live history limit"
                 value={liveHistoryLimit}
+                unit="m"
                 min={1}
                 max={50}
+                step={1}
                 onChange={(nextValue) => {
                   const clampedValue = Math.min(50, Math.max(1, nextValue))
                   if (clampedValue !== liveHistoryLimit) {
@@ -47,13 +52,16 @@ export default function LiveTelemetrySettingsScreen() {
               />
             }
           />
-          <SettingsRow
-            icon={GaugeIcon}
-            iconColor={theme.palette.green.color}
+        </SettingsGroup>
+
+        <SettingsGroup title="Board link">
+          <SettingsLink
+            icon={IconGauge}
             label="Telemetry rate limit"
             hint="Caps telemetry requests per second. 0 = unlimited"
             right={
               <Stepper
+                label="telemetry rate limit"
                 value={telemetryPollRateHz}
                 unit="Hz"
                 min={0}
@@ -68,13 +76,16 @@ export default function LiveTelemetrySettingsScreen() {
               />
             }
           />
-          <SettingsRow
-            icon={WaveformIcon}
-            iconColor={theme.palette.purple.color}
+        </SettingsGroup>
+
+        <SettingsGroup title="Battery">
+          <SettingsLink
+            icon={IconWaveSine}
             label="Battery smoothing"
             hint="Median window steadies battery % for display and alerts. 0 = off"
             right={
               <Stepper
+                label="battery smoothing"
                 value={socEstimateWindowSeconds}
                 unit="s"
                 min={0}
@@ -89,7 +100,7 @@ export default function LiveTelemetrySettingsScreen() {
               />
             }
           />
-        </SettingsCard>
+        </SettingsGroup>
       </ScrollView>
     </SafeAreaView>
   )
@@ -98,10 +109,11 @@ export default function LiveTelemetrySettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
+    paddingBottom: 32,
+    gap: 24,
   },
 })

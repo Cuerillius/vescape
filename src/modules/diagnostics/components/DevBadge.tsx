@@ -1,23 +1,30 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DevSettings, Pressable, StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated'
+import { isReplayBoardId } from 'vescape-core'
 import * as Updates from 'expo-updates'
-import {
-  ArrowsClockwiseIcon,
-  CameraRotateIcon,
-  EyeSlashIcon,
-  ListBulletsIcon,
-  RecordIcon,
-  SwatchesIcon,
-  ToolboxIcon,
-  type Icon,
-} from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
+import IconCameraRotate from '@tabler/icons-react-native/IconCameraRotate'
+import IconComponents from '@tabler/icons-react-native/IconComponents'
+import IconEyeOff from '@tabler/icons-react-native/IconEyeOff'
+import IconList from '@tabler/icons-react-native/IconList'
+import IconPlayerRecord from '@tabler/icons-react-native/IconPlayerRecord'
+import IconRefresh from '@tabler/icons-react-native/IconRefresh'
+import IconTool from '@tabler/icons-react-native/IconTool'
 
 import { Text } from '@/components/base/Text'
 import { isDevelopmentApp } from '@/config/appVariant'
 import { showDevControls } from '@/config/env'
 import { accentColors, theme } from '@/constants/theme'
 import { useBleStore } from '@/modules/board/store/bleStore'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { routes } from '@/navigation/routes'
 
 const DEV_BADGE_HIDE_MS = 60_000
@@ -27,26 +34,22 @@ const DEV_PAGE_SHORTCUTS = [
   {
     label: 'Components library',
     route: routes.settingsComponents,
-    icon: SwatchesIcon,
-    iconColor: theme.palette.purple.color,
+    icon: IconComponents,
   },
   {
     label: 'Debug recordings',
     route: routes.settingsDebugRecordings,
-    icon: RecordIcon,
-    iconColor: theme.status.warning.color,
+    icon: IconPlayerRecord,
   },
   {
     label: 'Camera playground',
     route: routes.devMapPlayground,
-    icon: CameraRotateIcon,
-    iconColor: theme.palette.violet.color,
+    icon: IconCameraRotate,
   },
   {
     label: 'Other',
     route: routes.settingsOther,
-    icon: ToolboxIcon,
-    iconColor: theme.palette.amber.color,
+    icon: IconTool,
   },
 ] as const
 
@@ -64,6 +67,8 @@ export function DevBadge() {
   const [expanded, setExpanded] = useState(false)
   const recordDebugSession = useBleStore((state) => state.recordDebugSession)
   const setRecordDebugSession = useBleStore((state) => state.setRecordDebugSession)
+  const replaying = useBleStore((state) => isReplayBoardId(state.connectedId))
+  const shortcutIconColor = useResolvedColor(theme.ui.mutedForeground)
   if (!isDevelopmentApp || !showDevControls) return null
 
   if (hidden) return null
@@ -99,6 +104,7 @@ export function DevBadge() {
         accessibilityState={{ expanded }}
       >
         <View style={styles.badge}>
+          {replaying ? <ReplayDot /> : null}
           <Text style={styles.text}>dev</Text>
         </View>
       </Pressable>
@@ -114,13 +120,13 @@ export function DevBadge() {
                 accessibilityRole="button"
                 accessibilityLabel={shortcut.label}
               >
-                <shortcut.icon size={20} color={shortcut.iconColor} weight="duotone" />
+                <shortcut.icon size={20} color={shortcutIconColor} />
               </Pressable>
             ))}
           </View>
           <View style={styles.divider} />
           <MenuAction
-            icon={ListBulletsIcon}
+            icon={IconList}
             label="Event log"
             onPress={() => {
               setExpanded(false)
@@ -128,21 +134,28 @@ export function DevBadge() {
             }}
           />
           <MenuAction
-            icon={RecordIcon}
+            icon={IconPlayerRecord}
             label="Debug recording"
             active={recordDebugSession}
             onPress={() => setRecordDebugSession(!recordDebugSession)}
           />
-          <MenuAction
-            icon={ArrowsClockwiseIcon}
-            label="Reload app"
-            onPress={() => void reloadRuntime()}
-          />
-          <MenuAction icon={EyeSlashIcon} label="Hide for 1 minute" onPress={hide} />
+          <MenuAction icon={IconRefresh} label="Reload app" onPress={() => void reloadRuntime()} />
+          <MenuAction icon={IconEyeOff} label="Hide for 1 minute" onPress={hide} />
         </View>
       ) : null}
     </View>
   )
+}
+
+/** Pulses in the pill while a Debug Recording replay is the active Board Session. */
+function ReplayDot() {
+  const opacity = useSharedValue(1)
+  useEffect(() => {
+    opacity.value = withRepeat(withTiming(0.25, { duration: 700 }), -1, true)
+    return () => cancelAnimation(opacity)
+  }, [opacity])
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }))
+  return <Animated.View testID="replay-dot" style={[styles.replayDot, style]} />
 }
 
 function MenuAction({
@@ -156,6 +169,7 @@ function MenuAction({
   onPress: () => void
   active?: boolean
 }) {
+  const idleColor = useResolvedColor(theme.ui.mutedForeground)
   return (
     <Pressable
       style={({ pressed }) => [styles.action, pressed && styles.pressed]}
@@ -164,11 +178,7 @@ function MenuAction({
       accessibilityLabel={label}
       accessibilityState={active === undefined ? undefined : { checked: active }}
     >
-      <IconComponent
-        size={16}
-        color={active ? theme.status.warning.color : theme.palette.slate.textSecondary}
-        weight={active ? 'fill' : 'duotone'}
-      />
+      <IconComponent size={16} color={active ? theme.status.warning.color : idleColor} />
       <Text style={styles.actionText}>{label}</Text>
       {active === undefined ? null : <View style={[styles.dot, active && styles.dotActive]} />}
     </Pressable>
@@ -181,16 +191,25 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
   },
-  // Dev-only chrome that floats over the map, so it takes one fixed appearance rather than the
-  // adaptive warning tokens: those resolve fill and text against different configurations on
-  // Android and left pale text on a pale fill.
+  // The pill floats over the map, so it takes one fixed orange rather than the adaptive warning
+  // tokens: those resolve fill and text against different configurations on Android and left
+  // pale text on a pale fill.
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderWidth: 1,
     borderColor: accentColors.dark.orange.color,
     borderRadius: 999,
     backgroundColor: accentColors.dark.orange.solid,
+  },
+  replayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: accentColors.dark.orange.onSolid,
   },
   hitArea: {
     paddingVertical: 8,
@@ -211,9 +230,9 @@ const styles = StyleSheet.create({
     padding: 8,
     gap: 2,
     borderWidth: 1,
-    borderColor: theme.palette.slate.border,
-    borderRadius: 12,
-    backgroundColor: theme.palette.slate.surface,
+    borderColor: theme.ui.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.ui.card,
   },
   shortcuts: {
     flexDirection: 'row',
@@ -222,29 +241,29 @@ const styles = StyleSheet.create({
   shortcut: {
     width: 42,
     height: 42,
-    borderRadius: 9,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.palette.slate.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   divider: {
-    height: StyleSheet.hairlineWidth,
+    height: StyleSheet.hairlineWidth * 2,
     marginVertical: 4,
-    backgroundColor: theme.palette.slate.border,
+    backgroundColor: theme.ui.border,
   },
   action: {
     minHeight: 36,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   pressed: {
-    backgroundColor: theme.palette.slate.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   actionText: {
-    color: theme.palette.slate.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -253,7 +272,7 @@ const styles = StyleSheet.create({
     height: 8,
     marginLeft: 'auto',
     borderRadius: 999,
-    backgroundColor: theme.palette.slate.border,
+    backgroundColor: theme.ui.border,
   },
   dotActive: {
     backgroundColor: theme.status.warning.color,

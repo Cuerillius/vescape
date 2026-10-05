@@ -1,22 +1,21 @@
 import { useState } from 'react'
 import { Alert, Linking, Platform, ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import {
-  BluetoothConnectedIcon,
-  ClockCountdownIcon,
-  PowerIcon,
-  RecordIcon,
-} from 'phosphor-react-native'
+import IconBluetoothConnected from '@tabler/icons-react-native/IconBluetoothConnected'
+import IconClock from '@tabler/icons-react-native/IconClock'
+import IconPlayerRecord from '@tabler/icons-react-native/IconPlayerRecord'
+import IconPower from '@tabler/icons-react-native/IconPower'
 import { useShallow } from 'zustand/react/shallow'
 
 import { theme } from '@/constants/theme'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { Switch } from '@/components/controls/Switch'
-import { Stepper } from '@/components/forms/Stepper'
-import { IconHero } from '@/components/settings/IconHero'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
-import { ConfirmModal } from '@/components/modals/ConfirmModal'
+import { Stepper } from '@/components/ui/Stepper'
+import { Switch } from '@/components/ui/Switch'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useBleStore } from '@/modules/board/store/bleStore'
 import { useBoardStore } from '@/modules/board/store/boardStore'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
@@ -149,13 +148,12 @@ export default function AutomationSettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={BluetoothConnectedIcon}
-          description="Choose how the app wakes up, connects to your board, and reacts when the board connects."
-        />
-
+        <SettingsDescription>
+          Choose how the app wakes up, connects to your board, and reacts when the board connects.
+        </SettingsDescription>
         {Platform.OS === 'android' ? (
           <AutoStartCard
+            title="App lifecycle"
             enabled={companionPresenceEnabled}
             boards={linkedBoards}
             armedBoardIds={companionPresenceBoards.map((board) => board.boardId)}
@@ -170,14 +168,64 @@ export default function AutomationSettingsScreen() {
                 void set('companionPresenceCooldownMinutes', minutes)
               }
             }}
-          />
+          >
+            <SettingsLink
+              icon={IconPower}
+              label="Auto close app"
+              hint="Close the app when the board stays disconnected"
+              right={
+                <Switch
+                  accessibilityLabel="Auto close app"
+                  value={autoCloseEnabled}
+                  onValueChange={(v) => void set('autoCloseEnabled', v)}
+                />
+              }
+            />
+            {autoCloseEnabled ? (
+              <SettingsLink
+                icon={IconClock}
+                label="Close after"
+                hint="Time without a board connection before the app closes itself"
+                right={
+                  <Stepper
+                    label="auto close delay"
+                    value={autoCloseDelayMinutes}
+                    unit="m"
+                    min={1}
+                    max={480}
+                    step={(v, dir) =>
+                      dir === 1
+                        ? v < 5
+                          ? 1
+                          : v < 20
+                            ? 5
+                            : v < 60
+                              ? 10
+                              : 30
+                        : v <= 5
+                          ? 1
+                          : v <= 20
+                            ? 5
+                            : v <= 60
+                              ? 10
+                              : 30
+                    }
+                    onChange={(nextValue) => {
+                      const clampedValue = Math.min(480, Math.max(1, nextValue))
+                      if (clampedValue !== autoCloseDelayMinutes) {
+                        void set('autoCloseDelayMinutes', clampedValue)
+                      }
+                    }}
+                  />
+                }
+              />
+            ) : null}
+          </AutoStartCard>
         ) : null}
 
-        <SettingsSectionTitle>Connection</SettingsSectionTitle>
-        <SettingsCard>
-          <SettingsRow
-            icon={BluetoothConnectedIcon}
-            iconColor={theme.palette.cyan.color}
+        <SettingsGroup title="Connection">
+          <SettingsLink
+            icon={IconBluetoothConnected}
             label="Auto connect"
             hint={
               companionPresenceEnabled
@@ -186,84 +234,28 @@ export default function AutomationSettingsScreen() {
             }
             right={
               <Switch
+                accessibilityLabel="Auto connect"
                 value={autoConnect}
                 disabled={companionPresenceEnabled}
                 onValueChange={(v) => void set('autoConnect', v)}
               />
             }
           />
-          <SettingsRow
-            icon={RecordIcon}
-            iconWeight="fill"
-            iconColor={theme.status.error.color}
+          <SettingsLink
+            icon={IconPlayerRecord}
             label="Auto recording"
             hint="Start recording when board connects"
             right={
-              <Switch value={autoRecording} onValueChange={(v) => void set('autoRecording', v)} />
+              <Switch
+                accessibilityLabel="Auto recording"
+                value={autoRecording}
+                onValueChange={(v) => void set('autoRecording', v)}
+              />
             }
           />
-        </SettingsCard>
-
-        {Platform.OS === 'android' ? (
-          <>
-            <SettingsSectionTitle>Shutdown</SettingsSectionTitle>
-            <SettingsCard>
-              <SettingsRow
-                icon={PowerIcon}
-                iconColor={theme.palette.orange.color}
-                label="Auto close app"
-                hint="Close the app when the board stays disconnected"
-                right={
-                  <Switch
-                    value={autoCloseEnabled}
-                    onValueChange={(v) => void set('autoCloseEnabled', v)}
-                  />
-                }
-              />
-              {autoCloseEnabled ? (
-                <SettingsRow
-                  icon={ClockCountdownIcon}
-                  iconColor={theme.palette.orange.color}
-                  label="Close after"
-                  hint="Time without a board connection before the app closes itself"
-                  right={
-                    <Stepper
-                      value={autoCloseDelayMinutes}
-                      unit="min"
-                      min={1}
-                      max={480}
-                      step={(v, dir) =>
-                        dir === 1
-                          ? v < 5
-                            ? 1
-                            : v < 20
-                              ? 5
-                              : v < 60
-                                ? 10
-                                : 30
-                          : v <= 5
-                            ? 1
-                            : v <= 20
-                              ? 5
-                              : v <= 60
-                                ? 10
-                                : 30
-                      }
-                      onChange={(nextValue) => {
-                        const clampedValue = Math.min(480, Math.max(1, nextValue))
-                        if (clampedValue !== autoCloseDelayMinutes) {
-                          void set('autoCloseDelayMinutes', clampedValue)
-                        }
-                      }}
-                    />
-                  }
-                />
-              ) : null}
-            </SettingsCard>
-          </>
-        ) : null}
+        </SettingsGroup>
       </ScrollView>
-      <ConfirmModal
+      <ConfirmDialog
         visible={disconnectPrompt}
         title="Board will disconnect"
         message={
@@ -276,12 +268,12 @@ export default function AutomationSettingsScreen() {
           setDisconnectPrompt(false)
           if (pendingBoardId) void continueEnable(pendingBoardId)
         }}
-        onCancel={() => {
+        onDismiss={() => {
           setDisconnectPrompt(false)
           setPendingBoardId(null)
         }}
       />
-      <ConfirmModal
+      <ConfirmDialog
         visible={bgLocationPrompt}
         title="Allow location all the time"
         message={
@@ -291,8 +283,8 @@ export default function AutomationSettingsScreen() {
         }
         confirmLabel="Continue"
         cancelLabel="Not now"
-        onConfirm={onBgLocationConfirm}
-        onCancel={() => setBgLocationPrompt(false)}
+        onConfirm={() => void onBgLocationConfirm()}
+        onDismiss={() => setBgLocationPrompt(false)}
       />
     </SafeAreaView>
   )
@@ -301,10 +293,11 @@ export default function AutomationSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
+    paddingBottom: 32,
+    gap: 24,
   },
 })

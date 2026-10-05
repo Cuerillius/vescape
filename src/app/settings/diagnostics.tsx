@@ -1,20 +1,20 @@
 import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import {
-  EngineIcon,
-  ListIcon,
-  MapPinIcon,
-  NavigationArrowIcon,
-  WarningDiamondIcon,
-} from 'phosphor-react-native'
+import IconAlertTriangle from '@tabler/icons-react-native/IconAlertTriangle'
+import IconEngine from '@tabler/icons-react-native/IconEngine'
+import IconList from '@tabler/icons-react-native/IconList'
+import IconMapPin from '@tabler/icons-react-native/IconMapPin'
+import IconNavigation from '@tabler/icons-react-native/IconNavigation'
 
 import { routes } from '@/navigation/routes'
 import { theme } from '@/constants/theme'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { Switch } from '@/components/controls/Switch'
-import { IconHero } from '@/components/settings/IconHero'
+import { Switch } from '@/components/ui/Switch'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 
 export default function DiagnosticsSettingsScreen() {
@@ -26,63 +26,63 @@ export default function DiagnosticsSettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={EngineIcon}
-          description="Board health checks that watch telemetry and flag problems while you ride, plus live GPS and heading evidence."
-        />
-
-        <SettingsCard>
-          <SettingsRow
-            icon={EngineIcon}
-            iconColor={theme.status.warning.color}
+        <SettingsDescription>
+          Board health checks that watch telemetry and flag problems while you ride, plus live GPS
+          and heading evidence.
+        </SettingsDescription>
+        <SettingsGroup title="Detection">
+          <SettingsLink
+            icon={IconEngine}
             label="Board warnings"
             hint="Master switch — off stops all detection and hides warnings"
             right={
               <Switch
+                accessibilityLabel="Board warnings"
                 value={boardWarningsEnabled}
                 onValueChange={(v) => void set('boardWarningsEnabled', v)}
               />
             }
           />
-          <SettingsRow
-            icon={WarningDiamondIcon}
-            iconColor={theme.status.caution.color}
+          <SettingsLink
+            icon={IconAlertTriangle}
             label="VESC fault collection"
             hint="Record live Refloat faults. Controller log loads when the fault drawer opens"
             right={
               <Switch
+                accessibilityLabel="VESC fault collection"
                 value={vescFaultCollectionEnabled}
                 onValueChange={(v) => void set('vescFaultCollectionEnabled', v)}
               />
             }
           />
-          <SettingsRow
-            icon={MapPinIcon}
-            iconColor={theme.palette.yellow.color}
+          <SettingsLink
+            icon={IconMapPin}
             label="Ride markers on map"
             hint="Show pause, connection, error, and gap markers on history routes"
             right={
               <Switch
+                accessibilityLabel="Ride markers on map"
                 value={showHistoryMapMarkers}
                 onValueChange={(v) => void set('showHistoryMapMarkers', v)}
               />
             }
           />
-          <SettingsRow
-            icon={ListIcon}
-            iconColor={theme.palette.cyan.color}
+        </SettingsGroup>
+
+        <SettingsGroup title="Inspect">
+          <SettingsLink
+            icon={IconList}
             label="Event log"
             hint="Browse locally persisted diagnostic events"
             onPress={() => router.push(routes.settingsDiagnosticEvents)}
           />
-          <SettingsRow
-            icon={NavigationArrowIcon}
-            iconColor={theme.palette.sky.color}
+          <SettingsLink
+            icon={IconNavigation}
             label="Navigation diagnostics"
             hint="Live map heading, GPS, and fallback evidence"
             onPress={() => router.push(routes.settingsNavigationDiagnostic)}
           />
-        </SettingsCard>
+        </SettingsGroup>
       </ScrollView>
     </SafeAreaView>
   )
@@ -91,10 +91,11 @@ export default function DiagnosticsSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
+    paddingBottom: 32,
+    gap: 24,
   },
 })
