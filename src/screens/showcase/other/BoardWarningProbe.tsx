@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import {
   clearAllBoardWarnings,
   devInjectBoardWarning,
@@ -7,9 +7,11 @@ import {
 import { useCallback } from 'react'
 
 import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
 import { theme } from '@/constants/theme'
 import { useBoardStore } from '@/modules/board/store/boardStore'
 import { EMPTY_WARNINGS, useBoardWarningsStore } from '@/modules/board/store/boardWarningsStore'
+import { ProbeHint, ProbeSection, probeStyles } from '@/screens/showcase/other/ProbeSection'
 
 /** Fake kind used by the dev warning injector; real detector kinds land in later slices. */
 const DEV_WARNING_KIND = 'cell-spread'
@@ -44,121 +46,63 @@ export function BoardWarningProbe() {
   }, [warningBoardId])
 
   return (
-    <>
-      <Text style={styles.sectionTitle}>Board Warnings</Text>
-      <View style={styles.card}>
-        <Text style={styles.ttsHint}>
-          Injects a fake warning through the native registry (fire → persist → emit). Target board:{' '}
-          {warningBoardId}
-        </Text>
-        <View style={styles.warningButtonRow}>
-          <Pressable
-            style={[styles.warningButton, styles.warningButtonWarn]}
-            onPress={() => injectWarning('warn')}
-          >
-            <Text style={styles.warningButtonText}>Inject warn</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.warningButton, styles.warningButtonCritical]}
-            onPress={() => injectWarning('critical')}
-          >
-            <Text style={styles.warningButtonText}>Inject critical</Text>
-          </Pressable>
-        </View>
-        <View style={styles.warningButtonRow}>
-          <Pressable style={styles.warningButton} onPress={reportClean}>
-            <Text style={styles.warningButtonText}>Report clean</Text>
-          </Pressable>
-          <Pressable style={styles.warningButton} onPress={clearWarnings}>
-            <Text style={styles.warningButtonText}>Clear all</Text>
-          </Pressable>
-        </View>
-        {boardWarnings.length === 0 ? (
-          <Text style={styles.warningEmpty}>No warnings (mirror store empty)</Text>
-        ) : (
-          boardWarnings.map((warning) => (
-            <View key={warning.kind} style={styles.warningRow}>
-              <Text style={styles.warningRowKind}>
-                {warning.kind} · {warning.severity}
-              </Text>
-              <Text style={styles.warningRowPayload} numberOfLines={1}>
-                {warning.payloadJson}
-              </Text>
-            </View>
-          ))
-        )}
+    <ProbeSection title="Board warnings">
+      <ProbeHint>
+        Injects a fake warning through the native registry (fire → persist → emit). Target board:{' '}
+        {warningBoardId}
+      </ProbeHint>
+      <View style={probeStyles.row}>
+        <Button
+          label="Inject warn"
+          color={theme.status.warning.color}
+          style={probeStyles.fill}
+          onPress={() => injectWarning('warn')}
+        />
+        <Button
+          label="Inject critical"
+          color={theme.status.error.color}
+          style={probeStyles.fill}
+          onPress={() => injectWarning('critical')}
+        />
       </View>
-    </>
+      <View style={probeStyles.row}>
+        <Button label="Report clean" style={probeStyles.fill} onPress={reportClean} />
+        <Button label="Clear all" style={probeStyles.fill} onPress={clearWarnings} />
+      </View>
+      {boardWarnings.length === 0 ? (
+        <Text style={styles.empty}>No warnings (mirror store empty)</Text>
+      ) : (
+        boardWarnings.map((warning) => (
+          <View key={warning.kind} style={styles.warning}>
+            <Text style={styles.kind}>
+              {warning.kind} · {warning.severity}
+            </Text>
+            <Text style={styles.payload} numberOfLines={1}>
+              {warning.payloadJson}
+            </Text>
+          </View>
+        ))
+      )}
+    </ProbeSection>
   )
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: {
-    color: theme.neutral.textMuted,
+  empty: {
+    color: theme.ui.faintForeground,
     fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 8,
-    marginBottom: 4,
-    marginLeft: 4,
   },
-  card: {
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    overflow: 'hidden',
-    padding: 14,
-  },
-  ttsHint: {
-    color: theme.neutral.textDim,
-    fontSize: 11,
-    marginBottom: 10,
-    lineHeight: 16,
-  },
-  warningButtonRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-  },
-  warningButton: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: theme.neutral.surfaceDeep,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    borderRadius: 8,
-    paddingVertical: 12,
-  },
-  warningButtonWarn: {
-    borderColor: theme.status.warning.color,
-  },
-  warningButtonCritical: {
-    borderColor: theme.status.error.color,
-  },
-  warningButtonText: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  warningEmpty: {
-    color: theme.neutral.textDim,
-    fontSize: 12,
-    marginTop: 12,
-  },
-  warningRow: {
-    marginTop: 12,
+  warning: {
     gap: 2,
   },
-  warningRowKind: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '700',
+  kind: {
+    color: theme.ui.foreground,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  warningRowPayload: {
-    color: theme.neutral.textDim,
-    fontSize: 11,
+  payload: {
+    color: theme.ui.mutedForeground,
+    fontSize: 12,
     fontFamily: 'monospace',
   },
 })

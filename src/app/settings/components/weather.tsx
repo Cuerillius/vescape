@@ -1,19 +1,20 @@
-import { ScrollView, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useState } from 'react'
-
-import { CloudMoonIcon } from 'phosphor-react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import IconCloudStorm from '@tabler/icons-react-native/IconCloudStorm'
 import type { WeatherHour, WeatherIconSlug } from 'vescape-core'
-import { WeatherIcon } from '@/modules/weather/components/WeatherIcon'
-import { WeatherStat } from '@/modules/weather/components/WeatherStat'
-import { WeatherPill } from '@/modules/weather/components/WeatherPillView'
-import { WeatherHourlyStrip } from '@/modules/weather/components/WeatherHourlyStripView'
-import { IconHero } from '@/components/settings/IconHero'
-import { ShowcaseCard } from '@/components/dev/ShowcaseCard'
-import { ChipRow, ToggleRow } from '@/components/dev/ShowcaseControls'
-import { weatherIconColor } from '@/modules/weather/lib/weather'
+
+import { Text } from '@/components/base/Text'
+import { NewComponentHero } from '@/components/dev/NewComponentHero'
+import { NewShowcaseCard } from '@/components/dev/NewShowcaseCard'
+import { NewChipRow, NewToggleRow } from '@/components/dev/NewShowcaseControls'
 import { theme } from '@/constants/theme'
+import {
+  WeatherGlyph,
+  WeatherHourlyStrip,
+  WeatherPill,
+  WeatherStat,
+} from '@/modules/weather/components/WeatherViews'
 
 /** Every slug native can resolve, so the showcase covers the whole contract. */
 const ICONS: WeatherIconSlug[] = [
@@ -40,142 +41,107 @@ const LABELS: Record<WeatherIconSlug, string> = {
   'cloud-lightning': 'Thunderstorm',
 }
 
-const MOCK_SUNRISE_MINUTE = 5 * 60 + 12
-const MOCK_SUNSET_MINUTE = 21 * 60 + 34
+const SUNRISE_MINUTE = 5 * 60 + 12
+const SUNSET_MINUTE = 21 * 60 + 34
 
-const MOCK_HOURLY: WeatherHour[] = [
-  {
-    minuteOfDay: 14 * 60,
-    temperatureC: 21,
-    weatherCode: 0,
-    icon: 'sun',
-    precipitationProbability: 0,
-  },
-  {
-    minuteOfDay: 15 * 60,
-    temperatureC: 22,
-    weatherCode: 1,
-    icon: 'cloud-sun',
-    precipitationProbability: 10,
-  },
-  {
-    minuteOfDay: 16 * 60,
-    temperatureC: 20,
-    weatherCode: 61,
-    icon: 'cloud-rain',
-    precipitationProbability: 60,
-  },
-  {
-    minuteOfDay: 17 * 60,
-    temperatureC: 18,
-    weatherCode: 95,
-    icon: 'cloud-lightning',
-    precipitationProbability: 80,
-  },
-  {
-    minuteOfDay: 18 * 60,
-    temperatureC: 17,
-    weatherCode: 3,
-    icon: 'cloud',
-    precipitationProbability: 30,
-  },
-  {
-    minuteOfDay: 22 * 60,
-    temperatureC: 13,
-    weatherCode: 1,
-    icon: 'cloud-moon',
-    precipitationProbability: 0,
-  },
+const HOURS: [number, number, WeatherIconSlug, number][] = [
+  [14, 21, 'sun', 0],
+  [15, 22, 'cloud-sun', 10],
+  [16, 20, 'cloud-rain', 60],
+  [17, 18, 'cloud-lightning', 80],
+  [18, 17, 'cloud', 30],
+  [22, 13, 'cloud-moon', 0],
 ]
 
-export default function WeatherPage() {
-  const [icon, setIcon] = useState<WeatherIconSlug>('sun')
+const MOCK_HOURLY: WeatherHour[] = HOURS.map(([hour, temperatureC, icon, probability]) => ({
+  minuteOfDay: hour * 60,
+  temperatureC,
+  weatherCode: 0,
+  icon,
+  precipitationProbability: probability,
+}))
+
+export default function NewWeatherShowcase() {
+  const [icon, setIcon] = useState<WeatherIconSlug>('cloud-rain')
   const [precip, setPrecip] = useState(true)
-  const [expanded, setExpanded] = useState(false)
-
+  const [expanded, setExpanded] = useState(true)
   const precipProbability = precip ? 40 : 0
-  const iconColor = weatherIconColor(icon)
-
-  const sharedControls = (
-    <>
-      <ChipRow
-        label="condition"
-        options={ICONS}
-        selected={icon}
-        onSelect={(slug) => setIcon(slug as WeatherIconSlug)}
-      />
-      <ToggleRow label="precipitation" value={precip} onToggle={setPrecip} />
-    </>
-  )
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero icon={CloudMoonIcon} description="Weather icons, stat, pill, and hourly strip." />
+        <NewComponentHero
+          icon={IconCloudStorm}
+          description="Condition glyphs, stat, pill and hourly strip, redrawn in Tabler on the zinc theme."
+        />
 
-        <ShowcaseCard name="WeatherIcon" controls={sharedControls}>
-          <View style={styles.iconPreview}>
-            <WeatherIcon icon={icon} size={48} color={iconColor} weight="duotone" />
+        <NewShowcaseCard
+          name="WeatherGlyph"
+          controls={
+            <>
+              <NewChipRow
+                label="condition"
+                options={ICONS}
+                selected={icon}
+                onSelect={(slug) => setIcon(slug as WeatherIconSlug)}
+              />
+              <NewToggleRow label="precipitation" value={precip} onChange={setPrecip} />
+            </>
+          }
+        >
+          <View style={styles.row}>
+            <WeatherGlyph icon={icon} size={32} tile />
             <View>
-              <Text style={styles.metaPrimary}>{icon}</Text>
-              <Text style={styles.metaSecondary}>{LABELS[icon]}</Text>
+              <Text style={styles.primary}>{icon}</Text>
+              <Text style={styles.secondary}>{LABELS[icon]}</Text>
             </View>
           </View>
-        </ShowcaseCard>
+        </NewShowcaseCard>
 
-        <ShowcaseCard name="WeatherStat">
-          <View style={styles.statPreview}>
-            <WeatherStat
-              icon={icon}
-              temperature={21}
-              precipProbability={precipProbability}
-              size="sm"
-            />
+        <NewShowcaseCard name="WeatherStat">
+          <View style={styles.row}>
+            <WeatherStat icon={icon} temperature={21} precipProbability={precipProbability} />
             <WeatherStat
               icon={icon}
               temperature={21}
               precipProbability={precipProbability}
               size="md"
-              iconColor={iconColor}
             />
           </View>
-        </ShowcaseCard>
+        </NewShowcaseCard>
 
-        <ShowcaseCard
+        <NewShowcaseCard
           name="WeatherPill"
-          controls={<ToggleRow label="expanded" value={expanded} onToggle={setExpanded} />}
+          controls={<NewToggleRow label="expanded" value={expanded} onChange={setExpanded} />}
         >
-          <View style={styles.pillPreview}>
-            <WeatherPill
-              icon={icon}
-              temperature={21}
-              label={LABELS[icon]}
-              precipProbability={precipProbability}
-              sunriseMinuteOfDay={MOCK_SUNRISE_MINUTE}
-              sunsetMinuteOfDay={MOCK_SUNSET_MINUTE}
-              expanded={expanded}
-              onPress={() => undefined}
-            />
-          </View>
-        </ShowcaseCard>
+          <WeatherPill
+            icon={icon}
+            temperature={21}
+            label={LABELS[icon]}
+            precipProbability={precipProbability}
+            sunriseMinuteOfDay={SUNRISE_MINUTE}
+            sunsetMinuteOfDay={SUNSET_MINUTE}
+            expanded={expanded}
+            onPress={() => undefined}
+          />
+        </NewShowcaseCard>
 
-        <ShowcaseCard name="WeatherHourlyStrip">
-          <View style={styles.stripPreview}>
-            <WeatherHourlyStrip hours={MOCK_HOURLY} />
-          </View>
-        </ShowcaseCard>
+        <NewShowcaseCard name="WeatherHourlyStrip">
+          <WeatherHourlyStrip
+            hours={MOCK_HOURLY}
+            sunriseMinuteOfDay={SUNRISE_MINUTE}
+            sunsetMinuteOfDay={SUNSET_MINUTE}
+          />
+        </NewShowcaseCard>
       </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.neutral.bg },
-  content: { padding: 12, gap: 12, paddingBottom: 40 },
-  iconPreview: { flexDirection: 'row', gap: 16, alignItems: 'center', paddingVertical: 8 },
-  metaPrimary: { color: theme.neutral.textSecondary, fontSize: 12, fontWeight: '600' },
-  metaSecondary: { color: theme.neutral.textDim, fontSize: 11 },
-  statPreview: { flexDirection: 'row', gap: 24, alignItems: 'center', paddingVertical: 8 },
-  pillPreview: { alignItems: 'flex-start', paddingVertical: 8 },
-  stripPreview: { marginHorizontal: -14, paddingVertical: 8 },
+  container: { flex: 1, backgroundColor: theme.ui.background },
+  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  primary: { color: theme.ui.foreground, fontSize: 13, fontWeight: '600' },
+  secondary: { color: theme.ui.mutedForeground, fontSize: 12 },
 })

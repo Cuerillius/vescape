@@ -2,16 +2,12 @@ import type { HistoryGpsSample, HistoryMarker, MapPoint, TelemetrySample } from 
 
 import { makeCircleFeature, makeTrailLineString } from '@/helpers/mapGeometry'
 import type { DirectionPoint } from '@/modules/map/store/mapStore'
-import type { MediaHistoryAsset } from '@/modules/history/lib/mediaHistory'
 import { DEFAULT_HISTORY_METRIC_HOT_RANGES } from '@/modules/history/lib/metricColorScale'
 import type { RosterRider } from '@/modules/group-ride/lib/roster'
 
 const NOW = Date.now()
 const BASE_LON = 14.4378
 const BASE_LAT = 50.0755
-const PLACEHOLDER_MEDIA_URI =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
-
 const MAP_POINT_CATEGORIES: MapPoint['category'][] = [
   'drop',
   'bonk',
@@ -87,13 +83,6 @@ export const FIXTURE_RIDE_GPS_SAMPLES: HistoryGpsSample[] = rideRouteCoordinates
   },
 )
 
-export const FIXTURE_FAVORITE_RANGES = [
-  {
-    startMs: FIXTURE_RIDE_GPS_SAMPLES[3].capturedAtMs,
-    endMs: FIXTURE_RIDE_GPS_SAMPLES[8].capturedAtMs,
-  },
-]
-
 export const FIXTURE_RIDE_TELEMETRY_SAMPLES: TelemetrySample[] = FIXTURE_RIDE_GPS_SAMPLES.map(
   (gps, index) => {
     const t = index / (ROUTE_POINT_COUNT - 1)
@@ -147,25 +136,6 @@ export const FIXTURE_RIDE_MARKERS: HistoryMarker[] = MARKER_TYPES.map((type, ind
   gapMs: type === 'gap' ? 15_000 : null,
 }))
 
-export const FIXTURE_MEDIA_ASSETS: MediaHistoryAsset[] = [
-  {
-    id: 'fixture-media-photo',
-    uri: PLACEHOLDER_MEDIA_URI,
-    filename: 'fixture-photo.png',
-    mediaType: 'photo',
-    creationTime: FIXTURE_RIDE_GPS_SAMPLES[4].capturedAtMs,
-    gps: FIXTURE_RIDE_GPS_SAMPLES[4],
-  },
-  {
-    id: 'fixture-media-video',
-    uri: PLACEHOLDER_MEDIA_URI,
-    filename: 'fixture-video.png',
-    mediaType: 'video',
-    creationTime: FIXTURE_RIDE_GPS_SAMPLES[9].capturedAtMs,
-    gps: FIXTURE_RIDE_GPS_SAMPLES[9],
-  },
-]
-
 const liveTrailCoordinates: { longitude: number; latitude: number }[] = Array.from(
   { length: 6 },
   (_, i) => ({
@@ -182,6 +152,18 @@ export const FIXTURE_ACCURACY_SHAPE = makeCircleFeature(
   18,
 )
 export const FIXTURE_GPS_PUCK_BEARING_DEG = 48
+
+/** From the rider's live position to the Direction Point, bending the way a road would. */
+export const FIXTURE_NAVIGATION_ROUTE: [number, number][] = Array.from({ length: 10 }, (_, i) => {
+  const t = i / 9
+  return [
+    FIXTURE_ACCURACY_FIX.longitude +
+      (FIXTURE_DIRECTION_POINT.longitude - FIXTURE_ACCURACY_FIX.longitude) * t +
+      Math.sin(t * Math.PI * 2) * 0.0008,
+    FIXTURE_ACCURACY_FIX.latitude +
+      (FIXTURE_DIRECTION_POINT.latitude - FIXTURE_ACCURACY_FIX.latitude) * t,
+  ]
+})
 
 /** A short path of `count` points trailing behind `(lat, lng)`, for showcasing rider trails. */
 function fixtureTrail(

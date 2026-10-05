@@ -1,44 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
-import { PlayIcon, StopIcon } from 'phosphor-react-native'
+import { StyleSheet, View } from 'react-native'
+import IconPlayerPlay from '@tabler/icons-react-native/IconPlayerPlay'
+import IconPlayerStop from '@tabler/icons-react-native/IconPlayerStop'
 import {
   getAlertSounds,
   previewAlertSound,
   startGeigerSimulation,
   stopGeigerSimulation,
-  type AlertSound,
 } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
 import { theme } from '@/constants/theme'
-import { useResolvedAccentColors } from '@/hooks/useTheme'
 import { TuneDial } from '@/modules/tune/components/TuneDial'
+import { ProbeSection, probeStyles } from '@/screens/showcase/other/ProbeSection'
 
 type PlaybackMode = 'single' | 'geiger'
 
-function PresetButton({
-  preset,
-  selected,
-  onPress,
-}: {
-  preset: AlertSound
-  selected: boolean
-  onPress: () => void
-}) {
-  return (
-    <Pressable
-      style={[styles.presetButton, selected && styles.presetButtonActive]}
-      onPress={onPress}
-    >
-      <Text style={[styles.presetName, selected && styles.presetNameActive]}>{preset.name}</Text>
-      <Text style={styles.presetCategory}>{preset.category}</Text>
-    </Pressable>
-  )
-}
+const MODE_OPTIONS = [
+  { key: 'single', label: 'Single play' },
+  { key: 'geiger', label: 'Geiger simulation' },
+] as const
 
 /** Alert sound presets, single playback, and the Geiger simulation with its range depth. */
 export function AlertSoundProbe() {
-  const accents = useResolvedAccentColors()
   const presets = useMemo(() => getAlertSounds(), [])
   const singlePresets = useMemo(
     () => presets.filter((preset) => preset.category === 'single'),
@@ -96,14 +82,13 @@ export function AlertSoundProbe() {
 
   return (
     <>
-      <Text style={styles.sectionTitle}>Sound Preset</Text>
-      <View style={styles.card}>
-        <View style={styles.presetGrid}>
+      <ProbeSection title="Sound preset">
+        <View style={probeStyles.wrap}>
           {visiblePresets.map((preset) => (
-            <PresetButton
+            <Button
               key={preset.uri}
-              preset={preset}
-              selected={selectedUri === preset.uri}
+              label={preset.name}
+              variant={selectedUri === preset.uri ? 'primary' : 'outline'}
               onPress={() => {
                 if (geigerActive) handleStopGeiger()
                 setSelectedUri(preset.uri)
@@ -111,197 +96,62 @@ export function AlertSoundProbe() {
             />
           ))}
         </View>
-      </View>
+      </ProbeSection>
 
-      <Text style={styles.sectionTitle}>Playback Mode</Text>
-      <View style={styles.card}>
-        <View style={styles.modeRow}>
-          <Pressable
-            style={[styles.modeButton, mode === 'single' && styles.modeButtonActive]}
-            onPress={() => selectMode('single')}
-          >
-            <Text style={[styles.modeText, mode === 'single' && styles.modeTextActive]}>
-              Single Play
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.modeButton, mode === 'geiger' && styles.modeButtonActive]}
-            onPress={() => selectMode('geiger')}
-          >
-            <Text style={[styles.modeText, mode === 'geiger' && styles.modeTextActive]}>
-              Geiger Simulation
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+      <ProbeSection title="Playback mode">
+        <ToggleGroup activeKey={mode} options={MODE_OPTIONS} onSelect={selectMode} />
+      </ProbeSection>
 
       {mode === 'single' ? (
-        <>
-          <Text style={styles.sectionTitle}>Play</Text>
-          <View style={styles.card}>
-            <Pressable
-              style={[styles.playButton, { backgroundColor: accents.sky.solid }]}
-              onPress={handlePlaySingle}
-            >
-              <PlayIcon size={20} color={accents.sky.onSolid} weight="fill" />
-              <Text style={[styles.playButtonText, { color: accents.sky.onSolid }]}>
-                Play {selectedPreset?.name ?? selectedUri}
-              </Text>
-            </Pressable>
-          </View>
-        </>
+        <ProbeSection title="Play">
+          <Button
+            label={`Play ${selectedPreset?.name ?? selectedUri}`}
+            icon={IconPlayerPlay}
+            variant="primary"
+            size="lg"
+            onPress={handlePlaySingle}
+          />
+        </ProbeSection>
       ) : (
-        <>
-          <Text style={styles.sectionTitle}>Geiger Simulation</Text>
-          <View style={styles.card}>
-            <View style={styles.dialSection}>
-              <View style={styles.dialHeader}>
-                <Text style={styles.dialLabel}>Range Depth</Text>
-                <Text style={styles.dialValue}>{rangeDepth.toFixed(2)}</Text>
-              </View>
-              <TuneDial
-                value={rangeDepth}
-                min={0}
-                max={1}
-                step={0.01}
-                onValueChange={handleRangeDepthChange}
-              />
-            </View>
-
-            <Pressable
-              style={[
-                styles.playButton,
-                { backgroundColor: geigerActive ? accents.red.solid : accents.sky.solid },
-              ]}
-              onPress={handleToggleGeiger}
-            >
-              {geigerActive ? (
-                <StopIcon size={20} color={accents.red.onSolid} weight="fill" />
-              ) : (
-                <PlayIcon size={20} color={accents.sky.onSolid} weight="fill" />
-              )}
-              <Text
-                style={[
-                  styles.playButtonText,
-                  { color: geigerActive ? accents.red.onSolid : accents.sky.onSolid },
-                ]}
-              >
-                {geigerActive ? 'Stop' : 'Start Geiger'}
-              </Text>
-            </Pressable>
+        <ProbeSection title="Geiger simulation">
+          <View style={styles.dialHeader}>
+            <Text style={styles.dialLabel}>Range depth</Text>
+            <Text style={styles.dialValue}>{rangeDepth.toFixed(2)}</Text>
           </View>
-        </>
+          <TuneDial
+            value={rangeDepth}
+            min={0}
+            max={1}
+            step={0.01}
+            onValueChange={handleRangeDepthChange}
+          />
+          <Button
+            label={geigerActive ? 'Stop' : 'Start Geiger'}
+            icon={geigerActive ? IconPlayerStop : IconPlayerPlay}
+            variant={geigerActive ? 'outline' : 'primary'}
+            color={geigerActive ? theme.status.error.color : undefined}
+            size="lg"
+            onPress={handleToggleGeiger}
+          />
+        </ProbeSection>
       )}
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: {
-    color: theme.neutral.textMuted,
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 8,
-    marginBottom: 4,
-    marginLeft: 4,
-  },
-  card: {
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    overflow: 'hidden',
-    padding: 14,
-  },
-  presetGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  presetButton: {
-    backgroundColor: theme.neutral.surfaceDeep,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 2,
-  },
-  presetButtonActive: {
-    borderColor: theme.palette.sky.color,
-    backgroundColor: theme.palette.sky.bg,
-  },
-  presetName: {
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  presetNameActive: {
-    color: theme.neutral.textPrimary,
-  },
-  presetCategory: {
-    color: theme.neutral.textDim,
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 0,
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-  },
-  modeButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-    backgroundColor: theme.neutral.surfaceDeep,
-  },
-  modeButtonActive: {
-    backgroundColor: theme.palette.sky.bg,
-  },
-  modeText: {
-    color: theme.neutral.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  modeTextActive: {
-    color: theme.neutral.textPrimary,
-  },
-  playButton: {
-    backgroundColor: theme.palette.sky.color,
-    borderRadius: 8,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  playButtonText: {
-    color: theme.palette.sky.bg,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  dialSection: {
-    gap: 8,
-    marginBottom: 14,
-  },
   dialHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dialLabel: {
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+    color: theme.ui.mutedForeground,
+    fontSize: 14,
+    fontWeight: '500',
   },
   dialValue: {
-    color: theme.palette.sky.text,
+    color: theme.ui.foreground,
     fontSize: 16,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
