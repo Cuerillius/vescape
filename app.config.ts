@@ -1,6 +1,6 @@
 import type { ExpoConfig } from 'expo/config'
 import pkg from './package.json' with { type: 'json' }
-import { applicationId, isDevelopmentApp } from './src/config/appVariant.ts'
+import { appName, applicationId } from './src/config/appVariant.ts'
 import { androidVersionCode } from './src/helpers/version.ts'
 
 // Without a team ID, prebuild happily writes an Xcode project with no DEVELOPMENT_TEAM and the
@@ -14,7 +14,7 @@ if (!appleTeamId) {
 }
 
 const config: ExpoConfig = {
-  name: isDevelopmentApp ? 'vescape dev' : 'vescape',
+  name: appName,
   slug: 'vescape',
   version: pkg.version,
   orientation: 'portrait',
@@ -164,6 +164,7 @@ const config: ExpoConfig = {
     'expo-image',
     './plugins/withGradleJvmArgs',
     './plugins/withSmokeGwpAsan',
+    './plugins/withThemeRecreate',
     './plugins/withWearMirror',
     './plugins/withSentryNativeInit',
     './plugins/withAndroidSigningConfig',
