@@ -472,7 +472,7 @@ _Avoid_: Position update, presence ping, location share, group telemetry
 - A **Map Camera Profile** for compass follow preserves live follow during zoom-only gestures near the followed GPS fix, matching GPS-heading follow behavior.
 - A **Map Camera Profile** for compass follow is applied only after a real compass heading is available; heading zero is not used as a placeholder for compass readiness.
 - A style reload is treated as a **Map Camera Intent** that preserves the current manual camera snapshot or recomputes the active logical target without resetting heading or pitch.
-- A weather view uses a **Map Camera Profile** rather than a direct zoom change; it keeps the current map center while applying a weather overview zoom and low or flat pitch.
+- Weather is a layer on the Explore map, not a mode of its own: turning it on frames the radar overview zoom through the **Map Camera Controller** and turning it off puts the camera back where the rider had it (recentering if they were following), while map controls and navigation stay available.
 - A **Map Camera Controller** uses **App Settings** such as map style, **Map Orientation Mode**, and perspective mode, but those settings remain durable preferences outside the controller.
 - A **Privacy Zone** limits what **Ride Recording** data is retained without changing **Live State**.
 - A **Ride Recording** with explicit recording boundaries contributes at most one entry to **Ride History**; data gaps do not split it, and a new recording after an explicit stop is a separate entry.

@@ -1,10 +1,13 @@
-import { PathIcon, TimerIcon, WarningIcon } from 'phosphor-react-native'
+import IconAlertTriangle from '@tabler/icons-react-native/IconAlertTriangle'
+import IconClock from '@tabler/icons-react-native/IconClock'
+import IconRoute from '@tabler/icons-react-native/IconRoute'
 import type { ReactNode } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 
 import { useFormat } from '@/hooks/useFormat'
 import { Text } from '@/components/base/Text'
-import { theme, type ThemeColor } from '@/constants/theme'
+import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { fmtRideDuration } from '@/helpers/format'
 import type { MapTargetSheetAction } from '@/modules/map-points/components/mapTargetSheetChrome'
 import {
@@ -21,14 +24,12 @@ export function MapTargetNavigationBody({
   target,
   bottom,
   action,
-  sideActions,
+  sideAction,
   notice,
   path,
   computing = false,
   profileSelector,
   media,
-  targetColor,
-  targetTextColor,
   onDismiss,
   onFocusTarget,
 }: {
@@ -36,8 +37,8 @@ export function MapTargetNavigationBody({
   bottom: number
   /** Confirming the path and leaving the map for the ride view. The rider's likely next move. */
   action: MapTargetSheetAction
-  /** Flanking the confirm at lesser weight: asking for the path again, and dropping it. */
-  sideActions?: readonly MapTargetSheetAction[]
+  /** Beside the confirm at lesser weight: asking for the path again. Dropping it is the header X. */
+  sideAction?: MapTargetSheetAction
   /** Why there is no line, in rider-facing words. */
   notice?: string | null
   /** How far the drawn path runs and how long it is estimated to take. `null` while there is none. */
@@ -47,9 +48,6 @@ export function MapTargetNavigationBody({
   /** Which kind of ways the path may follow. Sits on the path view, never in app settings. */
   profileSelector?: ReactNode
   media: readonly MapPointMediaAsset[]
-  /** The Direction Point's own colour, for the header badge — the actions carry their own. */
-  targetColor: ThemeColor
-  targetTextColor: ThemeColor
   onDismiss?: () => void
   onFocusTarget?: () => void
 }) {
@@ -58,23 +56,16 @@ export function MapTargetNavigationBody({
       target={target}
       bottom={bottom}
       header={<MapTargetReadHeader target={target} />}
-      fallbackColor={targetColor}
-      fallbackTextColor={targetTextColor}
       onDismiss={onDismiss}
       onFocusTarget={onFocusTarget}
       animateEntrance
     >
       {target.type === 'mapPoint' ? <MapPointDetails point={target.point} media={media} /> : null}
       <PathFacts computing={computing} notice={notice} path={path} />
-      {profileSelector ? <View style={styles.profileRow}>{profileSelector}</View> : null}
+      {profileSelector}
       <MapTargetActionRow>
-        {sideActions?.slice(0, 1).map((sideAction) => (
-          <MapTargetPrimaryAction key={sideAction.label} action={sideAction} compact iconOnly />
-        ))}
+        {sideAction ? <MapTargetPrimaryAction action={sideAction} iconOnly /> : null}
         <MapTargetPrimaryAction action={action} />
-        {sideActions?.slice(1).map((sideAction) => (
-          <MapTargetPrimaryAction key={sideAction.label} action={sideAction} compact iconOnly />
-        ))}
       </MapTargetActionRow>
     </MapTargetSheetFrame>
   )
@@ -97,10 +88,12 @@ function PathFacts({
   path?: { distanceMeters: number; durationSeconds: number } | null
 }) {
   const { formatDistance } = useFormat()
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
+  const warningColor = useResolvedColor(theme.status.warning.text)
   if (computing) {
     return (
       <View style={styles.pathFacts}>
-        <ActivityIndicator size="small" color={theme.palette.slate.textSecondary} />
+        <ActivityIndicator size="small" color={mutedColor} />
         <Text style={styles.pathFactText}>Finding a path…</Text>
       </View>
     )
@@ -109,7 +102,7 @@ function PathFacts({
   if (notice) {
     return (
       <View style={styles.notice}>
-        <WarningIcon size={16} color={theme.status.warning.text} weight="bold" />
+        <IconAlertTriangle size={16} color={warningColor} />
         <Text style={styles.noticeText}>{notice}</Text>
       </View>
     )
@@ -121,11 +114,11 @@ function PathFacts({
 
   return (
     <View style={styles.pathFacts}>
-      <PathIcon size={16} color={theme.palette.slate.textSecondary} weight="bold" />
+      <IconRoute size={16} color={mutedColor} />
       <Text style={styles.pathFactText}>{formatDistance(path.distanceMeters)}</Text>
       {path.durationSeconds > 0 ? (
         <>
-          <TimerIcon size={16} color={theme.palette.slate.textSecondary} weight="bold" />
+          <IconClock size={16} color={mutedColor} />
           <Text style={styles.pathFactText}>{fmtRideDuration(path.durationSeconds)}</Text>
         </>
       ) : null}
@@ -134,13 +127,9 @@ function PathFacts({
 }
 
 const styles = StyleSheet.create({
-  profileRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
   /**
-   * Centred under the target, over the centred Profile switcher: the length, the ways it follows
-   * and the confirm read as one column about the path, rather than as a left-aligned detail list.
+   * Centred under the target, over the full-width Profile switcher: the length, the ways it
+   * follows and the confirm read as one column about the path, rather than as a detail list.
    * The notice keeps the left edge — it is a sentence, and sentences are read from a margin.
    */
   pathFacts: {
@@ -153,9 +142,9 @@ const styles = StyleSheet.create({
     height: 22,
   },
   pathFactText: {
-    color: theme.palette.slate.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '500',
   },
   notice: {
     flexDirection: 'row',

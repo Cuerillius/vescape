@@ -1,12 +1,6 @@
 import { useMemo } from 'react'
 
-import { MapPin } from '@/modules/map/components/MapPin'
-import { getMapPointKindIcon } from '@/modules/map-points/constants/mapPointIcons'
-import {
-  getMapPointKindColor,
-  getMapPointKindLabel,
-  getMapPointKindTextColor,
-} from '@/modules/map-points/constants/mapPoints'
+import { MapMark } from '@/modules/map/components/MapMark'
 import { isMapPinKindVisible } from '@/modules/map-points/lib/mapPointVisibility'
 import type { MainMapLayersProps } from '@/screens/main/map/mainMapLayerTypes'
 
@@ -16,7 +10,6 @@ export function MapPointLayers({
   hiddenMapPointCategories,
   selectedMapPointId,
   activeNavigationTarget,
-  expandSelectedMapPoints,
   interactive,
   onToggleMapPointSelection,
   onSuppressNextMapPress,
@@ -25,7 +18,6 @@ export function MapPointLayers({
   hiddenMapPointCategories: MainMapLayersProps['hiddenMapPointCategories']
   selectedMapPointId: MainMapLayersProps['selectedMapPointId']
   activeNavigationTarget: MainMapLayersProps['activeNavigationTarget']
-  expandSelectedMapPoints: boolean
   interactive: boolean
   onToggleMapPointSelection: MainMapLayersProps['onToggleMapPointSelection']
   onSuppressNextMapPress: MainMapLayersProps['onSuppressNextMapPress']
@@ -44,17 +36,12 @@ export function MapPointLayers({
   return (
     <>
       {visiblePoints.map((point) => (
-        <MapPin
+        <MapMark
           key={point.id}
           id={`center-map-point-${point.id}`}
+          kind={point.category}
           coordinate={[point.longitude, point.latitude]}
-          color={getMapPointKindColor(point.category)}
-          icon={getMapPointKindIcon(point.category)}
-          iconColor={getMapPointKindTextColor(point.category)}
           selected={selectedId === point.id || activeNavigationMapPointId === point.id}
-          navigationActive={activeNavigationMapPointId === point.id}
-          expandSelected={expandSelectedMapPoints && selectedId === point.id}
-          label={point.name?.trim() || getMapPointKindLabel(point.category)}
           onSelected={
             interactive
               ? () => {

@@ -1540,7 +1540,15 @@ export interface AppSettings {
   /** App appearance source. `sun` resolves from local daylight at the last GPS fix. */
   unitSystem: 'metric' | 'imperial'
   themeMode: 'system' | 'light' | 'dark' | 'sun'
-  mapStyleKey: 'onedark' | 'outdoors' | 'satellite' | 'mapy'
+  mapStyleKey:
+    | 'colorful'
+    | 'colorfulDark'
+    | 'satelliteLegacy'
+    | 'mapy'
+    // Retired keys older installations may still have saved.
+    | 'onedark'
+    | 'outdoors'
+    | 'satellite'
   /** Use the custom satellite overlay style instead of the stock satellite style. */
   satelliteOverlayEnabled: boolean
   /** Satellite basemap imagery opacity, 0.1-1.0. Labels and app overlays stay full opacity. */
@@ -1549,8 +1557,6 @@ export interface AppSettings {
   satelliteMapImageryOpacity: number
   /** Satellite basemap saturation for the telemetry/home map, -1.0 to 1.0. */
   satelliteImagerySaturation: number
-  /** Hide POI names and icons on the telemetry/home map. Explore keeps map details visible. */
-  hideTelemetryMapDetails: boolean
   /** Draw Ride History Markers (pauses, connection changes, errors, gaps) on the history route. */
   showHistoryMapMarkers: boolean
   mapOrientationMode: 'northUp' | 'gpsHeading' | 'phoneHeading' | 'freeRotate'

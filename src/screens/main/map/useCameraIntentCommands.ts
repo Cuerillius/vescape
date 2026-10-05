@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 
 import { MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
 import type { MapOrientationMode } from '@/modules/map/constants/mapStyles'
@@ -38,12 +38,33 @@ export function useCameraIntentCommands({
   onHeadingChange,
   onPerspectiveChange,
 }: UseCameraIntentCommandsParams) {
-  const { currentCameraRef, engine, followZoomLevelRef } = cameraRefs
+  const { controllerStateRef, currentCameraRef, engine, followZoomLevelRef } = cameraRefs
+  // The view the rider had before a map layer (weather, legal limits) zoomed out, so turning the
+  // layer off zooms back in. Kept across a switch from one layer to the other.
+  const overviewReturnRef = useRef<{
+    camera: CameraSnapshot
+    following: boolean
+    followZoomLevel: number | null
+  } | null>(null)
+  const rememberOverviewReturn = useCallback(() => {
+    const previous = currentCameraRef.current
+    if (overviewReturnRef.current || !previous) return
+    overviewReturnRef.current = {
+      camera: previous,
+      following: controllerStateRef.current.mode.kind === 'liveFollow',
+      followZoomLevel: followZoomLevelRef.current,
+    }
+  }, [controllerStateRef, currentCameraRef, followZoomLevelRef])
   const applyCamera = useCallback(
-    (camera: Partial<CameraSnapshot> | undefined, overrides?: { zoomLevel?: number }) => {
+    (
+      camera: Partial<CameraSnapshot> | undefined,
+      overrides?: { zoomLevel?: number },
+      options?: { glide?: boolean },
+    ) => {
       if (!camera) return
       engine.setTarget(
         toEngineTarget({ ...camera, zoomLevel: overrides?.zoomLevel ?? camera.zoomLevel }),
+        options,
       )
     },
     [engine],
@@ -186,6 +207,7 @@ export function useCameraIntentCommands({
   )
 
   const focusWeather = useCallback(() => {
+    rememberOverviewReturn()
     const effect = dispatchCameraIntent({
       type: 'EnterWeatherView',
       currentCamera: currentCameraRef.current,
@@ -193,23 +215,41 @@ export function useCameraIntentCommands({
       viewport,
       perspectiveEnabled,
     })
-    applyCamera(effect?.camera)
+    applyCamera(effect?.camera, undefined, { glide: true })
   }, [
     applyCamera,
     currentCameraRef,
     dispatchCameraIntent,
     gpsCamera.centerCoordinate,
     perspectiveEnabled,
+    rememberOverviewReturn,
     viewport,
   ])
 
+  /**
+   * Puts the camera back where the rider had it before the layer. Returns false when there is
+   * nothing to restore, or when they were following the live position, which the caller recenters.
+   */
+  const leaveOverview = useCallback(() => {
+    const previous = overviewReturnRef.current
+    overviewReturnRef.current = null
+    if (!previous) return false
+    // The follow zoom is what a recenter zooms to, so it goes back to what it was before the
+    // overview; otherwise a rider who was following would come back to the zoomed-out level.
+    followZoomLevelRef.current = previous.followZoomLevel
+    if (previous.following) return false
+    applyCamera(previous.camera, undefined, { glide: true })
+    return true
+  }, [applyCamera, followZoomLevelRef])
+
   const focusLegalLimits = useCallback(() => {
+    rememberOverviewReturn()
     const effect = dispatchCameraIntent({
       type: 'EnterLegalLimitsView',
       camera: LEGAL_LIMIT_MAP_CAMERA,
     })
-    applyCamera(effect?.camera)
-  }, [applyCamera, dispatchCameraIntent])
+    applyCamera(effect?.camera, undefined, { glide: true })
+  }, [applyCamera, dispatchCameraIntent, rememberOverviewReturn])
 
   return {
     resetRotation,
@@ -220,6 +260,7 @@ export function useCameraIntentCommands({
     fitRoute,
     centerCoordinatePreservingCamera,
     focusWeather,
+    leaveOverview,
     focusLegalLimits,
   }
 }

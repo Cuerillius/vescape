@@ -97,7 +97,7 @@ export function useCameraPreviewGestures({
     (deltaX: number, deltaY: number, revealProgress: number) => {
       const latest = imperativeHandleLatestRef.current
       const baseCamera = previewPanBaseRef.current
-      // Something claimed the camera mid-drag (the weather view, a route fit). It owns the
+      // Something claimed the camera mid-drag (a route fit). It owns the
       // viewport now; the finger stops driving rather than fighting the new target.
       if (!baseCamera || !ownsCamera()) return
       const zoomLevel = clamp(

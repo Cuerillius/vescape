@@ -29,8 +29,20 @@ internal enum class AppDataScope(val wire: String) {
   SETTINGS("settings"),
 }
 
+private val MAP_STYLE_KEYS =
+  setOf(
+    "colorful",
+    "colorfulDark",
+    "satelliteLegacy",
+    "mapy",
+    // Retired keys older installations may still have saved.
+    "onedark",
+    "outdoors",
+    "satellite",
+  )
+
 internal fun validMapStyleKey(value: Any?): String? =
-  (value as? String)?.takeIf { it in setOf("onedark", "outdoors", "satellite", "mapy") }
+  (value as? String)?.takeIf { it in MAP_STYLE_KEYS }
 
 internal fun validThemeMode(value: Any?): String? =
   (value as? String)?.takeIf { it in setOf("system", "light", "dark", "sun") }
@@ -421,12 +433,11 @@ class AppDataRepository private constructor(private val context: Context) {
       freeSpinStationaryBoardCapKmh = req("freeSpinStationaryBoardCapKmh", DEFAULT_FREE_SPIN_STATIONARY_BOARD_CAP_KMH) { (it as? Number)?.toDouble() },
       unitSystem = req("unitSystem", "metric", ::validUnitSystem),
       themeMode = req("themeMode", "system", ::validThemeMode),
-      mapStyleKey = req("mapStyleKey", "onedark", ::validMapStyleKey),
-      satelliteOverlayEnabled = req("satelliteOverlayEnabled", true) { it as? Boolean },
+      mapStyleKey = req("mapStyleKey", "colorful", ::validMapStyleKey),
+      satelliteOverlayEnabled = req("satelliteOverlayEnabled", false) { it as? Boolean },
       satelliteImageryOpacity = req("satelliteImageryOpacity", 0.2, ::validSatelliteImageryOpacity),
       satelliteMapImageryOpacity = req("satelliteMapImageryOpacity", 1.0, ::validSatelliteImageryOpacity),
       satelliteImagerySaturation = req("satelliteImagerySaturation", -0.35, ::validSatelliteImagerySaturation),
-      hideTelemetryMapDetails = req("hideTelemetryMapDetails", true) { it as? Boolean },
       showHistoryMapMarkers = req("showHistoryMapMarkers", false) { it as? Boolean },
       mapOrientationMode = req("mapOrientationMode", "northUp", ::validMapOrientationMode),
       historyMetricGradientsEnabled = req("historyMetricGradientsEnabled", true) { it as? Boolean },
@@ -510,7 +521,6 @@ class AppDataRepository private constructor(private val context: Context) {
         validSatelliteImageryOpacity(value) ?: return@withContext
       "satelliteImagerySaturation" ->
         validSatelliteImagerySaturation(value) ?: return@withContext
-      "hideTelemetryMapDetails" -> value as? Boolean ?: return@withContext
       "showHistoryMapMarkers" -> value as? Boolean ?: return@withContext
       "mapOrientationMode" ->
         validMapOrientationMode(value) ?: return@withContext
@@ -576,7 +586,6 @@ class AppDataRepository private constructor(private val context: Context) {
         "satelliteImageryOpacity" -> d.satelliteImageryOpacity
         "satelliteMapImageryOpacity" -> d.satelliteMapImageryOpacity
         "satelliteImagerySaturation" -> d.satelliteImagerySaturation
-        "hideTelemetryMapDetails" -> d.hideTelemetryMapDetails
         "showHistoryMapMarkers" -> d.showHistoryMapMarkers
         "mapOrientationMode" -> d.mapOrientationMode
         "historyMetricGradientsEnabled" -> d.historyMetricGradientsEnabled
@@ -954,7 +963,6 @@ fun AppSettings.toMap(): Map<String, Any?> = mapOf(
   "satelliteImageryOpacity" to satelliteImageryOpacity,
   "satelliteMapImageryOpacity" to satelliteMapImageryOpacity,
   "satelliteImagerySaturation" to satelliteImagerySaturation,
-  "hideTelemetryMapDetails" to hideTelemetryMapDetails,
   "showHistoryMapMarkers" to showHistoryMapMarkers,
   "mapOrientationMode" to mapOrientationMode,
   "historyMetricGradientsEnabled" to historyMetricGradientsEnabled,

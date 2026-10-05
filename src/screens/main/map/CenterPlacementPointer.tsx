@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native'
 import Animated, { FadeOut, withTiming } from 'react-native-reanimated'
 
 import { theme, type ThemeColor } from '@/constants/theme'
-import { useResolvedColor, useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedColor, useResolvedUiColors } from '@/hooks/useTheme'
 
 const pointerEntering = () => {
   'worklet'
@@ -40,7 +40,7 @@ export function CenterPlacementPointer({
   color: ThemeColor
   pulseKey: number
 }) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const resolvedColor = useResolvedColor(color)
 
   return (
@@ -57,7 +57,7 @@ export function CenterPlacementPointer({
           style={[
             styles.pulse,
             {
-              backgroundColor: theme.alpha(neutral.surfaceDeep, 0.3),
+              backgroundColor: theme.alpha(ui.muted, 0.3),
               borderColor: resolvedColor,
             },
           ]}
@@ -67,7 +67,7 @@ export function CenterPlacementPointer({
         style={[
           styles.ball,
           {
-            backgroundColor: theme.alpha(neutral.surfaceDeep, 0.4),
+            backgroundColor: theme.alpha(ui.muted, 0.4),
             borderColor: resolvedColor,
           },
         ]}

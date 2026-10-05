@@ -5,6 +5,7 @@ import Svg, { Polyline } from 'react-native-svg'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
 import { DASH } from '@/helpers/format'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 export interface SpringTraceSample {
   t: number
@@ -36,6 +37,9 @@ export function SpringTraceChart({
   format = (v) => v.toFixed(4),
 }: SpringTraceChartProps) {
   const [width, setWidth] = useState(0)
+  // Svg strokes take plain strings, so the adaptive tokens are resolved first.
+  const positionStroke = useResolvedColor(theme.ui.foreground)
+  const targetStroke = useResolvedColor(theme.ui.faintForeground)
   const last = samples[samples.length - 1]
 
   let points = ''
@@ -80,16 +84,11 @@ export function SpringTraceChart({
           <Polyline
             points={targets.trim()}
             fill="none"
-            stroke={theme.palette.slate.textMuted}
+            stroke={targetStroke}
             strokeWidth={1}
             strokeDasharray="3,3"
           />
-          <Polyline
-            points={points.trim()}
-            fill="none"
-            stroke={theme.palette.sky.color}
-            strokeWidth={1.5}
-          />
+          <Polyline points={points.trim()} fill="none" stroke={positionStroke} strokeWidth={1.5} />
         </Svg>
       </View>
     </View>
@@ -97,23 +96,22 @@ export function SpringTraceChart({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 4 },
+  container: { gap: 6 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: {
-    color: theme.palette.slate.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'monospace',
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '500',
   },
-  readout: { fontSize: 10, fontFamily: 'monospace' },
-  position: { color: theme.palette.sky.color },
-  separator: { color: theme.palette.slate.textDim },
-  target: { color: theme.palette.slate.textMuted },
+  readout: { fontSize: 12, fontFamily: theme.mono('500') },
+  position: { color: theme.ui.foreground },
+  separator: { color: theme.ui.faintForeground },
+  target: { color: theme.ui.mutedForeground },
   plot: {
-    backgroundColor: theme.palette.slate.surfaceDeep,
-    borderRadius: 6,
+    backgroundColor: theme.ui.muted,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: theme.palette.slate.border,
+    borderColor: theme.ui.border,
     overflow: 'hidden',
   },
 })

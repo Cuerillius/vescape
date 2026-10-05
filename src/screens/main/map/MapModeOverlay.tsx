@@ -3,15 +3,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { ConfirmModal } from '@/components/modals/ConfirmModal'
-import { useRiderStore } from '@/modules/group-ride/store/riderStore'
 import type { MapSelection } from '@/modules/map/lib/mapSelection'
 import { useMapStore } from '@/modules/map/store/mapStore'
 import { MapTargetSheetHost } from '@/modules/map-points/components/MapTargetSheetHost'
 import { useMapContributionReady } from '@/modules/profile/hooks/useMapContributionReady'
-import { useResolvedAccentColors } from '@/hooks/useTheme'
 import { routes } from '@/navigation/routes'
 import { FullMapControls } from '@/screens/main/map/FullMapControls'
-import { navigationActionColors } from '@/screens/main/map/navigationActionColors'
 import type { MapModeOverlayProps } from '@/screens/main/map/mapModeOverlayTypes'
 
 /**
@@ -20,6 +17,7 @@ import type { MapModeOverlayProps } from '@/screens/main/map/mapModeOverlayTypes
  */
 export function MapModeOverlay({
   visible,
+  layerActive,
   mapRef,
   mapInteractionHandlerRef,
   top,
@@ -30,10 +28,8 @@ export function MapModeOverlay({
   activeNavigationTarget,
   selectedNavigationTarget,
   longPressMapTarget,
-  onExit,
   onLongPressMapTargetHandled,
   onSelectNavigationTarget,
-  onNavigateTarget,
   onNavigateSelectedTarget,
   onCancelNavigation,
   onDismissSelectedTarget,
@@ -42,9 +38,7 @@ export function MapModeOverlay({
   onRemoveMapPoint,
 }: MapModeOverlayProps) {
   const router = useRouter()
-  // The server authorizes Map Point writes on the Device Token, so that is what gates the UI.
   const canContribute = useMapContributionReady()
-  const riderColor = useRiderStore((s) => s.riderColor)
   const [signInPromptVisible, setSignInPromptVisible] = useState(false)
   const [editingMapPointId, setEditingMapPointId] = useState<string | null>(null)
   const [addMenuOpen, setAddMenuOpen] = useState(false)
@@ -82,12 +76,6 @@ export function MapModeOverlay({
     selectedNavigationTarget != null || (navigationTarget != null && !addMenuOpen)
   const activeNavigationAccepted =
     navigationComputedAtMs != null && acceptedNavigationComputedAtMs === navigationComputedAtMs
-  const accents = useResolvedAccentColors()
-  const navigationAction = navigationActionColors(
-    riderColor,
-    accents.green.light,
-    accents.green.light,
-  )
 
   const focusTargetOnMap = useCallback(
     (target: MapSelection) => {
@@ -143,18 +131,6 @@ export function MapModeOverlay({
     visible,
   ])
 
-  const handleOpenAddFeatureAtSelectedTarget = useCallback(() => {
-    if (!selectedNavigationTarget || selectedNavigationTarget.type === 'mapPoint') return
-    if (!requireMapAccount()) return
-    mapRef.current?.centerCoordinatePreservingCamera([
-      selectedNavigationTarget.longitude,
-      selectedNavigationTarget.latitude,
-    ])
-    setEditingMapPointId(null)
-    setAddMenuOpen(true)
-    onDismissSelectedTarget()
-  }, [mapRef, onDismissSelectedTarget, requireMapAccount, selectedNavigationTarget])
-
   return (
     <>
       <View
@@ -169,25 +145,21 @@ export function MapModeOverlay({
             bottom={bottom}
             sheetBottom={sheetBottom}
             searchProximity={searchProximity}
-            onExit={onExit}
             onSelectNavigationTarget={onSelectNavigationTarget}
-            onNavigateTarget={onNavigateTarget}
-            bottomControlsVisible={!targetSheetVisible}
+            bottomControlsVisible={!targetSheetVisible && !layerActive}
             addMenuOpen={addMenuOpen}
             onAddMenuVisibilityChange={setAddMenuOpen}
             onBeginEditMapPoint={setEditingMapPointId}
             onRequireMapAccount={requireMapAccount}
           />
         ) : null}
-        {visible ? (
+        {visible && !layerActive ? (
           <MapTargetSheetHost
             selectedTarget={selectedNavigationTarget}
             activeTarget={navigationTarget}
             activeTargetSuppressed={addMenuOpen}
             bottom={sheetBottom}
             editingMapPointId={editingMapPointId}
-            actionColor={navigationAction.color}
-            actionTextColor={navigationAction.textColor}
             onBeginEdit={setEditingMapPointId}
             onEndEdit={() => setEditingMapPointId(null)}
             onNavigateSelected={() => void onNavigateSelectedTarget()}
@@ -197,7 +169,6 @@ export function MapModeOverlay({
             }}
             onConfirmNavigation={() => {
               acceptNavigation()
-              onExit()
             }}
             activeNavigationAccepted={activeNavigationAccepted}
             onEditActiveNavigation={editNavigation}
@@ -220,7 +191,6 @@ export function MapModeOverlay({
               setAddMenuOpen(false)
               onDismissSelectedTarget()
             }}
-            onAddFeature={handleOpenAddFeatureAtSelectedTarget}
             onSaveMapPoint={updateMapPoint}
             onVoteMapPoint={setMapPointReaction}
             onRemoveMapPoint={onRemoveMapPoint}

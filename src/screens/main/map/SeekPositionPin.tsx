@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef } from 'react'
 import { useAnimatedReaction } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 
-import { useResolvedAccentColors, useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedUiColors } from '@/hooks/useTheme'
 import { scrubHeadMs } from '@/modules/history/lib/chartFocus'
 import type { HistoryGpsSample } from '@/modules/history/store/historyStore'
 
@@ -22,7 +22,7 @@ const SEEK_SOURCE_ID = 'center-seek-position-source'
  */
 export function SeekPositionPin({ rideGpsSamples }: { rideGpsSamples: HistoryGpsSample[] }) {
   const accents = useResolvedAccentColors()
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const sourceRef = useRef<ShapeSource>(null)
 
   // Parallel arrays so the lookup can run in a worklet; the samples themselves cannot cross.
@@ -81,7 +81,7 @@ export function SeekPositionPin({ rideGpsSamples }: { rideGpsSamples: HistoryGps
           circleRadius: SEEK_PIN_RADIUS,
           circleColor: accents.violet.color,
           circleStrokeWidth: 2,
-          circleStrokeColor: neutral.bg,
+          circleStrokeColor: ui.background,
         }}
       />
     </ShapeSource>

@@ -1,24 +1,22 @@
 import { LineLayer, MarkerView, ShapeSource } from '@rnmapbox/maps'
-import { WarningIcon } from 'phosphor-react-native'
+import IconAlertTriangle from '@tabler/icons-react-native/IconAlertTriangle'
+import IconMapPin from '@tabler/icons-react-native/IconMapPin'
 import { useMemo } from 'react'
 import Animated, { withTiming } from 'react-native-reanimated'
 
 import { theme } from '@/constants/theme'
-import { useResolvedNeutralColors, useResolvedColor } from '@/hooks/useTheme'
+import { useResolvedUiColors, useResolvedColor } from '@/hooks/useTheme'
 import { MapTargetReticle } from '@/modules/map/components/MapTargetReticle'
-import { MapPin } from '@/modules/map/components/MapPin'
+import { MapMark } from '@/modules/map/components/MapMark'
 import { MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
-import {
-  getMapPointKindIcon,
-  getPlaceCategoryIcon,
-} from '@/modules/map-points/constants/mapPointIcons'
+import { getPlaceCategoryTablerIcon } from '@/modules/map-points/constants/mapPointTablerIcons'
 import { getPlaceCategoryIconKey } from '@/modules/map-points/constants/placeCategoryIcon'
 import type { MapSelection } from '@/modules/map/lib/mapSelection'
 import { useMapStore } from '@/modules/map/store/mapStore'
 import type { MainMapLayersProps } from '@/screens/main/map/mainMapLayerTypes'
 
 /** The dark halo the dots sit on, so a light path stays readable over a satellite tile. */
-const NAVIGATION_CASING_WIDTH = MAP_DEFAULTS.navigationWidth + 4
+export const NAVIGATION_CASING_WIDTH = MAP_DEFAULTS.navigationWidth + 4
 
 /** Distance between two dot centres, in screen pixels. Fixed, so both layers dot in step. */
 const NAVIGATION_DOT_SPACING_PX = 11
@@ -30,7 +28,7 @@ const NAVIGATION_DOT_SPACING_PX = 11
  * casing would space its dots wider than the line's. Dividing by the width converts the spacing back
  * to pixels and keeps the two layers dot for dot.
  */
-function navigationDots(lineWidth: number): [number, number] {
+export function navigationDots(lineWidth: number): [number, number] {
   return [0, NAVIGATION_DOT_SPACING_PX / lineWidth]
 }
 
@@ -65,8 +63,8 @@ function PendingNavigationTargetPin({
 }
 
 function getNavigationTargetIcon(target: MapSelection | null) {
-  if (target?.type === 'place') return getPlaceCategoryIcon(target.category)
-  return getMapPointKindIcon('direction')
+  if (target?.type === 'place') return getPlaceCategoryTablerIcon(target.category)
+  return IconMapPin
 }
 
 function getNavigationTargetIconKey(target: MapSelection | null) {
@@ -79,17 +77,15 @@ export function NavigationMapLayers({
   activeNavigationTarget,
   selectedNavigationTarget,
   directionColor,
-  directionTextColor,
   onFocusDirectionPoint,
 }: {
   directionPoint: MainMapLayersProps['directionPoint']
   activeNavigationTarget: MainMapLayersProps['activeNavigationTarget']
   selectedNavigationTarget: MainMapLayersProps['selectedNavigationTarget']
   directionColor: string
-  directionTextColor: string
   onFocusDirectionPoint: MainMapLayersProps['onFocusDirectionPoint']
 }) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   // Native computes and owns the Navigation; this only draws the coordinates it was handed. They
   // already arrive as GeoJSON `[longitude, latitude]`, so nothing is reordered here.
   const navigation = useMapStore((state) => state.navigation)
@@ -110,8 +106,9 @@ export function NavigationMapLayers({
 
   const showDirectionPoint = directionPoint != null && activeNavigationTarget?.type !== 'mapPoint'
   const pinColor = useResolvedColor(navigationFailed ? theme.status.warning.color : directionColor)
-  const pinTextColor = navigationFailed ? theme.status.warning.text : directionTextColor
-  const pinIcon = navigationFailed ? WarningIcon : getNavigationTargetIcon(activeNavigationTarget)
+  const pinIcon = navigationFailed
+    ? IconAlertTriangle
+    : getNavigationTargetIcon(activeNavigationTarget)
 
   return (
     <>
@@ -123,7 +120,7 @@ export function NavigationMapLayers({
             <LineLayer
               id="center-navigation-casing"
               style={{
-                lineColor: theme.alpha(neutral.surfaceDeep, 0.85),
+                lineColor: theme.alpha(ui.muted, 0.85),
                 lineWidth: NAVIGATION_CASING_WIDTH,
                 lineCap: 'round',
                 lineJoin: 'round',
@@ -143,17 +140,16 @@ export function NavigationMapLayers({
           </ShapeSource>
         )}
       {showDirectionPoint && (
-        <MapPin
+        <MapMark
           // Color in the key: PointAnnotation snapshots its children natively, so a
           // rider-color or icon change must remount the pin to re-render.
           key={`center-direction-position-${pinColor}-${navigationFailed ? 'failed' : getNavigationTargetIconKey(activeNavigationTarget)}`}
           id="center-direction-position"
           coordinate={[directionPoint.longitude, directionPoint.latitude]}
+          kind="direction"
           color={pinColor}
           icon={pinIcon}
-          iconColor={pinTextColor}
           selected
-          navigationActive
           onSelected={onFocusDirectionPoint}
         />
       )}

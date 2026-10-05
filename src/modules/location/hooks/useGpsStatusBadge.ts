@@ -3,29 +3,22 @@ import { useEffect, useState } from 'react'
 import { deriveGpsStatusBadge, type GpsStatusBadge } from '@/modules/location/lib/gpsStatusBadge'
 import { useLocationStore } from '@/modules/location/store/locationStore'
 
-/**
- * Fast enough that "GPS signal lost" appears close to the 30 s window it describes, slow enough to
- * stay invisible in a render profile.
- */
-const AGE_TICK_MS = 5_000
+const STALE_CHECK_INTERVAL_MS = 5_000
 
 /**
- * What is wrong with GPS right now, or `null` while it is healthy. Phase is native's answer; only
- * the age of the latest fix has to be recomputed here, and only while one exists to go stale.
+ * The live GPS badge: what is wrong with GPS right now, or `null` while it is healthy. Re-checks on
+ * a timer because a fix going stale is the absence of an update, so nothing else would re-render.
  */
-export function useGpsStatusBadge(enabled = true): GpsStatusBadge | null {
+export function useGpsStatusBadge(): GpsStatusBadge | null {
   const phase = useLocationStore((s) => s.gpsStatus)
-  // Freshness beats precision for "is GPS delivering": the approximate fix is always the newest one.
   const latestFix = useLocationStore((s) => s.latestApproximateLocation)
   const [nowMs, setNowMs] = useState(() => Date.now())
 
-  const ticking = enabled && phase === 'active' && latestFix !== null
   useEffect(() => {
-    if (!ticking) return
-    const id = setInterval(() => setNowMs(Date.now()), AGE_TICK_MS)
+    setNowMs(Date.now())
+    const id = setInterval(() => setNowMs(Date.now()), STALE_CHECK_INTERVAL_MS)
     return () => clearInterval(id)
-  }, [ticking])
+  }, [latestFix])
 
-  if (!enabled) return null
   return deriveGpsStatusBadge({ phase, latestFix, nowMs })
 }

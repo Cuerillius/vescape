@@ -184,6 +184,16 @@ describe('cameraEngine', () => {
     expect(hasPending()).toBe(false)
   })
 
+  test('glide animates a move past the teleport distance', () => {
+    const { engine, frames, run } = createTestEngine({ teleportDistanceM: 1000 })
+    engine.reset(camera([21, 52]))
+    engine.setTarget({ center: [22, 53] }, { glide: true })
+    run(50)
+    expect(frames[0]!.centerCoordinate).not.toEqual([22, 53])
+    run(2000)
+    expect(engine.getCamera().centerCoordinate[0]).toBeCloseTo(22, 2)
+  })
+
   test('pitch follows animated zoom via derivePitch', () => {
     const { engine, run } = createTestEngine()
     engine.reset(camera([21, 52], 10, 0, 20))

@@ -1,33 +1,31 @@
-import { MagnifyingGlassIcon, XIcon } from 'phosphor-react-native'
-import { useCallback } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import IconMapPin from '@tabler/icons-react-native/IconMapPin'
+import IconSearch from '@tabler/icons-react-native/IconSearch'
+import IconX from '@tabler/icons-react-native/IconX'
+import { useCallback, useEffect, type RefObject } from 'react'
+import { ActivityIndicator, Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native'
 
-import { IconButton } from '@/components/base/IconButton'
 import { Text } from '@/components/base/Text'
-import { theme } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { interaction, theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { useMapSearch } from '@/modules/map/hooks/useMapSearch'
 import type { MapSearchResult } from '@/modules/map/lib/search'
-import { getPlaceCategoryIcon } from '@/modules/map-points/constants/mapPointIcons'
 import { MapVignette } from '@/screens/main/map/MapVignette'
 
-function MapSearchResultIcon({ category }: { category: string | null }) {
-  const IconComponent = getPlaceCategoryIcon(category)
-  return <IconComponent size={16} color={theme.palette.green.text} weight="duotone" />
-}
-
-function MapSearchSheet({
+/** Place search: a bar that is always there, with its results folding out beneath it. */
+export function MapSearch({
   top,
   searchProximity,
-  onClose,
+  dismissRef,
   onSelectResult,
 }: {
   top: number
   searchProximity: { latitude: number; longitude: number } | null
-  onClose: () => void
+  /** Filled with a function that clears the query and the keyboard, for taps on the map. */
+  dismissRef: RefObject<(() => void) | null>
   onSelectResult: (result: MapSearchResult) => void
 }) {
-  const neutral = useResolvedNeutralColors()
+  const foreground = useResolvedColor(theme.ui.foreground)
+  const muted = useResolvedColor(theme.ui.mutedForeground)
   const {
     searchQuery,
     searchResults,
@@ -36,6 +34,18 @@ function MapSearchSheet({
     handleSearchQueryChange,
     submitSearch,
   } = useMapSearch({ searchOpen: true, proximityLocation: searchProximity })
+
+  const dismiss = useCallback(() => {
+    Keyboard.dismiss()
+    handleSearchQueryChange('')
+  }, [handleSearchQueryChange])
+
+  useEffect(() => {
+    dismissRef.current = dismiss
+    return () => {
+      dismissRef.current = null
+    }
+  }, [dismiss, dismissRef])
 
   const handleSubmit = useCallback(async () => {
     const first = searchResults[0]
@@ -49,57 +59,41 @@ function MapSearchSheet({
 
   const showNoResults =
     !searchLoading && !searchError && searchQuery.trim().length >= 2 && searchResults.length === 0
-  const showResultPanel =
+  const showResults =
     searchLoading || searchError != null || showNoResults || searchResults.length > 0
 
   return (
     <>
-      <MapVignette mode="map" idPrefix="search-map-vignette" topOnly />
+      {showResults ? <MapVignette mode="map" idPrefix="search-map-vignette" topOnly /> : null}
       <View style={[styles.sheet, { top }]}>
-        <View
-          style={[
-            styles.bar,
-            {
-              backgroundColor: theme.alpha(neutral.surfaceDeep, 0.85),
-              borderColor: theme.alpha(neutral.textSecondary, 0.3),
-            },
-          ]}
-        >
-          <MagnifyingGlassIcon size={22} color={neutral.textSecondary} weight="bold" />
+        <View style={styles.bar}>
+          <IconSearch size={24} color={muted} />
           <TextInput
-            autoFocus
-            selectTextOnFocus
             value={searchQuery}
             onChangeText={handleSearchQueryChange}
             onSubmitEditing={() => void handleSubmit()}
             placeholder="Address or place"
-            placeholderTextColor={neutral.textMuted}
+            placeholderTextColor={muted}
             returnKeyType="search"
-            style={[styles.input, { color: neutral.textPrimary }]}
+            style={[styles.input, { color: foreground }]}
           />
-          <Pressable
-            accessibilityLabel="Close search"
-            accessibilityRole="button"
-            onPress={onClose}
-            style={({ pressed }) => [styles.close, pressed && styles.pressed]}
-          >
-            <XIcon size={22} color={neutral.textSecondary} weight="bold" />
-          </Pressable>
+          {searchQuery.length > 0 ? (
+            <Pressable
+              accessibilityLabel="Clear search"
+              accessibilityRole="button"
+              onPress={dismiss}
+              style={({ pressed }) => [styles.close, pressed && styles.pressed]}
+            >
+              <IconX size={22} color={muted} />
+            </Pressable>
+          ) : null}
         </View>
-        {showResultPanel ? (
-          <View
-            style={[
-              styles.results,
-              {
-                backgroundColor: theme.alpha(neutral.surfaceDeep, 0.85),
-                borderColor: theme.alpha(neutral.textSecondary, 0.3),
-              },
-            ]}
-          >
+        {showResults ? (
+          <View style={styles.results}>
             {searchLoading ? (
               <View style={styles.statusRow}>
-                <ActivityIndicator size="small" color={theme.palette.sky.color} />
-                <Text style={styles.statusText}>Searching Mapbox</Text>
+                <ActivityIndicator size="small" color={muted} />
+                <Text style={styles.statusText}>Searching</Text>
               </View>
             ) : null}
             {searchError ? (
@@ -112,16 +106,14 @@ function MapSearchSheet({
                 <Text style={styles.statusText}>No results</Text>
               </View>
             ) : null}
-            {searchResults.map((result, index) => (
+            {searchResults.map((result) => (
               <Pressable
                 key={result.id}
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.result, pressed && styles.pressed]}
                 onPress={() => onSelectResult(result)}
               >
-                <View style={[styles.resultIcon, { backgroundColor: neutral.surfaceDeep }]}>
-                  <MapSearchResultIcon category={result.category} />
-                </View>
+                <IconMapPin size={18} color={muted} />
                 <View style={styles.resultText}>
                   <Text style={styles.resultTitle} numberOfLines={1}>
                     {result.title}
@@ -130,14 +122,6 @@ function MapSearchSheet({
                     {result.subtitle}
                   </Text>
                 </View>
-                {index < searchResults.length - 1 ? (
-                  <View
-                    style={[
-                      styles.resultBorder,
-                      { backgroundColor: theme.alpha(neutral.textSecondary, 0.3) },
-                    ]}
-                  />
-                ) : null}
               </Pressable>
             ))}
           </View>
@@ -147,85 +131,43 @@ function MapSearchSheet({
   )
 }
 
-/** Place search: a button until it is opened, then a sheet over the top of the map. */
-export function MapSearch({
-  open,
-  top,
-  searchProximity,
-  onOpen,
-  onClose,
-  onSelectResult,
-}: {
-  open: boolean
-  top: number
-  searchProximity: { latitude: number; longitude: number } | null
-  onOpen: () => void
-  onClose: () => void
-  onSelectResult: (result: MapSearchResult) => void
-}) {
-  if (!open) {
-    return (
-      <IconButton
-        icon={MagnifyingGlassIcon}
-        size="sm"
-        onPress={onOpen}
-        style={[styles.button, { top }]}
-      />
-    )
-  }
-  return (
-    <MapSearchSheet
-      top={top}
-      searchProximity={searchProximity}
-      onClose={onClose}
-      onSelectResult={onSelectResult}
-    />
-  )
-}
-
 const styles = StyleSheet.create({
-  button: {
-    position: 'absolute',
-    right: 12,
-    zIndex: 44,
-  },
   sheet: {
     position: 'absolute',
     left: 12,
     right: 12,
     zIndex: 44,
-    gap: 8,
+    overflow: 'hidden',
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
   },
   bar: {
     height: 50,
-    borderRadius: 25,
-    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     paddingLeft: 14,
-    paddingRight: 0,
   },
   input: {
     flex: 1,
     minWidth: 0,
-    fontSize: 15,
-    fontWeight: '700',
-    paddingVertical: 10,
+    fontSize: 16,
+    paddingVertical: 8,
   },
   close: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.55,
+    opacity: interaction.pressedOpacity,
   },
   results: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
+    borderTopWidth: 1,
+    borderTopColor: theme.ui.border,
   },
   statusRow: {
     minHeight: 48,
@@ -235,53 +177,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   statusText: {
-    color: theme.neutral.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
   },
   errorText: {
     color: theme.status.error.text,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
   },
   result: {
-    minHeight: 54,
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingLeft: 8,
-    paddingRight: 14,
-    position: 'relative',
-  },
-  resultIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: theme.palette.green.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.ui.border,
   },
   resultText: {
     flex: 1,
     minWidth: 0,
   },
   resultTitle: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
+    color: theme.ui.foreground,
+    fontSize: 14,
+    fontWeight: '600',
   },
   resultSubtitle: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
+    color: theme.ui.mutedForeground,
+    fontSize: 12,
     marginTop: 2,
-  },
-  resultBorder: {
-    position: 'absolute',
-    left: 54,
-    right: 0,
-    bottom: 0,
-    height: 1,
   },
 })

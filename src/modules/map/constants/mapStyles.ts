@@ -1,5 +1,7 @@
-import Mapbox from '@rnmapbox/maps'
-import { MapTrifoldIcon, MountainsIcon, PlanetIcon } from 'phosphor-react-native'
+import IconMountain from '@tabler/icons-react-native/IconMountain'
+import IconMoonStars from '@tabler/icons-react-native/IconMoonStars'
+import IconSun from '@tabler/icons-react-native/IconSun'
+import IconSatellite from '@tabler/icons-react-native/IconSatellite'
 import { theme } from '@/constants/theme'
 
 export const MAP_DEFAULTS = {
@@ -27,6 +29,9 @@ export const MAP_DEFAULTS = {
   trailGradientEnd: theme.alpha(theme.palette.violet.color, 0.85),
 } as const
 
+/** Extruded buildings tinted to sit in the Colourful basemap's own building palette. */
+export const COLORFUL_BUILDING_COLOR = '#e6e2db'
+
 export const BLANK_STYLE = JSON.stringify({
   version: 8,
   sources: {},
@@ -36,18 +41,30 @@ export const BLANK_STYLE = JSON.stringify({
 })
 
 export const MAP_STYLES = [
-  { key: 'onedark', label: 'Streets', styleURL: null, Icon: MapTrifoldIcon },
   {
-    key: 'satellite',
-    label: 'Satellite',
-    styleURL: Mapbox.StyleURL.SatelliteStreet,
-    Icon: PlanetIcon,
+    key: 'colorful',
+    label: 'Colourful',
+    styleURL: 'mapbox://styles/mapbox/streets-v12',
+    Icon: IconSun,
   },
-  { key: 'mapy', label: 'Mapy.cz', styleURL: null, Icon: MountainsIcon },
+  // Mapbox Standard; the map applies its night light preset.
+  {
+    key: 'colorfulDark',
+    label: 'Colourful dark',
+    styleURL: 'mapbox://styles/mapbox/standard',
+    Icon: IconMoonStars,
+  },
+  {
+    key: 'satelliteLegacy',
+    label: 'Legacy satellite',
+    styleURL: 'mapbox://styles/mapbox/satellite-streets-v11',
+    Icon: IconSatellite,
+  },
+  { key: 'mapy', label: 'Mapy.cz', styleURL: null, Icon: IconMountain },
 ] as const
 
-/** Outdoors remains a valid saved key for existing installations. */
-export type MapStyleKey = (typeof MAP_STYLES)[number]['key'] | 'outdoors'
+/** Streets, Outdoors and Satellite are retired keys that older installations still have saved. */
+export type MapStyleKey = (typeof MAP_STYLES)[number]['key'] | 'onedark' | 'outdoors' | 'satellite'
 export const MAP_ORIENTATION_MODES = [
   { key: 'northUp', label: 'North up' },
   { key: 'gpsHeading', label: 'GPS heading' },

@@ -16,6 +16,7 @@ import {
   buildRiderPoints,
   buildRiderTargetPoints,
 } from '@/screens/main/map/trackedMapPoints'
+import { useLivePuckColors } from '@/screens/main/map/useLivePuckColors'
 import { useResolvedAccentColors } from '@/hooks/useTheme'
 
 /**
@@ -56,6 +57,7 @@ export function useLiveMapModel({
   directionPoint: DirectionPoint | null
 }) {
   const accents = useResolvedAccentColors()
+  const { color: puckColor } = useLivePuckColors()
   const [initialApproximateFix, setInitialApproximateFix] = useState<LocationEvent | null>(null)
   const gpsFix = liveLocations.at(-1) ?? null
   const gpsPresentation = useMemo(
@@ -117,7 +119,7 @@ export function useLiveMapModel({
   )
   const trackedMapPoints = useMemo(
     () => [
-      ...buildGpsTrackedPoint(offscreenMapGpsCoordinate, riderColor, accents),
+      ...buildGpsTrackedPoint(offscreenMapGpsCoordinate, puckColor),
       ...(activeNavigationPoint ? [activeNavigationPoint] : []),
       ...(selectedMapPoint &&
       activeNavigationPoint?.id !== `navigation-map-point-${selectedMapPoint.id}`
@@ -130,7 +132,7 @@ export function useLiveMapModel({
       activeNavigationPoint,
       accents,
       offscreenMapGpsCoordinate,
-      riderColor,
+      puckColor,
       riderPoints,
       riderTargetPoints,
       selectedMapPoint,

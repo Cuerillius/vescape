@@ -1,11 +1,10 @@
-import { TrashIcon } from 'phosphor-react-native'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
 import { useCallback, useState } from 'react'
-import { Pressable, StyleSheet, TextInput, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import type { MapPoint, MapPointPatch } from 'vescape-core'
 
-import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
 import { theme } from '@/constants/theme'
-import { useColoredAction, useResolvedNeutralColors } from '@/hooks/useTheme'
 import { useKeyboardLift } from '@/hooks/useKeyboardLift'
 import { MapPointMediaActions } from '@/modules/map-points/components/MapPointMediaAddButton'
 import { MapPointMediaPreview } from '@/modules/map-points/components/MapPointMediaPreview'
@@ -13,9 +12,9 @@ import {
   MapTargetActionRow,
   MapTargetEditHeader,
   MapTargetSheetFrame,
+  MapTargetTextField,
   mapTargetSheetChromeStyles,
 } from '@/modules/map-points/components/mapTargetSheetChrome'
-import { mapSheetStyles } from '@/modules/map-points/components/mapSheetStyles'
 import { MAP_POINT_MEDIA_ENABLED } from '@/modules/map-points/constants/mapPoints'
 import type { MapPointMediaController } from '@/modules/map-points/hooks/useMapPointMedia'
 import type { MapSelection } from '@/modules/map/lib/mapSelection'
@@ -44,10 +43,6 @@ export function MapTargetEditBody({
   const [description, setDescription] = useState(point.description ?? '')
   const keyboardLift = useKeyboardLift(true)
   const sheetBottom = Math.max(bottom, keyboardLift + 12)
-  // Colored actions wear the two-layer colored surface.
-  const deleteSurface = useColoredAction(theme.palette.red.color)
-  const saveSurface = useColoredAction(theme.palette.cyan.color)
-  const neutral = useResolvedNeutralColors()
   const handleSave = useCallback(async () => {
     if (onSaveMapPoint) await onSaveMapPoint(point.id, { name, description })
     onSave?.()
@@ -62,22 +57,12 @@ export function MapTargetEditBody({
       onFocusTarget={onFocusTarget}
     >
       <View style={styles.draftFields}>
-        <TextInput
+        <MapTargetTextField
           value={description}
           onChangeText={setDescription}
           placeholder="Description"
-          placeholderTextColor={neutral.textMuted}
-          multiline
-          style={[
-            mapTargetSheetChromeStyles.input,
-            styles.descriptionInput,
-            {
-              backgroundColor: theme.alpha(neutral.bg, 0.75),
-              borderColor: theme.alpha(neutral.textSecondary, 0.3),
-              color: neutral.textPrimary,
-            },
-          ]}
           accessibilityLabel="Map feature description"
+          multiline
         />
         {MAP_POINT_MEDIA_ENABLED ? (
           <View style={mapTargetSheetChromeStyles.mediaBox}>
@@ -93,53 +78,29 @@ export function MapTargetEditBody({
       </View>
       <MapTargetActionRow>
         {onDelete ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            icon={IconTrash}
+            variant="outline"
+            size="lg"
+            color={theme.status.error.text}
             accessibilityLabel="Delete map feature"
             onPress={onDelete}
-            style={({ pressed }) => [
-              styles.deleteIconButton,
-              { backgroundColor: deleteSurface, borderColor: theme.palette.red.color },
-              pressed && mapSheetStyles.mapTargetNavigatePressed,
-            ]}
-          >
-            <TrashIcon size={18} color={theme.palette.red.light} weight="bold" />
-          </Pressable>
+          />
         ) : null}
-        <Pressable
-          accessibilityRole="button"
+        <Button
+          label="Save"
+          variant="primary"
+          size="lg"
           accessibilityLabel="Save map feature"
+          style={mapTargetSheetChromeStyles.leadAction}
           onPress={() => void handleSave()}
-          style={({ pressed }) => [
-            mapTargetSheetChromeStyles.actionButton,
-            mapTargetSheetChromeStyles.actionButtonLead,
-            { backgroundColor: saveSurface, borderColor: theme.palette.cyan.color },
-            pressed && mapSheetStyles.mapTargetNavigatePressed,
-          ]}
-        >
-          <Text style={[mapSheetStyles.mapTargetNavigateText, { color: theme.palette.cyan.light }]}>
-            Save
-          </Text>
-        </Pressable>
+        />
       </MapTargetActionRow>
     </MapTargetSheetFrame>
   )
 }
 
 const styles = StyleSheet.create({
-  deleteIconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  descriptionInput: {
-    minHeight: 72,
-    paddingTop: 10,
-    textAlignVertical: 'top',
-  },
   draftFields: {
     gap: 8,
   },

@@ -1,4 +1,6 @@
-import { PathIcon, TimerIcon, XIcon } from 'phosphor-react-native'
+import IconClock from '@tabler/icons-react-native/IconClock'
+import IconRoute from '@tabler/icons-react-native/IconRoute'
+import IconX from '@tabler/icons-react-native/IconX'
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -14,10 +16,11 @@ import { scheduleOnRN } from 'react-native-worklets'
 
 import { useFormat } from '@/hooks/useFormat'
 import { Text } from '@/components/base/Text'
-import { theme, type ThemeColor } from '@/constants/theme'
+import { Button } from '@/components/ui/Button'
+import { CardTitle } from '@/components/ui/Card'
+import { theme } from '@/constants/theme'
 import { DASH, fmtRideDuration } from '@/helpers/format'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
-import { mapSheetStyles } from '@/modules/map-points/components/mapSheetStyles'
+import { useResolvedColor } from '@/hooks/useTheme'
 import {
   getMapTargetDisplayTitle,
   MapTargetIdentityIcon,
@@ -40,11 +43,6 @@ export function ActiveNavigationSheet({
   bottom,
   remainingDistanceMeters,
   durationSeconds,
-  targetColor,
-  targetTextColor,
-  accentColor,
-  cancelColor,
-  cancelBackgroundColor,
   onOpen,
   onCancel,
 }: {
@@ -52,16 +50,12 @@ export function ActiveNavigationSheet({
   bottom: number
   remainingDistanceMeters: number | null
   durationSeconds: number
-  targetColor: ThemeColor
-  targetTextColor: ThemeColor
-  accentColor: ThemeColor
-  cancelColor: ThemeColor
-  cancelBackgroundColor: ThemeColor
   onOpen: () => void
   onCancel: () => void
 }) {
   const { formatDistance } = useFormat()
-  const neutral = useResolvedNeutralColors()
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
+  const grabberColor = useResolvedColor(theme.ui.border)
   const expansion = useSharedValue(0)
   const animatedContainerStyle = useAnimatedStyle(() => ({
     height: 82 + expansion.value,
@@ -96,61 +90,38 @@ export function ActiveNavigationSheet({
   return (
     <GestureDetector gesture={expandGesture}>
       <Animated.View exiting={COMPACT_EXITING} style={[styles.wrap, { bottom }]}>
-        <View style={[styles.grabber, { backgroundColor: neutral.textSecondary }]} />
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.alpha(neutral.surfaceDeep, 0.85),
-              borderColor: theme.alpha(neutral.textSecondary, 0.3),
-            },
-            animatedContainerStyle,
-          ]}
-        >
+        <View style={[styles.grabber, { backgroundColor: grabberColor }]} />
+        <Animated.View style={[styles.sheet, animatedContainerStyle]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open active navigation"
             onPress={onOpen}
             style={styles.content}
           >
-            <MapTargetIdentityIcon
-              target={target}
-              fallbackColor={targetColor}
-              fallbackTextColor={targetTextColor}
-            />
+            <MapTargetIdentityIcon target={target} />
             <View style={styles.titleBlock}>
-              <Text numberOfLines={1} style={mapSheetStyles.mapTargetTitle}>
-                {getMapTargetDisplayTitle(target)}
-              </Text>
+              <CardTitle>{getMapTargetDisplayTitle(target)}</CardTitle>
               <View style={styles.primaryFacts}>
-                <PathIcon size={16} color={accentColor} weight="bold" />
-                <Text style={[styles.fact, { color: accentColor }]}>{distanceLabel}</Text>
+                <IconRoute size={16} color={mutedColor} />
+                <Text style={styles.fact}>{distanceLabel}</Text>
                 {durationSeconds > 0 ? (
                   <>
-                    <TimerIcon size={16} color={accentColor} weight="bold" />
-                    <Text style={[styles.fact, { color: accentColor }]}>
-                      {fmtRideDuration(durationSeconds)}
-                    </Text>
+                    <IconClock size={16} color={mutedColor} />
+                    <Text style={styles.fact}>{fmtRideDuration(durationSeconds)}</Text>
                   </>
                 ) : null}
               </View>
             </View>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            icon={IconX}
+            variant="outline"
+            size="lg"
+            color={theme.status.error.text}
             accessibilityLabel="Cancel navigation"
-            onPress={(event) => {
-              event.stopPropagation()
-              onCancel()
-            }}
-            style={({ pressed }) => [
-              styles.cancel,
-              { borderColor: cancelColor, backgroundColor: cancelBackgroundColor },
-              pressed && styles.pressed,
-            ]}
-          >
-            <XIcon size={20} color={cancelColor} weight="bold" />
-          </Pressable>
+            style={styles.cancel}
+            onPress={onCancel}
+          />
         </Animated.View>
       </Animated.View>
     </GestureDetector>
@@ -174,9 +145,10 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     overflow: 'hidden',
-    borderRadius: 22,
-    borderCurve: 'continuous',
+    borderRadius: theme.radius.lg + 4,
     borderWidth: 1,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.background,
   },
   content: {
     height: 82,
@@ -185,7 +157,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    paddingRight: 66,
+    paddingRight: 70,
   },
   titleBlock: {
     flex: 1,
@@ -198,22 +170,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fact: {
+    color: theme.ui.mutedForeground,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
   },
   cancel: {
     position: 'absolute',
-    top: 17,
+    top: 19,
     right: 14,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  pressed: {
-    opacity: 0.65,
   },
 })

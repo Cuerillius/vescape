@@ -7,6 +7,8 @@ import type { MainMapHandle } from '@/screens/main/map/MainMap'
 
 export interface MapModeOverlayProps {
   visible: boolean
+  /** A map layer (weather, legal limits) owns the bottom of the screen, so the sheets step aside. */
+  layerActive: boolean
   mapRef: RefObject<MainMapHandle | null>
   mapInteractionHandlerRef: RefObject<(selection?: MapSelection) => boolean | undefined>
   /** Top of the map's control row, shared with the mode tabs. */
@@ -20,10 +22,8 @@ export interface MapModeOverlayProps {
   activeNavigationTarget: MapSelection | null
   selectedNavigationTarget: MapSelection | null
   longPressMapTarget: MapSelection | null
-  onExit: () => void
   onLongPressMapTargetHandled: () => void
   onSelectNavigationTarget: (selection: MapSelection) => void
-  onNavigateTarget: (selection: MapSelection) => Promise<void>
   onNavigateSelectedTarget: () => Promise<void>
   onCancelNavigation: () => void
   onDismissSelectedTarget: () => void

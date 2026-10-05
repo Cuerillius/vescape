@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PanResponder, StyleSheet, View, type GestureResponderHandlers } from 'react-native'
 
 import { Text } from '@/components/base/Text'
-import { theme, type ThemeColor } from '@/constants/theme'
+import { theme } from '@/constants/theme'
 
 interface PlaygroundSliderProps {
   label: string
@@ -10,7 +10,6 @@ interface PlaygroundSliderProps {
   min: number
   max: number
   step?: number
-  color?: ThemeColor
   format?: (value: number) => string
   onChange: (value: number) => void
 }
@@ -27,7 +26,6 @@ export function PlaygroundSlider({
   min,
   max,
   step = 0.1,
-  color = theme.palette.sky.color,
   format,
   onChange,
 }: PlaygroundSliderProps) {
@@ -75,7 +73,7 @@ export function PlaygroundSlider({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.label}>{label}</Text>
-        <Text style={[styles.value, { color }]}>{text}</Text>
+        <Text style={styles.value}>{text}</Text>
       </View>
       <View
         style={styles.track}
@@ -86,16 +84,10 @@ export function PlaygroundSlider({
         }}
         {...handlers}
       >
+        <View pointerEvents="none" style={[styles.fill, { width: ratio * width }]} />
         <View
           pointerEvents="none"
-          style={[styles.fill, { width: ratio * width, backgroundColor: color }]}
-        />
-        <View
-          pointerEvents="none"
-          style={[
-            styles.thumb,
-            { left: Math.max(0, ratio * width - THUMB / 2), borderColor: color },
-          ]}
+          style={[styles.thumb, { left: Math.max(0, ratio * width - THUMB / 2) }]}
         />
       </View>
     </View>
@@ -103,31 +95,41 @@ export function PlaygroundSlider({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 4 },
+  container: { gap: 6 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: {
-    color: theme.palette.slate.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    fontFamily: 'monospace',
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '500',
   },
-  value: { fontSize: 11, fontWeight: '700', fontFamily: 'monospace' },
+  value: {
+    color: theme.ui.foreground,
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: theme.mono('600'),
+  },
   track: {
-    height: 22,
+    height: 24,
     justifyContent: 'center',
-    backgroundColor: theme.palette.slate.surfaceDeep,
-    borderRadius: 6,
+    backgroundColor: theme.ui.muted,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
-    borderColor: theme.palette.slate.border,
+    borderColor: theme.ui.border,
     overflow: 'hidden',
   },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, opacity: 0.35 },
+  fill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: theme.ui.primary,
+    opacity: 0.25,
+  },
   thumb: {
     position: 'absolute',
     width: THUMB,
     height: THUMB,
     borderRadius: THUMB / 2,
-    borderWidth: 2,
-    backgroundColor: theme.palette.slate.surface,
+    backgroundColor: theme.ui.primary,
   },
 })

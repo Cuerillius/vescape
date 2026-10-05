@@ -1,4 +1,3 @@
-import { TargetIcon } from 'phosphor-react-native'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LayoutChangeEvent } from 'react-native'
 import { StyleSheet, View } from 'react-native'
@@ -14,9 +13,8 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets'
 
 import { MonoValue } from '@/components/base/MonoValue'
-import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 import {
   findClosestRainViewerFrameIndex,
   formatRainViewerFrameTime,
@@ -27,8 +25,8 @@ const FRAME_INTERVAL_MS = 450
 const INITIAL_FRAME_OFFSET_SECONDS = 30 * 60
 const TIME_FONT_SIZE = 12
 
-/** Same stroke the wrist draws its timeline with: a line, never a pill. */
-const LINE_WIDTH = 2
+const TRACK_HEIGHT = 8
+const THUMB_SIZE = 16
 
 function pickFrameIndexByX(x: number, width: number, frameCount: number): number {
   'worklet'
@@ -86,7 +84,7 @@ function createRadarScrubGesture({
 }
 
 export function WeatherRadarTimeline() {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const frames = useRainViewerRadarStore((state) => state.frames)
   const fetchRadar = useRainViewerRadarStore((state) => state.fetch)
   const [scrubbing, setScrubbing] = useState(false)
@@ -185,18 +183,18 @@ export function WeatherRadarTimeline() {
   const fillStyle = useAnimatedStyle(() => ({
     width: `${progress.value * 100}%`,
   }))
+  const thumbStyle = useAnimatedStyle(() => ({
+    left: `${progress.value * 100}%`,
+    transform: [{ scale: withTiming(scrubbing ? 1.25 : 1, { duration: 120 }) }],
+  }))
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TargetIcon size={16} color={theme.weather.rain} weight="duotone" />
-        <Text style={[styles.title, { color: neutral.textSecondary }]}>Rain radar</Text>
-      </View>
       <MonoValue
         text={frameLabel}
         size={TIME_FONT_SIZE}
         weight="800"
-        color={neutral.textPrimary}
+        color={ui.foreground}
         align="center"
       />
       <GestureDetector gesture={scrubGesture}>
@@ -206,9 +204,10 @@ export function WeatherRadarTimeline() {
           onLayout={handleTrackLayout}
           style={styles.track}
         >
-          <View style={[styles.guide, { backgroundColor: neutral.border }]}>
+          <View style={styles.guide}>
             <Animated.View style={[styles.fill, fillStyle]} />
           </View>
+          <Animated.View style={[styles.thumb, thumbStyle]} />
         </Animated.View>
       </GestureDetector>
     </View>
@@ -217,40 +216,33 @@ export function WeatherRadarTimeline() {
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    maxWidth: 300,
-    width: '68%',
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
     gap: 4,
+    paddingHorizontal: 20,
+  },
+  // A fat track with a handle on it: the thumb says the timeline can be dragged, and the row is
+  // a finger tall so a scrub does not have to be aimed at the track itself.
+  track: {
+    height: 32,
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  // Thin line, thick target: the stroke matches the wrist's timeline, but the row stays a
-  // finger tall so a scrub does not have to be aimed at two pixels. The line rides at the top of
-  // that row rather than its middle, so the time reads as the line's label instead of the
-  // header's — the slack all falls below, where nothing else sits.
-  track: {
-    height: 20,
-    justifyContent: 'flex-start',
-    paddingTop: 4,
-  },
   guide: {
+    backgroundColor: theme.ui.border,
     borderRadius: 999,
-    height: LINE_WIDTH,
+    height: TRACK_HEIGHT,
+    overflow: 'hidden',
+  },
+  thumb: {
+    position: 'absolute',
+    marginLeft: -THUMB_SIZE / 2,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: THUMB_SIZE / 2,
+    backgroundColor: theme.ui.foreground,
   },
   // Inside the guide, not beside it: as a sibling it was positioned against the track box and
   // drew as a second line above the guide instead of over it.
   fill: {
-    backgroundColor: theme.palette.sky.color,
+    backgroundColor: theme.ui.foreground,
     borderRadius: 999,
     bottom: 0,
     left: 0,

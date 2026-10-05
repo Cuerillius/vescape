@@ -1,22 +1,20 @@
-import { MapPinIcon, ThumbsDownIcon, ThumbsUpIcon, XIcon, type Icon } from 'phosphor-react-native'
-import { createElement, type ReactNode } from 'react'
+import IconThumbDown from '@tabler/icons-react-native/IconThumbDown'
+import IconThumbUp from '@tabler/icons-react-native/IconThumbUp'
+import IconX from '@tabler/icons-react-native/IconX'
+import type { ComponentType, ReactNode } from 'react'
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
 import Animated, { Keyframe } from 'react-native-reanimated'
 import type { MapPoint } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
-import { theme, type ThemeColor } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { Button } from '@/components/ui/Button'
+import { CardDescription, CardTitle } from '@/components/ui/Card'
+import { interaction, theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
+import { MapMarkFace } from '@/modules/map/components/MapMark'
 import { MapPointMediaPreview } from '@/modules/map-points/components/MapPointMediaPreview'
-import { mapSheetStyles } from '@/modules/map-points/components/mapSheetStyles'
 import {
-  getMapPointKindIcon,
-  getPlaceCategoryIcon,
-} from '@/modules/map-points/constants/mapPointIcons'
-import {
-  getMapPointKindColor,
   getMapPointKindLabel,
-  getMapPointKindTextColor,
   MAP_POINT_MEDIA_ENABLED,
 } from '@/modules/map-points/constants/mapPoints'
 import type { MapPointMediaAsset } from '@/modules/map-points/store/mapPointPhotoFiles'
@@ -25,11 +23,7 @@ import type { MapSelection } from '@/modules/map/lib/mapSelection'
 export interface MapTargetSheetAction {
   label: string
   accessibilityLabel: string
-  color: ThemeColor
-  textColor: ThemeColor
-  borderColor: ThemeColor
-  bgColor: ThemeColor
-  Icon: Icon
+  Icon: ComponentType<{ size: number; color: string }>
   onPress: () => void
 }
 
@@ -38,12 +32,11 @@ const MAP_TARGET_ENTERING = new Keyframe({
   100: { opacity: 1, transform: [{ translateY: 0 }] },
 }).duration(140)
 
+/** A flat zinc sheet over the map: the Drawer's surface, without its scrim. */
 export function MapTargetSheetFrame({
   target,
   bottom,
   header,
-  fallbackColor = theme.map.target,
-  fallbackTextColor = theme.neutral.textPrimary,
   onDismiss,
   onFocusTarget,
   animateEntrance = false,
@@ -52,36 +45,22 @@ export function MapTargetSheetFrame({
   target: MapSelection
   bottom: number
   header: ReactNode
-  fallbackColor?: ThemeColor
-  fallbackTextColor?: ThemeColor
   onDismiss?: () => void
   onFocusTarget?: () => void
   animateEntrance?: boolean
   children: ReactNode
 }) {
-  const neutral = useResolvedNeutralColors()
   const headerContent = (
     <>
-      <MapTargetIdentityIcon
-        target={target}
-        fallbackColor={fallbackColor}
-        fallbackTextColor={fallbackTextColor}
-      />
-      <View style={mapSheetStyles.mapTargetTitleBlock}>{header}</View>
+      <MapTargetIdentityIcon target={target} />
+      <View style={styles.titleBlock}>{header}</View>
     </>
   )
 
   return (
     <Animated.View
       entering={animateEntrance ? MAP_TARGET_ENTERING : undefined}
-      style={[
-        styles.sheet,
-        {
-          bottom,
-          backgroundColor: theme.alpha(neutral.surfaceDeep, 0.85),
-          borderColor: theme.alpha(neutral.textSecondary, 0.3),
-        },
-      ]}
+      style={[styles.sheet, { bottom }]}
     >
       <View style={styles.header}>
         {onFocusTarget ? (
@@ -89,7 +68,7 @@ export function MapTargetSheetFrame({
             accessibilityRole="button"
             accessibilityLabel="Center map on target"
             onPress={onFocusTarget}
-            style={({ pressed }) => [styles.focusArea, pressed && styles.focusAreaPressed]}
+            style={({ pressed }) => [styles.focusArea, pressed && styles.pressed]}
           >
             {headerContent}
           </Pressable>
@@ -97,14 +76,12 @@ export function MapTargetSheetFrame({
           <View style={styles.focusArea}>{headerContent}</View>
         )}
         {onDismiss ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            icon={IconX}
+            variant="ghost"
             accessibilityLabel="Close target"
             onPress={onDismiss}
-            style={({ pressed }) => [styles.close, pressed && mapSheetStyles.mapTargetClosePressed]}
-          >
-            <XIcon size={20} color={theme.neutral.textSecondary} weight="bold" />
-          </Pressable>
+          />
         ) : null}
       </View>
       {children}
@@ -112,35 +89,9 @@ export function MapTargetSheetFrame({
   )
 }
 
-export function MapTargetIdentityIcon({
-  target,
-  fallbackColor = theme.map.target,
-  fallbackTextColor = theme.neutral.textPrimary,
-}: {
-  target: MapSelection
-  fallbackColor?: ThemeColor
-  fallbackTextColor?: ThemeColor
-}) {
-  const neutral = useResolvedNeutralColors()
-  const isMapPoint = target.type === 'mapPoint'
-  const color = isMapPoint ? getMapPointKindColor(target.point.category) : fallbackColor
-  const textColor = isMapPoint ? getMapPointKindTextColor(target.point.category) : fallbackTextColor
-  const IconComponent = isMapPoint
-    ? getMapPointKindIcon(target.point.category)
-    : target.type === 'place'
-      ? getPlaceCategoryIcon(target.category)
-      : MapPinIcon
-
-  return (
-    <View
-      style={[
-        mapSheetStyles.mapTargetIcon,
-        { backgroundColor: neutral.surfaceDeep, borderColor: color },
-      ]}
-    >
-      {createElement(IconComponent, { size: 18, color: textColor, weight: 'duotone' })}
-    </View>
-  )
+/** The target's map mark: its category for a Map Point, the direction pin for anything else. */
+export function MapTargetIdentityIcon({ target }: { target: MapSelection }) {
+  return <MapMarkFace kind={target.type === 'mapPoint' ? target.point.category : 'direction'} />
 }
 
 export function getMapTargetDisplayTitle(target: MapSelection) {
@@ -151,16 +102,11 @@ export function getMapTargetDisplayTitle(target: MapSelection) {
 
 export function MapTargetReadHeader({ target }: { target: MapSelection }) {
   if (target.type === 'mapPoint') {
-    const title = getMapTargetDisplayTitle(target)
     const created = new Date(target.point.createdAt).toLocaleDateString()
     return (
       <>
-        <Text style={mapSheetStyles.mapTargetTitle} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.metaText} numberOfLines={1}>
-          Vescape rider · {created}
-        </Text>
+        <CardTitle>{getMapTargetDisplayTitle(target)}</CardTitle>
+        <CardDescription>Vescape rider · {created}</CardDescription>
       </>
     )
   }
@@ -171,13 +117,37 @@ export function MapTargetReadHeader({ target }: { target: MapSelection }) {
 
   return (
     <>
-      <Text style={mapSheetStyles.mapTargetTitle} numberOfLines={1}>
-        {target.title}
-      </Text>
-      <Text style={mapSheetStyles.mapTargetSubtitle} numberOfLines={2}>
-        {detail}
-      </Text>
+      <CardTitle>{target.title}</CardTitle>
+      <CardDescription numberOfLines={2}>{detail}</CardDescription>
     </>
+  )
+}
+
+/** Text field on the zinc card step, shared by the name and description of a Map Point draft. */
+export function MapTargetTextField({
+  value,
+  onChangeText,
+  placeholder,
+  accessibilityLabel,
+  multiline = false,
+}: {
+  value: string
+  onChangeText: (value: string) => void
+  placeholder: string
+  accessibilityLabel: string
+  multiline?: boolean
+}) {
+  const placeholderColor = useResolvedColor(theme.ui.mutedForeground)
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={placeholderColor}
+      multiline={multiline}
+      style={[styles.input, multiline && styles.inputMultiline]}
+      accessibilityLabel={accessibilityLabel}
+    />
   )
 }
 
@@ -190,23 +160,11 @@ export function MapTargetEditHeader({
   name: string
   onChangeName: (name: string) => void
 }) {
-  const neutral = useResolvedNeutralColors()
-
   return (
-    <TextInput
+    <MapTargetTextField
       value={name}
       onChangeText={onChangeName}
       placeholder={getMapPointKindLabel(point.category)}
-      placeholderTextColor={neutral.textMuted}
-      style={[
-        styles.input,
-        styles.nameInput,
-        {
-          backgroundColor: theme.alpha(neutral.bg, 0.75),
-          borderColor: theme.alpha(neutral.textSecondary, 0.3),
-          color: neutral.textPrimary,
-        },
-      ]}
       accessibilityLabel="Map feature name"
     />
   )
@@ -220,25 +178,19 @@ export function MapPointDetails({
   media: readonly MapPointMediaAsset[]
 }) {
   const description = point.description?.trim()
+  const ScoreIcon = point.score < 0 ? IconThumbDown : IconThumbUp
+  const scoreColor = useResolvedColor(theme.ui.mutedForeground)
   return (
     <>
-      {description ? (
-        <View style={styles.descriptionBlock}>
-          <Text style={mapSheetStyles.mapTargetSubtitle}>{description}</Text>
-        </View>
-      ) : null}
+      {description ? <Text style={styles.description}>{description}</Text> : null}
       {MAP_POINT_MEDIA_ENABLED && media.length > 0 ? (
         <View style={styles.mediaBox}>
           <MapPointMediaPreview assets={media} />
         </View>
       ) : null}
       <View style={styles.voteCount}>
-        {point.score < 0 ? (
-          <ThumbsDownIcon size={14} color={theme.status.error.text} weight="fill" />
-        ) : (
-          <ThumbsUpIcon size={14} color={theme.palette.cyan.text} weight="fill" />
-        )}
-        <Text style={styles.metaText}>{point.score}</Text>
+        <ScoreIcon size={14} color={scoreColor} />
+        <CardDescription>{point.score}</CardDescription>
       </View>
     </>
   )
@@ -249,95 +201,40 @@ export function MapTargetActionRow({ children }: { children: ReactNode }) {
 }
 
 /**
- * A sheet action button. `compact` is the same button at side-action weight, giving the row's width
- * to the action the rider is most likely to want; `iconOnly` drops to the icon alone, for actions
- * whose icon is unambiguous and whose label would otherwise crowd the one that matters. The label
- * still exists — it stays the accessibility name.
+ * A sheet action. The lead action is the one filled button and takes the row width; `iconOnly`
+ * drops a side action to the icon alone, for actions whose icon is unambiguous. The label still
+ * exists as the accessibility name.
  */
 export function MapTargetPrimaryAction({
   action,
-  compact = false,
   iconOnly = false,
 }: {
   action: MapTargetSheetAction
-  compact?: boolean
   iconOnly?: boolean
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Button
+      icon={action.Icon}
+      label={iconOnly ? undefined : action.label}
+      variant={iconOnly ? 'outline' : 'primary'}
+      size="lg"
       accessibilityLabel={action.accessibilityLabel}
+      style={iconOnly ? undefined : styles.leadAction}
       onPress={action.onPress}
-      style={({ pressed }) => [
-        styles.actionButton,
-        compact ? styles.actionButtonCompact : styles.actionButtonLead,
-        iconOnly && styles.actionButtonIconOnly,
-        { backgroundColor: action.bgColor, borderColor: action.borderColor },
-        pressed && mapSheetStyles.mapTargetNavigatePressed,
-      ]}
-    >
-      <action.Icon size={compact ? 18 : 18} color={action.color} weight="bold" />
-      {iconOnly ? null : (
-        <Text
-          style={[
-            mapSheetStyles.mapTargetNavigateText,
-            compact && styles.actionLabelCompact,
-            { color: action.textColor },
-          ]}
-        >
-          {action.label}
-        </Text>
-      )}
-    </Pressable>
+    />
   )
 }
 
 const styles = StyleSheet.create({
-  actionButton: {
-    minWidth: 0,
-    height: 46,
-    borderRadius: 23,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: theme.palette.green.bg,
-    borderWidth: 1,
-    borderColor: theme.palette.green.border,
-  },
-  actionButtonLead: {
-    flex: 2,
-  },
-  actionButtonCompact: {
-    flex: 1,
-    height: 42,
-    gap: 6,
-  },
-  /** A square button: it holds an icon, so it must not stretch with the row it sits in. */
-  actionButtonIconOnly: {
-    flex: 0,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    gap: 0,
-  },
-  actionLabelCompact: {
-    fontSize: 12,
-  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  close: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  descriptionBlock: {
-    paddingRight: 36,
+  description: {
+    color: theme.ui.foreground,
+    fontSize: 13,
+    fontWeight: '500',
   },
   focusArea: {
     flex: 1,
@@ -345,38 +242,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 18,
-  },
-  focusAreaPressed: {
-    opacity: 0.65,
   },
   header: {
-    minHeight: 46,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   input: {
-    minHeight: 42,
-    borderRadius: 12,
+    minHeight: 44,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
     paddingHorizontal: 12,
-    fontSize: 13,
-    fontWeight: '700',
+    color: theme.ui.foreground,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  inputMultiline: {
+    minHeight: 72,
+    paddingTop: 10,
+    textAlignVertical: 'top',
+  },
+  leadAction: {
+    flex: 1,
   },
   mediaBox: {
     gap: 12,
   },
-  metaText: {
-    color: theme.neutral.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  nameInput: {
-    minHeight: 38,
-    paddingHorizontal: 10,
-    fontSize: 15,
-    fontWeight: '900',
+  pressed: {
+    opacity: interaction.pressedOpacity,
   },
   sheet: {
     position: 'absolute',
@@ -384,13 +280,16 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 45,
     gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 22,
-    borderCurve: 'continuous',
+    padding: 12,
+    borderRadius: theme.radius.lg + 4,
     borderWidth: 1,
-    borderColor: theme.alpha(theme.palette.slate.light, 0.3),
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.85),
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.background,
+  },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   voteCount: {
     flexDirection: 'row',

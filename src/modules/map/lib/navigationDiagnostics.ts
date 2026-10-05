@@ -13,6 +13,9 @@ const MAP_STYLE_LABELS: Record<string, string> = {
   onedark: 'Streets',
   outdoors: 'Streets',
   satellite: 'Satellite',
+  colorful: 'Streets',
+  colorfulDark: 'Streets (dark)',
+  satelliteLegacy: 'Satellite',
   mapy: 'Mapy.cz',
 }
 

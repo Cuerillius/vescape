@@ -25,7 +25,7 @@ export type MapCameraMode =
   /**
    * The reveal gesture is driving the camera itself. `returnTo` is the mode a cancelled drag goes
    * back to; the drag only owns the camera while this mode is live, so anything that claims the
-   * camera mid-drag (entering the weather view, framing a route) simply replaces it and the
+   * camera mid-drag (framing a route) simply replaces it and the
    * gesture's own ending becomes a no-op.
    */
   | { kind: 'previewPan'; returnTo: MapCameraMode }
@@ -131,7 +131,7 @@ export interface MapCameraEffect {
 }
 
 /**
- * Zoom at which the outer radar range ring just fits across the narrow side of the screen. The
+ * Zoom at which the inner (50 km) radar range ring just fits across the narrow side of the screen. The
  * radar answers "what is heading for me", so the framing is the rings, not the rider's street —
  * but framed no wider than that, or the rider is looking at other countries.
  *
@@ -147,8 +147,8 @@ export function zoomForRadarView(
   return zoomForMetersPerPixel(spanM / fitPx, latitude)
 }
 
-/** The outer ring the view is framed around, matching the rings drawn on the map. */
-const RADAR_VIEW_RADIUS_M = 100_000
+/** The inner (50 km) ring the view is framed around, matching the rings drawn on the map. */
+const RADAR_VIEW_RADIUS_M = 50_000
 
 /** Breathing room around that ring, so it never touches the screen edge. */
 const RADAR_VIEW_PADDING = 0.12

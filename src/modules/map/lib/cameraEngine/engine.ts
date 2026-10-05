@@ -182,8 +182,12 @@ export interface CameraEngine {
   resume: () => void
   /** Initialize springs at rest on a known camera. Until called, targets snap. */
   reset: (camera: EngineCamera) => void
-  /** Retarget springs; motion continues from current position and velocity. */
-  setTarget: (target: CameraEngineTarget) => void
+  /**
+   * Retarget springs; motion continues from current position and velocity. A centre further than
+   * the teleport distance snaps, unless `glide` asks for the long flight: the ballistic cap then
+   * keeps the zoom out while the centre is far and lets it back in as it arrives.
+   */
+  setTarget: (target: CameraEngineTarget, options?: { glide?: boolean }) => void
   /** Jump instantly, killing velocity on the snapped axes. */
   snap: (target: CameraEngineTarget) => void
   /**
@@ -484,11 +488,11 @@ export function createCameraEngine(config: CameraEngineConfig): CameraEngine {
     ensureLoop()
   }
 
-  const setTarget = (target: CameraEngineTarget) => {
+  const setTarget = (target: CameraEngineTarget, options?: { glide?: boolean }) => {
     if (!springs) return
     lastDriveMs = null
     claimTarget()
-    if (target.center) {
+    if (target.center && !options?.glide) {
       const from = { longitude: springs.lng.x, latitude: springs.lat.x }
       const to = { longitude: target.center[0], latitude: target.center[1] }
       if (distanceMeters(from, to) > teleportDistanceM) {

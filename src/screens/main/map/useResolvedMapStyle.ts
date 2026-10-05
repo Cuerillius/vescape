@@ -1,24 +1,21 @@
 import { useMemo } from 'react'
 
 import { IS_MAPY_CONFIGURED } from '@/config/mapy'
+import { useThemeStore } from '@/hooks/useTheme'
 import { BLANK_STYLE, MAP_STYLES, type MapStyleKey } from '@/modules/map/constants/mapStyles'
 import {
   getSatelliteImageryPaint,
   getSatelliteOverlayMapStyle,
 } from '@/modules/map/constants/satelliteDarkMapStyle'
-import { getOneDarkMapStyle } from '@/modules/map/constants/oneDarkMapStyle'
-import { resolveMapThemeTone } from '@/modules/map/lib/mapThemeTone'
-import { useThemeStore } from '@/hooks/useTheme'
 import { mapStyleForTheme } from '@/modules/map/lib/mapTheme'
-import Mapbox from '@rnmapbox/maps'
+import { resolveMapThemeTone } from '@/modules/map/lib/mapThemeTone'
 
 import type { MainViewState } from '@/screens/main/mainViewState'
 import { baseStyleLayerIds } from '@/screens/main/map/baseStyleLayerIds'
 
 /**
- * Resolves the requested map style into everything the map view and the `existing`
- * layer overrides need: which style source to hand Mapbox, and how the current mode
- * tints it.
+ * Resolves the requested map style into everything the map view and its layers need. Legacy
+ * satellite follows the satellite settings, the app theme and daylight when its overlay is on.
  */
 export function useResolvedMapStyle({
   mapStyleKey,
@@ -27,7 +24,6 @@ export function useResolvedMapStyle({
   satelliteImageryOpacity,
   satelliteMapImageryOpacity,
   satelliteImagerySaturation,
-  hideTelemetryMapDetails,
 }: {
   mapStyleKey: MapStyleKey
   mode: MainViewState
@@ -35,44 +31,30 @@ export function useResolvedMapStyle({
   satelliteImageryOpacity: number
   satelliteMapImageryOpacity: number
   satelliteImagerySaturation: number
-  hideTelemetryMapDetails: boolean
 }) {
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme)
   const outdoorLight = useThemeStore((state) => state.outdoorLight)
-  const renderedStyleKey = mapStyleForTheme(mapStyleKey, resolvedTheme)
   const requestedMapStyle =
-    renderedStyleKey === 'outdoors'
-      ? { key: 'outdoors' as const, styleURL: Mapbox.StyleURL.Outdoors }
-      : (MAP_STYLES.find((style) => style.key === renderedStyleKey) ?? MAP_STYLES[0])
+    MAP_STYLES.find((style) => style.key === mapStyleForTheme(mapStyleKey)) ?? MAP_STYLES[0]
   const selectedMapStyle =
     requestedMapStyle.key === 'mapy' && !IS_MAPY_CONFIGURED ? MAP_STYLES[0] : requestedMapStyle
-  const isMapy = selectedMapStyle.key === 'mapy'
-  const isOneDark = selectedMapStyle.key === 'onedark'
-  const isSatellite = selectedMapStyle.key === 'satellite'
+  const styleKey = selectedMapStyle.key
+  const isMapy = styleKey === 'mapy'
+  const isSatellite = styleKey === 'satelliteLegacy'
   const isSatelliteOverlay = isSatellite && satelliteOverlayEnabled
-  const useCustomJSON = isMapy || isOneDark || isSatelliteOverlay
-  const mapDetailsVisible = mode === 'map' || (mode === 'telemetry' && !hideTelemetryMapDetails)
 
-  const effectiveSatelliteImageryOpacity =
-    mode === 'telemetry' ? satelliteImageryOpacity : satelliteMapImageryOpacity
-  const effectiveSatelliteImagerySaturation = mode === 'telemetry' ? satelliteImagerySaturation : 0
-
+  const imageryOpacity = mode === 'telemetry' ? satelliteImageryOpacity : satelliteMapImageryOpacity
+  const imagerySaturation = mode === 'telemetry' ? satelliteImagerySaturation : 0
   const satelliteTone = useMemo(
     () =>
       resolveMapThemeTone({
         theme: resolvedTheme,
         outdoorLight,
-        imageryOpacity: effectiveSatelliteImageryOpacity,
-        imagerySaturation: effectiveSatelliteImagerySaturation,
+        imageryOpacity,
+        imagerySaturation,
       }),
-    [
-      effectiveSatelliteImageryOpacity,
-      effectiveSatelliteImagerySaturation,
-      outdoorLight,
-      resolvedTheme,
-    ],
+    [imageryOpacity, imagerySaturation, outdoorLight, resolvedTheme],
   )
-
   const satelliteImageryPaint = useMemo(
     () =>
       getSatelliteImageryPaint(
@@ -80,63 +62,54 @@ export function useResolvedMapStyle({
         satelliteTone.imagerySaturation,
         satelliteTone.imageryContrast,
       ),
-    [satelliteTone.imageryContrast, satelliteTone.imageryOpacity, satelliteTone.imagerySaturation],
+    [satelliteTone],
   )
-  const oneDarkStyleJSON = useMemo(() => getOneDarkMapStyle(true, true, false), [])
   const satelliteStyleJSON = useMemo(
     () => getSatelliteOverlayMapStyle(resolvedTheme),
     [resolvedTheme],
   )
 
-  const styleJSON = isSatelliteOverlay
-    ? satelliteStyleJSON
-    : isOneDark
-      ? oneDarkStyleJSON
-      : isMapy
-        ? BLANK_STYLE
-        : undefined
+  // Mapy draws its own raster tiles over an empty document, and the satellite overlay is a
+  // document of ours; every other style is a hosted one.
+  const styleJSON = isSatelliteOverlay ? satelliteStyleJSON : isMapy ? BLANK_STYLE : undefined
   const existingLayerIds = useMemo(() => baseStyleLayerIds(styleJSON), [styleJSON])
-
-  // Signed by the style document Mapbox actually receives. A theme change replaces the
-  // satellite backdrop, so it must wait for the new document before adopting its layers.
-  const styleSignature = styleJSON
-    ? isMapy
+  // A theme change replaces the satellite backdrop, so it must wait for the new document.
+  const styleSignature = isSatelliteOverlay
+    ? `json:satellite:${resolvedTheme}`
+    : isMapy
       ? 'json:blank'
-      : isSatelliteOverlay
-        ? `json:satellite:${resolvedTheme}`
-        : 'json:onedark'
-    : String(selectedMapStyle.styleURL)
+      : String(selectedMapStyle.styleURL)
+  const satelliteRoadLineOpacity = satelliteTone.roadLineOpacity * (mode === 'telemetry' ? 0.6 : 1)
 
   return useMemo(
     () => ({
-      styleKey: selectedMapStyle.key,
+      styleKey,
       isMapy,
-      isOneDark,
+      // Colourful dark is Mapbox Standard, which draws its own 3D buildings through its config.
+      isStandard: styleKey === 'colorfulDark',
+      isColorful: styleKey === 'colorful',
       isSatellite,
       isSatelliteOverlay,
-      mapDetailsVisible,
-      showBuildings3d: selectedMapStyle.key === 'outdoors' || selectedMapStyle.key === 'onedark',
-      styleURL: useCustomJSON ? undefined : selectedMapStyle.styleURL,
+      // Imagery and Standard would only be cluttered by extruded buildings.
+      showBuildings3d: styleKey === 'colorful',
+      styleURL: styleJSON ? undefined : (selectedMapStyle.styleURL ?? undefined),
       styleJSON,
       existingLayerIds,
       satelliteImageryPaint,
-      satelliteRoadLineOpacity: satelliteTone.roadLineOpacity * (mode === 'telemetry' ? 0.6 : 1),
+      satelliteRoadLineOpacity,
       styleSignature,
     }),
     [
+      existingLayerIds,
       isMapy,
-      isOneDark,
       isSatellite,
       isSatelliteOverlay,
-      mapDetailsVisible,
-      mode,
       satelliteImageryPaint,
-      satelliteTone,
-      selectedMapStyle,
+      satelliteRoadLineOpacity,
+      selectedMapStyle.styleURL,
       styleJSON,
-      existingLayerIds,
+      styleKey,
       styleSignature,
-      useCustomJSON,
     ],
   )
 }

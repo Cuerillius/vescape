@@ -1,4 +1,3 @@
-import type { ThemeColor } from '@/constants/theme'
 import type { ReactNode } from 'react'
 import type { MapPoint, MapPointPatch } from 'vescape-core'
 
@@ -14,14 +13,11 @@ export function MapTargetSheet({
   bottom,
   mode,
   action,
-  sideActions,
-  targetColor,
-  targetTextColor,
+  sideAction,
   notice,
   path,
   computing,
   profileSelector,
-  onAddFeature,
   onEdit,
   onSave,
   onSaveMapPoint,
@@ -35,10 +31,7 @@ export function MapTargetSheet({
   mode: 'select' | 'navigation' | 'edit'
   action: MapTargetSheetAction
   /** Navigation mode only: smaller buttons flanking the primary one. */
-  sideActions?: readonly MapTargetSheetAction[]
-  /** Navigation mode only: the target's colour for the header badge. */
-  targetColor?: ThemeColor
-  targetTextColor?: ThemeColor
+  sideAction?: MapTargetSheetAction
   /** Navigation mode only: why there is no path, in rider-facing words. */
   notice?: string | null
   /** Navigation mode only: how far the drawn path runs and how long it takes. */
@@ -47,7 +40,6 @@ export function MapTargetSheet({
   computing?: boolean
   /** Navigation mode only: the Navigation Profile switcher, shown beside the drawn path. */
   profileSelector?: ReactNode
-  onAddFeature?: () => void
   onEdit?: () => void
   onSave?: () => void
   onSaveMapPoint?: (id: string, patch: MapPointPatch) => Promise<MapPoint | null>
@@ -81,9 +73,7 @@ export function MapTargetSheet({
         target={target}
         bottom={bottom}
         action={action}
-        sideActions={sideActions}
-        targetColor={targetColor ?? action.color}
-        targetTextColor={targetTextColor ?? action.textColor}
+        sideAction={sideAction}
         notice={notice}
         path={path}
         computing={computing}
@@ -101,7 +91,6 @@ export function MapTargetSheet({
       bottom={bottom}
       action={action}
       media={media.assets}
-      onAddFeature={onAddFeature}
       onEdit={onEdit}
       onVoteMapPoint={onVoteMapPoint}
       onDismiss={onDismiss}

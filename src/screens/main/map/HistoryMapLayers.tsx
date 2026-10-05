@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { theme } from '@/constants/theme'
 import {
   useResolvedAccentColors,
-  useResolvedNeutralColors,
+  useResolvedColor,
   useResolvedTelemetryColors,
 } from '@/hooks/useTheme'
 import { MediaHistoryPin } from '@/modules/history/components/MediaHistoryPin'
@@ -15,17 +15,13 @@ import {
   getHistoryRouteHighlightGradient,
   getHistoryRouteMetricGradient,
 } from '@/modules/history/lib/historyRouteGradient'
-import {
-  HISTORY_MARKER_COLORS,
-  HISTORY_MARKER_ICONS,
-} from '@/modules/history/lib/historyMapMarkerInfo'
 import { resolveMarkerRenderData } from '@/modules/history/lib/markerOverlap'
 import {
   clusterMediaHistoryAssets,
   MEDIA_CLUSTER_DISTANCE_M,
 } from '@/modules/history/lib/mediaHistory'
 import type { HistoryGpsSample } from '@/modules/history/store/historyStore'
-import { MapPin } from '@/modules/map/components/MapPin'
+import { MapMark } from '@/modules/map/components/MapMark'
 import { RouteZoomFocus } from '@/screens/main/map/RouteZoomFocus'
 import { SeekPositionPin } from '@/screens/main/map/SeekPositionPin'
 import { useMainScreenStore } from '@/screens/main/mainScreenStore'
@@ -147,7 +143,7 @@ export function HistoryMapLayers({
   highContrastRoutes: boolean
 }) {
   const accents = useResolvedAccentColors()
-  const neutral = useResolvedNeutralColors()
+  const casingColor = useResolvedColor(theme.ui.background)
   const telemetryColors = useResolvedTelemetryColors()
   // Flips only on trim enter/exit, so the whole-route layers dim without per-drag re-renders.
   const trimming = useMainScreenStore((s) => s.trimRange != null)
@@ -223,7 +219,7 @@ export function HistoryMapLayers({
           <LineLayer
             id="center-ride-route-casing"
             style={{
-              lineColor: theme.alpha(neutral.surfaceDeep, 0.85),
+              lineColor: theme.alpha(casingColor, 0.85),
               lineWidth: highContrastRoutes ? 8 : 0,
               lineCap: 'round',
               lineJoin: 'round',
@@ -271,30 +267,19 @@ export function HistoryMapLayers({
         </ShapeSource>
       )}
       <TrimRouteHighlight rideGpsSamples={rideGpsSamples} />
-      {rideRoute[0] && (
-        <MapPin
-          id="center-ride-start"
-          coordinate={rideRoute[0]}
-          color={theme.palette.green.color}
-        />
-      )}
+      {rideRoute[0] && <MapMark id="center-ride-start" kind="start" coordinate={rideRoute[0]} />}
       {rideRoute.at(-1) && (
-        <MapPin
-          id="center-ride-end"
-          coordinate={rideRoute.at(-1)!}
-          color={theme.status.error.color}
-        />
+        <MapMark id="center-ride-end" kind="end" coordinate={rideRoute.at(-1)!} />
       )}
       <SeekPositionPin rideGpsSamples={rideGpsSamples} />
 
       {resolveMarkerRenderData(rideMarkers, rideGpsSamples).map(
         ({ marker, gps, renderCoordinate }) => (
-          <MapPin
+          <MapMark
             key={marker.id}
             id={`center-ride-marker-${marker.id}`}
+            kind={marker.type}
             coordinate={renderCoordinate}
-            color={HISTORY_MARKER_COLORS[marker.type]}
-            icon={HISTORY_MARKER_ICONS[marker.type]}
             onSelected={() => {
               onSuppressNextMapPress()
               onSelectMarker({ marker, gps })

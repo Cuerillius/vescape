@@ -15,6 +15,15 @@ export interface GpsStatusBadge {
   label: string
 }
 
+export const GPS_STATUS_BADGES: Record<GpsStatusBadge['kind'], GpsStatusBadge> = {
+  off: { kind: 'off', label: 'GPS off' },
+  starting: { kind: 'starting', label: 'Starting GPS' },
+  blocked: { kind: 'blocked', label: 'GPS blocked' },
+  searching: { kind: 'searching', label: 'Searching for GPS' },
+  lost: { kind: 'lost', label: 'GPS signal lost' },
+  weak: { kind: 'weak', label: 'Weak GPS' },
+}
+
 /**
  * What is wrong with GPS right now, or `null` when nothing is — the badge only exists to explain a
  * missing or untrustworthy position, so a healthy receiver shows nothing at all.
@@ -31,16 +40,16 @@ export function deriveGpsStatusBadge({
   latestFix: LocationEvent | null
   nowMs: number
 }): GpsStatusBadge | null {
-  if (phase === 'error') return { kind: 'blocked', label: 'GPS blocked' }
-  if (phase === 'idle') return { kind: 'off', label: 'GPS off' }
-  if (phase === 'starting') return { kind: 'starting', label: 'Starting GPS' }
+  if (phase === 'error') return GPS_STATUS_BADGES.blocked
+  if (phase === 'idle') return GPS_STATUS_BADGES.off
+  if (phase === 'starting') return GPS_STATUS_BADGES.starting
 
-  if (!latestFix) return { kind: 'searching', label: 'Searching for GPS' }
+  if (!latestFix) return GPS_STATUS_BADGES.searching
   // A fix from the future is a clock skew, not a stale fix; clamp rather than cry "lost".
   if (nowMs - latestFix.timestamp >= GPS_STALE_FIX_TIMEOUT_MS) {
-    return { kind: 'lost', label: 'GPS signal lost' }
+    return GPS_STATUS_BADGES.lost
   }
-  if (!latestFix.precise) return { kind: 'weak', label: 'Weak GPS' }
+  if (!latestFix.precise) return GPS_STATUS_BADGES.weak
 
   return null
 }

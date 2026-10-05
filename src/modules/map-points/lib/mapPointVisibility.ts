@@ -13,10 +13,3 @@ export function isMapPinKindVisible(
 ) {
   return !isFilterableMapPinKind(kind) || !hiddenCategories.includes(kind)
 }
-
-/** Kinds rendered as compact chips in the map-point placement picker. */
-const COMPACT_MAP_POINT_CATEGORIES: readonly MapPointCategory[] = ['drop', 'bonk', 'nose_slide']
-
-export function isCompactMapPointCategory(category: MapPointCategory) {
-  return COMPACT_MAP_POINT_CATEGORIES.includes(category)
-}

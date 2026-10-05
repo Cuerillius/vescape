@@ -1,9 +1,11 @@
-import { CameraIcon, PlusIcon, VideoCameraIcon } from 'phosphor-react-native'
 import { StyleSheet, View } from 'react-native'
 
 import { Button } from '@/components/base/Button'
 import { IconButton } from '@/components/base/IconButton'
 import { theme } from '@/constants/theme'
+import IconCamera from '@tabler/icons-react-native/IconCamera'
+import IconPlus from '@tabler/icons-react-native/IconPlus'
+import IconVideo from '@tabler/icons-react-native/IconVideo'
 
 export function MapPointMediaActions({
   loading,
@@ -20,21 +22,21 @@ export function MapPointMediaActions({
     <View style={styles.row}>
       <Button
         label="Add Photos & Videos"
-        icon={PlusIcon}
+        icon={IconPlus}
         variant="secondary"
         loading={loading}
         onPress={onAdd}
         style={styles.addButton}
       />
       <IconButton
-        icon={CameraIcon}
+        icon={IconCamera}
         loading={loading}
         onPress={onCapturePhoto}
         accessibilityLabel="Take photo"
         style={styles.iconButton}
       />
       <IconButton
-        icon={VideoCameraIcon}
+        icon={IconVideo}
         loading={loading}
         onPress={onCaptureVideo}
         accessibilityLabel="Record video"
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.neutral.surface,
-    borderColor: theme.neutral.border,
+    backgroundColor: theme.ui.card,
+    borderColor: theme.ui.border,
   },
 })

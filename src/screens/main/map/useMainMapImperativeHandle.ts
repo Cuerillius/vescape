@@ -18,7 +18,12 @@ export function useMainMapImperativeHandle(
     intentCommands: ReturnType<typeof useCameraIntentCommands>
     previewGestures: ReturnType<typeof useCameraPreviewGestures>
     previewHistorySession: (preview: HistoryPreviewTarget) => void
-    recenterLive: (options?: { resetPadding?: boolean; animationDuration?: number }) => void
+    recenterLive: (options?: {
+      resetPadding?: boolean
+      animationDuration?: number
+      /** Fly there even when it is far, instead of snapping. */
+      glide?: boolean
+    }) => void
   },
 ) {
   const imperativeHandleLatestRef = useRef(latest)
@@ -28,7 +33,11 @@ export function useMainMapImperativeHandle(
   useImperativeHandle(
     ref,
     () => ({
-      recenterLive(options?: { resetPadding?: boolean; animationDuration?: number }) {
+      recenterLive(options?: {
+        resetPadding?: boolean
+        animationDuration?: number
+        glide?: boolean
+      }) {
         imperativeHandleLatestRef.current.recenterLive(options)
       },
       previewHistorySession(preview: HistoryPreviewTarget) {
@@ -85,6 +94,9 @@ export function useMainMapImperativeHandle(
       },
       focusWeather() {
         imperativeHandleLatestRef.current.intentCommands.focusWeather()
+      },
+      leaveOverview() {
+        return imperativeHandleLatestRef.current.intentCommands.leaveOverview()
       },
       focusLegalLimits() {
         imperativeHandleLatestRef.current.intentCommands.focusLegalLimits()

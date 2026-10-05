@@ -1,76 +1,73 @@
-import { CarIcon, PersonSimpleBikeIcon, PersonSimpleWalkIcon } from 'phosphor-react-native'
-import { useState, type ComponentType } from 'react'
+import IconBike from '@tabler/icons-react-native/IconBike'
+import IconCar from '@tabler/icons-react-native/IconCar'
+import IconWalk from '@tabler/icons-react-native/IconWalk'
+import type { ComponentType } from 'react'
+import { Pressable, StyleSheet, View } from 'react-native'
 import type { NavigationProfile } from 'vescape-core'
 
-import {
-  ExpandableCircleMenu,
-  type ExpandableCircleMenuSize,
-} from '@/components/controls/ExpandableCircleMenu'
-import { theme } from '@/constants/theme'
-import { useResolvedAccentColors } from '@/hooks/useTheme'
+import { Text } from '@/components/base/Text'
+import { interaction, theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 /**
  * Which kind of ways the path may follow, switched inline while looking at it. Deliberately not a
  * settings screen entry: the rider decides a path went the wrong kind of way and fixes it there.
  *
  * It shows the profile that produced the drawn path, not the one stored for next time — a switch
- * whose recompute found nothing leaves the old path, and this snaps back with it.
- *
- * `open` lays every profile out at once. On the path view that is the right shape: the rider is
- * already deciding which ways the path may follow, and making them tap once to reveal the choices
- * and again to pick one puts a shrug in the middle of a decision they have already made.
+ * whose recompute found nothing leaves the old path, and this snaps back with it. All choices are
+ * laid out at once: the rider is already deciding, and a collapsed menu would make them tap twice.
  */
 export function NavigationProfileSelector({
   activeProfile,
-  size = 'md',
-  open = false,
   onSelect,
 }: {
   activeProfile: NavigationProfile
-  size?: ExpandableCircleMenuSize
-  /** Show all profiles side by side instead of collapsing to the active one. */
-  open?: boolean
   onSelect: (profile: NavigationProfile) => void
 }) {
-  const accents = useResolvedAccentColors()
-  const [expanded, setExpanded] = useState(false)
-  const iconSize = size === 'sm' ? 18 : 21
-  const optionIconSize = size === 'sm' ? 17 : 20
-
-  const options = NAVIGATION_PROFILE_OPTIONS.map(({ key, label, Icon }) => ({
-    key,
-    label,
-    icon: (
-      <Icon
-        size={optionIconSize}
-        color={activeProfile === key ? accents.green.color : theme.palette.slate.textSecondary}
-        weight="bold"
-      />
-    ),
-  }))
-  const ActiveIcon = profileOption(activeProfile).Icon
-
   return (
-    <ExpandableCircleMenu
-      activeKey={activeProfile}
-      activeIcon={<ActiveIcon size={iconSize} color={theme.palette.mono.white} weight="bold" />}
-      activeColor={accents.green.color}
-      activeBackground={theme.palette.slate.surfaceDeep}
-      collapsedAccessibilityLabel={`Path follows: ${profileOption(activeProfile).label}`}
-      expanded={open || expanded}
-      variant="lightTabs"
-      autoCloseDelayMs={open ? null : undefined}
-      size={size}
-      options={options}
-      onToggle={() => {
-        if (open) return
-        setExpanded((current) => !current)
-      }}
-      onSelect={(profile) => {
-        setExpanded(false)
-        onSelect(profile)
-      }}
-    />
+    <View style={styles.track} accessibilityRole="radiogroup">
+      {NAVIGATION_PROFILE_OPTIONS.map(({ key, label, Icon }) => (
+        <ProfileSegment
+          key={key}
+          label={label}
+          Icon={Icon}
+          active={activeProfile === key}
+          onPress={() => onSelect(key)}
+        />
+      ))}
+    </View>
+  )
+}
+
+function ProfileSegment({
+  label,
+  Icon,
+  active,
+  onPress,
+}: {
+  label: string
+  Icon: ComponentType<{ size: number; color: string }>
+  active: boolean
+  onPress: () => void
+}) {
+  const color = useResolvedColor(active ? theme.ui.primaryForeground : theme.ui.mutedForeground)
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={`Path follows ${label}`}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.segment,
+        active && styles.segmentActive,
+        pressed && !active && styles.pressed,
+      ]}
+    >
+      <Icon size={16} color={color} />
+      <Text style={[styles.label, { color }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   )
 }
 
@@ -81,15 +78,41 @@ export function NavigationProfileSelector({
 const NAVIGATION_PROFILE_OPTIONS: {
   key: NavigationProfile
   label: string
-  Icon: ComponentType<{ size: number; color: string; weight: 'bold' }>
+  Icon: ComponentType<{ size: number; color: string }>
 }[] = [
-  { key: 'walking', label: 'Paths', Icon: PersonSimpleWalkIcon },
-  { key: 'cycling', label: 'Cycleways', Icon: PersonSimpleBikeIcon },
-  { key: 'driving', label: 'Roads', Icon: CarIcon },
+  { key: 'walking', label: 'Paths', Icon: IconWalk },
+  { key: 'cycling', label: 'Cycleways', Icon: IconBike },
+  { key: 'driving', label: 'Roads', Icon: IconCar },
 ]
 
-function profileOption(profile: NavigationProfile) {
-  return NAVIGATION_PROFILE_OPTIONS.find((option) => option.key === profile) ?? WALKING_OPTION
-}
-
-const WALKING_OPTION = NAVIGATION_PROFILE_OPTIONS[0]!
+const styles = StyleSheet.create({
+  track: {
+    flexDirection: 'row',
+    padding: 3,
+    gap: 2,
+    borderRadius: theme.radius.md + 3,
+    borderWidth: 1,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
+  },
+  segment: {
+    flex: 1,
+    height: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 6,
+    borderRadius: theme.radius.md,
+  },
+  segmentActive: {
+    backgroundColor: theme.ui.primary,
+  },
+  pressed: {
+    opacity: interaction.pressedOpacity,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+})

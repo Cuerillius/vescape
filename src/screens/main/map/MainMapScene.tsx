@@ -1,4 +1,4 @@
-import Mapbox, { Camera } from '@rnmapbox/maps'
+import Mapbox, { Camera, StyleImport } from '@rnmapbox/maps'
 import { Fragment, type ComponentProps, type ComponentRef, type RefObject } from 'react'
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -8,6 +8,7 @@ import { MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
 import type { MainViewState } from '@/screens/main/mainViewState'
 import { MainMapLayers } from '@/screens/main/map/MainMapLayers'
 import { MainMapOverlays } from '@/screens/main/map/MainMapOverlays'
+import { useLivePuckColors } from '@/screens/main/map/useLivePuckColors'
 import { MapBaseStyleLayers } from '@/screens/main/map/MapBaseStyleLayers'
 import { SatelliteImageryLayer } from '@/screens/main/map/SatelliteImageryLayer'
 import type { MainMapHistoryProps, MainMapPointsProps } from '@/screens/main/map/MainMap'
@@ -124,6 +125,7 @@ export function MainMapScene({
   onFocusDirectionPoint,
   overlays,
 }: MainMapSceneProps) {
+  const puckColors = useLivePuckColors()
   return (
     <Animated.View
       style={[styles.container, { opacity: mapOpacity }]}
@@ -142,9 +144,7 @@ export function MainMapScene({
         rotateEnabled={!rotationLocked}
         compassEnabled={false}
         scaleBarEnabled={false}
-        logoEnabled={mapStyle.mapDetailsVisible}
         logoPosition={{ bottom: 8, left: 8 }}
-        attributionEnabled={mapStyle.mapDetailsVisible}
         attributionPosition={{ bottom: 8, left: 92 }}
         onDidFinishLoadingStyle={onDidFinishLoadingStyle}
         onMapLoadingError={onMapLoadingError}
@@ -163,21 +163,29 @@ export function MainMapScene({
           // Native styles own their sources and layers. Mount a fresh React layer tree only after
           // the replacement document is ready; never update nodes the previous style removed.
           <Fragment key={mapStyle.styleSignature}>
+            {mapStyle.isStandard && (
+              <StyleImport
+                id="basemap"
+                existing
+                config={{
+                  lightPreset: 'night',
+                  show3dBuildings: true,
+                }}
+              />
+            )}
             {mapStyle.isSatelliteOverlay && (
               <SatelliteImageryLayer paint={mapStyle.satelliteImageryPaint} />
             )}
             <MapBaseStyleLayers
-              enabled={!mapStyle.isMapy}
+              enabled={!mapStyle.isMapy && !mapStyle.isStandard}
               existingLayerIds={mapStyle.existingLayerIds}
-              styleKey={mapStyle.styleKey}
-              isOneDark={mapStyle.isOneDark}
-              isSatellite={mapStyle.isSatellite}
               isSatelliteOverlay={mapStyle.isSatelliteOverlay}
-              mapDetailsVisible={mapStyle.mapDetailsVisible}
               satelliteRoadLineOpacity={mapStyle.satelliteRoadLineOpacity}
             />
             <PhoneHeadingMapLayer
-              active={!historyActive && !gpsHeadingMode}
+              color={puckColors.color}
+              ringColor={puckColors.ring}
+              active={mode !== 'telemetry' && !historyActive && !gpsHeadingMode}
               followCamera={phoneHeadingMode && followGps}
               coordinate={accuracyFix}
               onFollowHeading={onPhoneFollowHeading}
@@ -188,9 +196,9 @@ export function MainMapScene({
               historyActive={historyActive}
               expandSelectedMapPoints={mode === 'map'}
               isMapy={mapStyle.isMapy}
-              isOneDark={mapStyle.isOneDark}
-              isSatellite={mapStyle.isSatelliteOverlay}
-              showBuildings3d={mapStyle.showBuildings3d && !mapStyle.isMapy}
+              isSatellite={mapStyle.isSatellite}
+              isColorful={mapStyle.isColorful}
+              showBuildings3d={mapStyle.showBuildings3d}
               weatherActive={weatherActive}
               legalLimitsActive={legalLimitsActive}
               liveTrailShape={liveTrailShape}
@@ -228,7 +236,7 @@ export function MainMapScene({
       <MainMapOverlays {...overlays} />
       {mapLoading && !mapLoadFailed && (
         <View style={styles.styleLoading} pointerEvents="none">
-          <ActivityIndicator size="small" color={theme.neutral.textMuted} />
+          <ActivityIndicator size="small" color={theme.ui.mutedForeground} />
         </View>
       )}
       {mapLoadFailed && (
@@ -284,7 +292,7 @@ const styles = StyleSheet.create({
   },
   styleLoadFailedButton: {
     marginTop: 16,
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 10,
@@ -293,7 +301,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   styleLoadFailedButtonText: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontWeight: '600',
   },

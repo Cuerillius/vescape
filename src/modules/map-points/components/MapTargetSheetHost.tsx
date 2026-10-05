@@ -1,8 +1,8 @@
-import { ArrowClockwiseIcon, CheckIcon, NavigationArrowIcon, XIcon } from 'phosphor-react-native'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
+import IconNavigation from '@tabler/icons-react-native/IconNavigation'
+import IconRefresh from '@tabler/icons-react-native/IconRefresh'
 import type { MapPoint, MapPointPatch, NavigationProfile, NavigationStatus } from 'vescape-core'
 
-import { theme, type ThemeColor } from '@/constants/theme'
-import { useColoredAction, useResolvedAccentColors } from '@/hooks/useTheme'
 import { ActiveNavigationSheet } from '@/modules/map-points/components/ActiveNavigationSheet'
 import { MapTargetSheet } from '@/modules/map-points/components/MapTargetSheet'
 import { NavigationProfileSelector } from '@/modules/map/components/NavigationProfileSelector'
@@ -18,8 +18,6 @@ interface MapTargetSheetHostProps {
   bottom: number
   /** Set while the selected Map Point is in its edit draft. */
   editingMapPointId: string | null
-  actionColor: ThemeColor
-  actionTextColor: ThemeColor
   onBeginEdit: (id: string) => void
   onEndEdit: () => void
   onNavigateSelected: () => void
@@ -49,7 +47,6 @@ interface MapTargetSheetHostProps {
   onRecomputeNavigation: () => void
   onSelectNavigationProfile: (profile: NavigationProfile) => void
   onDismissSelected: () => void
-  onAddFeature: () => void
   onSaveMapPoint: (id: string, patch: MapPointPatch) => Promise<MapPoint | null>
   onVoteMapPoint: (id: string, reaction: 'up' | 'down' | null) => void
   onRemoveMapPoint: (id: string) => void
@@ -68,8 +65,6 @@ export function MapTargetSheetHost({
   activeTargetSuppressed,
   bottom,
   editingMapPointId,
-  actionColor,
-  actionTextColor,
   onBeginEdit,
   onEndEdit,
   onNavigateSelected,
@@ -85,23 +80,12 @@ export function MapTargetSheetHost({
   onRecomputeNavigation,
   onSelectNavigationProfile,
   onDismissSelected,
-  onAddFeature,
   onSaveMapPoint,
   onVoteMapPoint,
   onRemoveMapPoint,
   onFocusTarget,
   requireAccount,
 }: MapTargetSheetHostProps) {
-  const accents = useResolvedAccentColors()
-  const confirmSurface = useColoredAction(actionColor)
-  const cancelSurface = useColoredAction(accents.red.light)
-  const actionColors = {
-    color: actionColor,
-    textColor: actionColor,
-    borderColor: actionColor,
-    bgColor: confirmSurface,
-  }
-
   if (selectedTarget) {
     const isMapPoint = selectedTarget.type === 'mapPoint'
     const editing = isMapPoint && editingMapPointId === selectedTarget.id
@@ -114,15 +98,11 @@ export function MapTargetSheetHost({
         bottom={bottom}
         mode={editing ? 'edit' : 'select'}
         action={{
-          ...actionColors,
           label: editing ? 'Save' : 'Navigate',
           accessibilityLabel: editing ? 'Save map feature' : 'Navigate to target',
-          Icon: NavigationArrowIcon,
+          Icon: IconNavigation,
           onPress: onNavigateSelected,
         }}
-        targetColor={actionColor}
-        targetTextColor={actionTextColor}
-        onAddFeature={isMapPoint ? undefined : onAddFeature}
         onEdit={
           ownedByMe
             ? () => {
@@ -162,45 +142,28 @@ export function MapTargetSheetHost({
         bottom={bottom}
         remainingDistanceMeters={navigationRemainingDistanceMeters}
         durationSeconds={navigationPath?.durationSeconds ?? 0}
-        targetColor={actionColor}
-        targetTextColor={actionTextColor}
-        accentColor={accents.purple.light}
-        cancelColor={accents.red.light}
-        cancelBackgroundColor={cancelSurface}
         onOpen={onEditActiveNavigation}
         onCancel={onCancelNavigation}
       />
     )
   }
 
-  const cancelAction = {
-    color: accents.red.light,
-    textColor: accents.red.light,
-    borderColor: accents.red.light,
-    bgColor: cancelSurface,
-    label: 'Cancel',
-    accessibilityLabel: 'Cancel navigation',
-    Icon: XIcon,
-    onPress: onCancelNavigation,
-  }
   const failureNotice = navigationStatus ? NAVIGATION_FAILURE_NOTICES[navigationStatus] : null
   // Setting a Direction Point leaves the rider on the map looking at the path, because a path is a
   // proposal: they check where it goes, switch the Profile, ask again — and only then accept it.
   // Accepting is what closes the map, so it leads the row while the other two flank it.
   const confirmAction = {
-    ...actionColors,
     label: 'Ride it',
     accessibilityLabel: 'Accept path and return to ride view',
-    Icon: CheckIcon,
+    Icon: IconCheck,
     onPress: onConfirmNavigation,
   }
   // After a failure recompute is the only thing that can change the situation; with a path drawn it
   // is how the rider asks for a fresh one from where they are now. Never happens on its own.
   const recomputeAction = {
-    ...NAVIGATION_ACTION_COLORS.recompute,
     label: failureNotice ? 'Retry' : 'Recompute',
     accessibilityLabel: failureNotice ? 'Retry path to target' : 'Recompute path from here',
-    Icon: ArrowClockwiseIcon,
+    Icon: IconRefresh,
     onPress: onRecomputeNavigation,
   }
 
@@ -211,9 +174,8 @@ export function MapTargetSheetHost({
       bottom={bottom}
       mode="navigation"
       action={confirmAction}
-      sideActions={[recomputeAction, cancelAction]}
-      targetColor={actionColor}
-      targetTextColor={actionTextColor}
+      sideAction={recomputeAction}
+      onDismiss={onCancelNavigation}
       notice={failureNotice}
       path={navigationPath}
       computing={navigationComputing}
@@ -221,7 +183,6 @@ export function MapTargetSheetHost({
         navigationProfile ? (
           <NavigationProfileSelector
             activeProfile={navigationProfile}
-            open
             onSelect={onSelectNavigationProfile}
           />
         ) : null
@@ -230,20 +191,6 @@ export function MapTargetSheetHost({
     />
   )
 }
-
-/**
- * The side actions read as different decisions from the confirm, so they leave the target's colour
- * to it: asking again is neutral work (muted), dropping the Navigation is destructive (red).
- * Both sit on the dark control surface with an accent border/icon, never a bright tinted fill.
- */
-const NAVIGATION_ACTION_COLORS = {
-  recompute: {
-    color: theme.control.textMuted,
-    textColor: theme.control.textMuted,
-    borderColor: theme.control.border,
-    bgColor: theme.alpha(theme.control.background, 0.85),
-  },
-} as const
 
 /**
  * What the rider is told when no line is drawn. Deliberately says what is missing rather than

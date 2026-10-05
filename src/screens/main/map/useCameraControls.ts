@@ -61,7 +61,8 @@ export function useCameraControls({
   const previewPanActiveRef = useRef(false)
   const previousOrientationModeRef = useRef(mapOrientationMode)
   const recenterLiveRef = useRef<
-    ((options?: { resetPadding?: boolean; animationDuration?: number }) => void) | null
+    | ((options?: { resetPadding?: boolean; animationDuration?: number; glide?: boolean }) => void)
+    | null
   >(null)
   const controllerStateRef = useRef(initialMapCameraControllerState)
   // Every camera write funnels through the spring engine; retargets stay
@@ -244,21 +245,26 @@ export function useCameraControls({
     [mapOrientationMode, perspectiveEnabled, phoneReady],
   )
 
-  const applyLiveFollowCamera = useCallback(() => {
-    if (!cameraFix) return
-    const followCamera = getLiveFollowCamera()
-    lastFollowKeyRef.current = liveFollowKey(cameraFix.timestamp, followCamera)
-    engine.setTarget({
-      center: followCamera.centerCoordinate,
-      zoom: followCamera.zoomLevel,
-      heading: followCamera.heading,
-      pitch: followCamera.pitch,
-      padding: followCamera.padding,
-    })
-  }, [cameraFix, engine, getLiveFollowCamera])
+  const applyLiveFollowCamera = useCallback(
+    (options?: { snap?: boolean }) => {
+      if (!cameraFix) return
+      const followCamera = getLiveFollowCamera()
+      lastFollowKeyRef.current = liveFollowKey(cameraFix.timestamp, followCamera)
+      const target = {
+        center: followCamera.centerCoordinate,
+        zoom: followCamera.zoomLevel,
+        heading: followCamera.heading,
+        pitch: followCamera.pitch,
+        padding: followCamera.padding,
+      }
+      if (options?.snap) engine.snap(target)
+      else engine.setTarget(target)
+    },
+    [cameraFix, engine, getLiveFollowCamera],
+  )
 
   const recenterLive = useCallback(
-    (options?: { resetPadding?: boolean; animationDuration?: number }) => {
+    (options?: { resetPadding?: boolean; animationDuration?: number; glide?: boolean }) => {
       enterCameraMode({ kind: 'liveFollow' })
       const followCamera = getLiveFollowCamera()
       lastFollowKeyRef.current = cameraFix ? liveFollowKey(cameraFix.timestamp, followCamera) : null
@@ -279,7 +285,7 @@ export function useCameraControls({
       if (options?.animationDuration === 0) {
         engine.snap(target)
       } else {
-        engine.setTarget(target)
+        engine.setTarget(target, { glide: options?.glide })
       }
       onHeadingChange(followCamera.heading)
     },
@@ -339,12 +345,18 @@ export function useCameraControls({
     recenterLive,
   })
 
+  // While updates are off nothing moves the camera, so it is stale when they resume. Snap to the
+  // rider then: a glide across the gap would play out as the map comes into view.
+  const followPausedRef = useRef(false)
   useEffect(() => {
+    if (!liveFollowUpdatesEnabled) {
+      followPausedRef.current = true
+      return
+    }
     if (
       !cameraFix ||
       !followGps ||
       historyActive ||
-      !liveFollowUpdatesEnabled ||
       previewGestures.previewPanActiveRef.current ||
       controllerStateRef.current.mode.kind !== 'liveFollow'
     )
@@ -352,7 +364,9 @@ export function useCameraControls({
     const followCamera = getLiveFollowCamera()
     const nextFollowKey = liveFollowKey(cameraFix.timestamp, followCamera)
     if (lastFollowKeyRef.current === nextFollowKey) return
-    applyLiveFollowCamera()
+    const snap = followPausedRef.current
+    followPausedRef.current = false
+    applyLiveFollowCamera({ snap })
   }, [
     applyLiveFollowCamera,
     cameraFix,

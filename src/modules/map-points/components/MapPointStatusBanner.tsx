@@ -1,4 +1,3 @@
-import { WarningCircleIcon } from 'phosphor-react-native'
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
@@ -6,6 +5,7 @@ import { theme } from '@/constants/theme'
 // The banner is the map's one status line, so it also carries direction point write failures.
 import { useMapStore } from '@/modules/map/store/mapStore'
 import { useMapPointStore } from '@/modules/map-points/store/mapPointStore'
+import IconAlertCircleFilled from '@tabler/icons-react-native/IconAlertCircleFilled'
 
 /**
  * Map Points come from the server and are not cached, so a failed read leaves an empty map that
@@ -29,10 +29,9 @@ export function MapPointStatusBanner({ top }: { top: number }) {
       pointerEvents="none"
       style={[styles.banner, { top }, error ? styles.error : styles.notice]}
     >
-      <WarningCircleIcon
+      <IconAlertCircleFilled
         size={15}
-        color={error ? theme.status.error.text : theme.neutral.textSecondary}
-        weight="fill"
+        color={error ? theme.status.error.text : theme.ui.mutedForeground}
       />
       <Text style={[styles.text, error ? styles.errorText : undefined]} numberOfLines={2}>
         {message}
@@ -55,8 +54,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   notice: {
-    backgroundColor: theme.alpha(theme.neutral.bg, 0.85),
-    borderColor: theme.neutral.border,
+    backgroundColor: theme.alpha(theme.ui.background, 0.85),
+    borderColor: theme.ui.border,
   },
   error: {
     backgroundColor: theme.alpha(theme.status.error.bg, 0.85),
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: theme.font('500'),
     fontSize: 12,
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
   },
   errorText: {
     color: theme.status.error.text,

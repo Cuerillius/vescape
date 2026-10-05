@@ -21,9 +21,9 @@ export interface MainMapLayersProps {
   historyActive: boolean
   expandSelectedMapPoints: boolean
   isMapy: boolean
-  isOneDark: boolean
   isSatellite: boolean
   showBuildings3d: boolean
+  isColorful?: boolean
   weatherActive: boolean
   legalLimitsActive: boolean
   liveTrailShape: ReturnType<typeof makeTrailLineString> | null

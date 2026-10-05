@@ -1,4 +1,4 @@
-import { CrosshairSimpleIcon, type Icon } from 'phosphor-react-native'
+import IconCurrentLocation from '@tabler/icons-react-native/IconCurrentLocation'
 import { createElement } from 'react'
 import { View } from 'react-native'
 import type { MapPoint } from 'vescape-core'
@@ -9,9 +9,9 @@ import type { MapSelection } from '@/modules/map/lib/mapSelection'
 import { accentColors, type ResolvedAccentColors } from '@/constants/theme'
 import { rosterRiderColor } from '@/modules/group-ride/lib/riderColor'
 import {
-  getMapPointKindIcon,
-  getPlaceCategoryIcon,
-} from '@/modules/map-points/constants/mapPointIcons'
+  getMapPointKindTablerIcon,
+  getPlaceCategoryTablerIcon,
+} from '@/modules/map-points/constants/mapPointTablerIcons'
 import {
   getMapPointKindColor,
   getMapPointKindTextColor,
@@ -20,22 +20,20 @@ import {
 import {
   DESTINATION_POINT_COLOR,
   DESTINATION_POINT_TEXT_COLOR,
-  GPS_POINT_COLOR,
+  type IndicatorIcon,
   type TrackedMapPoint,
 } from '@/screens/main/map/offscreenMapIndicators'
 
 // Filled dot matching the rider's map marker, so the edge indicator reads as that rider.
 // Module scope keeps the reference stable for the indicator identity check.
-const RiderDotIcon: Icon = ({ color }) =>
+const RiderDotIcon: IndicatorIcon = ({ color }) =>
   createElement(View, { style: { width: 16, height: 16, borderRadius: 8, backgroundColor: color } })
 
 export function buildGpsTrackedPoint(
   coordinate: { longitude: number; latitude: number } | null,
-  riderColor: string | null,
-  accents?: ResolvedAccentColors,
+  color: string,
 ): TrackedMapPoint[] {
   if (!coordinate) return []
-  const color = riderColor ?? accents?.purple.color ?? GPS_POINT_COLOR
   return [
     {
       id: 'gps',
@@ -43,7 +41,7 @@ export function buildGpsTrackedPoint(
       coordinate: [coordinate.longitude, coordinate.latitude],
       color,
       textColor: color,
-      icon: CrosshairSimpleIcon,
+      icon: IconCurrentLocation,
     },
   ]
 }
@@ -59,7 +57,7 @@ export function buildMapPointTrackedPoint(
     coordinate: [point.longitude, point.latitude],
     color: getMapPointKindColor(point.category, accents ?? accentColors.dark),
     textColor: getMapPointKindTextColor(point.category, accents ?? accentColors.dark),
-    icon: getMapPointKindIcon(point.category),
+    icon: getMapPointKindTablerIcon(point.category),
   }
 }
 
@@ -67,7 +65,7 @@ function directionTrackedPoint(
   coordinate: [number, number],
   riderColor: string | null,
   accents?: ResolvedAccentColors,
-  icon = getMapPointKindIcon('direction'),
+  icon = getMapPointKindTablerIcon('direction'),
 ): TrackedMapPoint {
   return {
     id: 'direction',
@@ -111,7 +109,7 @@ export function buildActiveNavigationPoint({
     riderColor,
     accents,
     activeNavigationTarget.type === 'place'
-      ? getPlaceCategoryIcon(activeNavigationTarget.category)
+      ? getPlaceCategoryTablerIcon(activeNavigationTarget.category)
       : undefined,
   )
 }
@@ -154,7 +152,7 @@ export function buildRiderTargetPoints(
         coordinate: [target.lng, target.lat] as [number, number],
         color,
         textColor: color,
-        icon: getMapPointKindIcon('direction'),
+        icon: getMapPointKindTablerIcon('direction'),
       },
     ]
   })

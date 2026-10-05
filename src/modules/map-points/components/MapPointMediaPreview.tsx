@@ -1,13 +1,6 @@
 import { useEventListener } from 'expo'
 import { Image } from 'expo-image'
 import { VideoView, useVideoPlayer } from 'expo-video'
-import {
-  CaretLeftIcon,
-  CaretRightIcon,
-  ImagesSquareIcon,
-  PlayIcon,
-  XIcon,
-} from 'phosphor-react-native'
 import { useMemo, useState } from 'react'
 import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -17,6 +10,11 @@ import type { MapPointMediaAsset } from '@/modules/map-points/store/mapPointPhot
 import { IconButton } from '@/components/base/IconButton'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
+import IconChevronLeft from '@tabler/icons-react-native/IconChevronLeft'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
+import IconPhoto from '@tabler/icons-react-native/IconPhoto'
+import IconPlayerPlayFilled from '@tabler/icons-react-native/IconPlayerPlayFilled'
+import IconX from '@tabler/icons-react-native/IconX'
 
 const GRID_COLUMNS = 4
 const GRID_GAP = 6
@@ -87,20 +85,20 @@ function MapPointMediaViewer({
           <MapPointPhotoAsset key={asset.id} asset={asset} />
         )}
         <IconButton
-          icon={XIcon}
+          icon={IconX}
           onPress={onClose}
           style={[styles.close, { top: Math.max(insets.top + 10, 20) }]}
         />
         {orderedAssets.length > 1 ? (
           <>
             <IconButton
-              icon={CaretLeftIcon}
+              icon={IconChevronLeft}
               onPress={() => setIndex((current) => Math.max(0, current - 1))}
               disabled={index === 0}
               style={styles.previous}
             />
             <IconButton
-              icon={CaretRightIcon}
+              icon={IconChevronRight}
               onPress={() => setIndex((current) => Math.min(orderedAssets.length - 1, current + 1))}
               disabled={index === orderedAssets.length - 1}
               style={styles.next}
@@ -132,7 +130,7 @@ export function MapPointMediaPreview({
   if (assets.length === 0) {
     return (
       <View style={styles.empty}>
-        <ImagesSquareIcon size={24} color={theme.neutral.textMuted} weight="duotone" />
+        <IconPhoto size={24} color={theme.ui.mutedForeground} />
         <Text style={styles.emptyText}>Add photos and videos for this feature.</Text>
       </View>
     )
@@ -157,7 +155,7 @@ export function MapPointMediaPreview({
             <Image source={asset.uri} contentFit="cover" style={styles.thumbnail} />
             {asset.mediaType === 'video' ? (
               <View style={styles.videoBadge}>
-                <PlayIcon size={10} color={theme.palette.purple.text} weight="fill" />
+                <IconPlayerPlayFilled size={10} color={theme.palette.purple.text} />
               </View>
             ) : null}
             {onRemove ? (
@@ -168,7 +166,7 @@ export function MapPointMediaPreview({
                 onPress={() => onRemove(asset)}
                 style={({ pressed }) => [styles.removeBadge, pressed && styles.tilePressed]}
               >
-                <XIcon size={10} color={theme.status.error.text} weight="bold" />
+                <IconX size={10} color={theme.status.error.text} strokeWidth={2.5} />
               </Pressable>
             ) : null}
           </Pressable>
@@ -193,7 +191,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   emptyText: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
@@ -206,7 +204,7 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   tilePressed: {
     opacity: 0.55,
@@ -224,13 +222,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.6),
+    backgroundColor: theme.alpha(theme.ui.muted, 0.6),
   },
   viewerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   media: {
     ...StyleSheet.absoluteFill,
@@ -252,7 +250,7 @@ const styles = StyleSheet.create({
   position: {
     position: 'absolute',
     bottom: 12,
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 12,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
@@ -271,6 +269,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.8),
+    backgroundColor: theme.alpha(theme.ui.muted, 0.8),
   },
 })

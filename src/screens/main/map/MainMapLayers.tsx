@@ -1,25 +1,21 @@
 import { FillExtrusionLayer, RasterLayer, RasterSource } from '@rnmapbox/maps'
 
 import { MAPY_TILE_URL_TEMPLATE } from '@/config/mapy'
-import { theme } from '@/constants/theme'
-import { rosterRiderColor } from '@/modules/group-ride/lib/riderColor'
+import { uiColors } from '@/constants/theme'
+import { useThemeStore } from '@/hooks/useTheme'
 import { useRiderStore } from '@/modules/group-ride/store/riderStore'
 import { PrivacyZonesMapLayer } from '@/modules/history/components/PrivacyZonesMapLayer'
 import { LegalLimitsMapLayer } from '@/modules/legal/components/LegalLimitsMapLayer'
-import { MapPin } from '@/modules/map/components/MapPin'
-import { MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
+import { COLORFUL_BUILDING_COLOR, MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
-import { getMapPointKindIcon } from '@/modules/map-points/constants/mapPointIcons'
 import { RadarRangeRings } from '@/modules/weather/components/RadarRangeRings'
 import { RainViewerOverlay } from '@/modules/weather/components/RainViewerOverlay'
 import { HistoryMapLayers } from '@/screens/main/map/HistoryMapLayers'
-import { LiveMapLayers } from '@/screens/main/map/LiveMapLayers'
+import { ZincLiveLayers } from '@/screens/main/map/ZincLiveLayers'
+import { ZincRiderLayers } from '@/screens/main/map/ZincRiderLayers'
 import { MapPointLayers } from '@/screens/main/map/MapPointLayers'
 import { NavigationMapLayers } from '@/screens/main/map/NavigationMapLayers'
-import {
-  DESTINATION_POINT_COLOR,
-  DESTINATION_POINT_TEXT_COLOR,
-} from '@/screens/main/map/offscreenMapIndicators'
+import { DESTINATION_POINT_COLOR } from '@/screens/main/map/offscreenMapIndicators'
 import type { MainMapLayersProps } from '@/screens/main/map/mainMapLayerTypes'
 
 // Ride History Markers are diagnostic detail; the history route stays clean unless they are opted in.
@@ -29,9 +25,10 @@ export { HistoryMapLayers }
 
 function BaseTerrainLayers({
   isMapy,
-  isOneDark,
+  isColorful,
   showBuildings3d,
-}: Pick<MainMapLayersProps, 'isMapy' | 'isOneDark' | 'showBuildings3d'>) {
+}: Pick<MainMapLayersProps, 'isMapy' | 'isColorful' | 'showBuildings3d'>) {
+  const appearance = useThemeStore((state) => state.resolvedTheme)
   return (
     <>
       {showBuildings3d && (
@@ -41,10 +38,10 @@ function BaseTerrainLayers({
           minZoomLevel={14}
           maxZoomLevel={22}
           style={{
-            fillExtrusionColor: isOneDark ? theme.map.buildingDark : theme.map.buildingLight,
+            fillExtrusionColor: isColorful ? COLORFUL_BUILDING_COLOR : uiColors[appearance].muted,
             fillExtrusionHeight: ['coalesce', ['get', 'height'], 12],
             fillExtrusionBase: ['coalesce', ['get', 'min_height'], 0],
-            fillExtrusionOpacity: isOneDark ? 0.65 : 0.42,
+            fillExtrusionOpacity: 0.7,
             fillExtrusionVerticalGradient: true,
           }}
         />
@@ -69,32 +66,10 @@ function BaseTerrainLayers({
   )
 }
 
-/** Rider Direction Points, so the group can see where everyone is heading. */
-function RiderTargetPins({ riders }: { riders: MainMapLayersProps['riders'] }) {
-  return (
-    <>
-      {riders.map((rider, index) =>
-        rider.presence?.target ? (
-          <MapPin
-            // Color in the key: PointAnnotation snapshots its children natively, so a
-            // color change must remount the pin to re-render.
-            key={`center-rider-target-${rider.id}-${rosterRiderColor(rider, index)}`}
-            id={`center-rider-target-${rider.id}`}
-            coordinate={[rider.presence.target.lng, rider.presence.target.lat]}
-            color={rosterRiderColor(rider, index)}
-            icon={getMapPointKindIcon('direction')}
-          />
-        ) : null,
-      )}
-    </>
-  )
-}
-
 export function MainMapLayers(props: MainMapLayersProps) {
   const {
     historyActive,
     isMapy,
-    isOneDark,
     isSatellite,
     showBuildings3d,
     weatherActive,
@@ -107,7 +82,11 @@ export function MainMapLayers(props: MainMapLayersProps) {
 
   return (
     <>
-      <BaseTerrainLayers isMapy={isMapy} isOneDark={isOneDark} showBuildings3d={showBuildings3d} />
+      <BaseTerrainLayers
+        isMapy={isMapy}
+        isColorful={props.isColorful}
+        showBuildings3d={showBuildings3d}
+      />
       <RainViewerOverlay visible={weatherActive} />
       <RadarRangeRings visible={weatherActive} fix={props.accuracyFix} />
       {legalLimitsActive ? <LegalLimitsMapLayer onSelectCountry={onSelectLegalCountry} /> : null}
@@ -139,24 +118,20 @@ export function MainMapLayers(props: MainMapLayersProps) {
             activeNavigationTarget={props.activeNavigationTarget}
             selectedNavigationTarget={props.selectedNavigationTarget}
             directionColor={riderColor ?? DESTINATION_POINT_COLOR}
-            directionTextColor={riderColor ?? DESTINATION_POINT_TEXT_COLOR}
             onFocusDirectionPoint={props.onFocusDirectionPoint}
           />
-          <LiveMapLayers
+          <ZincLiveLayers
             liveTrailShape={props.liveTrailShape}
             accuracyFix={props.accuracyFix}
             accuracyShape={props.accuracyShape}
             gpsPuckBearingDeg={props.gpsPuckBearingDeg}
-            riders={riders}
-            highContrastRoutes={isSatellite}
           />
-          <RiderTargetPins riders={riders} />
+          <ZincRiderLayers riders={riders} />
           <MapPointLayers
             mapPoints={props.mapPoints}
             hiddenMapPointCategories={props.hiddenMapPointCategories}
             selectedMapPointId={props.selectedMapPointId}
             activeNavigationTarget={props.activeNavigationTarget}
-            expandSelectedMapPoints={props.expandSelectedMapPoints}
             interactive={!weatherActive && !legalLimitsActive}
             onToggleMapPointSelection={props.onToggleMapPointSelection}
             onSuppressNextMapPress={props.onSuppressNextMapPress}

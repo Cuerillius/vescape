@@ -1,7 +1,6 @@
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps'
 import { memo, useEffect, useRef } from 'react'
 
-import { theme } from '@/constants/theme'
 import { useAppActive } from '@/hooks/useAppActive'
 import { deviceMotionPhoneHeadingAdapter } from '@/modules/map/lib/deviceMotionPhoneHeadingAdapter'
 
@@ -16,6 +15,9 @@ const GPS_HEADING_ICON = require('@rnmapbox/maps/src/assets/heading.png')
 
 interface PhoneHeadingMapLayerProps {
   active: boolean
+  /** Cone color and the outline around it. */
+  color: string
+  ringColor: string
   /** Compass source. The caller picks it so a replay can supply the recorded stream instead. */
   followCamera: boolean
   coordinate: { longitude: number; latitude: number } | null
@@ -58,6 +60,8 @@ function phoneHeadingShape(
 
 export const PhoneHeadingMapLayer = memo(function PhoneHeadingMapLayer({
   active,
+  color,
+  ringColor,
   followCamera,
   coordinate,
   onFollowHeading,
@@ -168,7 +172,9 @@ export const PhoneHeadingMapLayer = memo(function PhoneHeadingMapLayer({
             iconRotationAlignment: followCamera ? 'viewport' : 'map',
             iconSize: 0.95,
             iconOffset: [0, -10],
-            iconColor: theme.palette.mono.white,
+            iconColor: color,
+            iconHaloColor: ringColor,
+            iconHaloWidth: 2,
           }}
         />
       </ShapeSource>

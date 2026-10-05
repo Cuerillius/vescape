@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 
 import { theme } from '@/constants/theme'
 import { makeCircleFeature, offsetCoordinate } from '@/helpers/mapGeometry'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 
 /**
  * Distance rings around the rider while the radar is up, so a band of rain reads as "how far" and
@@ -33,7 +33,7 @@ interface RadarRangeRingsProps {
 }
 
 export function RadarRangeRings({ visible, fix }: RadarRangeRingsProps) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
 
   const rings = useMemo<GeoJSON.FeatureCollection>(
     () => ({
@@ -77,7 +77,7 @@ export function RadarRangeRings({ visible, fix }: RadarRangeRingsProps) {
         <LineLayer
           id="radar-range-ring-line"
           style={{
-            lineColor: theme.alpha(neutral.textSecondary, 0.6),
+            lineColor: theme.alpha(ui.mutedForeground, 0.6),
             lineWidth: RING_LINE_WIDTH,
             lineDasharray: RING_DASH,
           }}
@@ -89,8 +89,8 @@ export function RadarRangeRings({ visible, fix }: RadarRangeRingsProps) {
           style={{
             textField: ['get', 'label'],
             textSize: 12,
-            textColor: neutral.textPrimary,
-            textHaloColor: neutral.surfaceDeep,
+            textColor: ui.foreground,
+            textHaloColor: ui.muted,
             textHaloWidth: 1.6,
             textAnchor: 'right',
             textOffset: [-0.4, 0],

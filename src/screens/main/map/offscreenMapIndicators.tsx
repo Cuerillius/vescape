@@ -1,4 +1,5 @@
-import { ArrowUpIcon, type Icon } from 'phosphor-react-native'
+import IconCaretUpFilled from '@tabler/icons-react-native/IconCaretUpFilled'
+import type { ComponentType } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import Reanimated, {
   makeMutable,
@@ -6,19 +7,22 @@ import Reanimated, {
   type SharedValue,
 } from 'react-native-reanimated'
 
-import { accentColors, theme } from '@/constants/theme'
+import { accentColors, theme, uiColors } from '@/constants/theme'
 import { isPointOutsideVisibleMapArea } from '@/helpers/mapGeometry'
 
 import type { CameraSnapshot } from '@/screens/main/map/useCameraControls'
 
-export const GPS_POINT_COLOR = theme.map.user
 export const DESTINATION_POINT_COLOR = theme.map.target
 export const DESTINATION_POINT_TEXT_COLOR = accentColors.dark.green.text
 
 const OFFSCREEN_GPS_INDICATOR_SIZE = 64
+const OFFSCREEN_ICON_COLOR = uiColors.dark.muted
 const OFFSCREEN_GPS_EDGE_SIDE_INSET = 58
 const OFFSCREEN_GPS_EDGE_TOP_INSET = 122
 const OFFSCREEN_GPS_EDGE_BOTTOM_INSET = 142
+
+/** Tabler icons and the rider dot satisfy this; the indicator only sets size and color. */
+export type IndicatorIcon = ComponentType<{ size?: number | string; color?: string }>
 
 export interface MapLayout {
   width: number
@@ -31,7 +35,7 @@ export interface OffscreenMapIndicatorState {
   coordinate: SharedValue<[number, number]>
   color: string
   textColor: string
-  icon: Icon
+  icon: IndicatorIcon
   x: SharedValue<number>
   y: SharedValue<number>
   angleDeg: SharedValue<number>
@@ -43,7 +47,7 @@ export interface OffscreenMapIndicatorDraft {
   coordinate: [number, number]
   color: string
   textColor: string
-  icon: Icon
+  icon: IndicatorIcon
   x: number
   y: number
   angleDeg: number
@@ -252,13 +256,13 @@ export function OffscreenMapIndicator({
         ]}
       >
         <Reanimated.View pointerEvents="none" style={[styles.offscreenMapArrowOrbit, arrowStyle]}>
-          <ArrowUpIcon size={22} color={indicator.textColor} weight="bold" />
+          <IconCaretUpFilled size={18} color={indicator.color} />
         </Reanimated.View>
         <View
           pointerEvents="none"
-          style={[styles.offscreenMapIcon, { borderColor: indicator.color }]}
+          style={[styles.offscreenMapIcon, { backgroundColor: indicator.color }]}
         >
-          <IconComponent size={24} color={indicator.textColor} weight="bold" />
+          <IconComponent size={22} color={OFFSCREEN_ICON_COLOR} />
         </View>
       </Pressable>
     </Reanimated.View>
@@ -283,14 +287,18 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   offscreenMapIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: GPS_POINT_COLOR,
-    backgroundColor: theme.neutral.surfaceDeep,
+    borderWidth: 3,
+    borderColor: theme.ui.muted,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
   },
   offscreenMapArrowOrbit: {
     position: 'absolute',

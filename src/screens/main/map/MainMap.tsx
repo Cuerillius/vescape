@@ -32,7 +32,6 @@ import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 import type { MainViewState } from '@/screens/main/mainViewState'
 import { type HistoryPreviewTarget, useCameraControls } from '@/screens/main/map/useCameraControls'
 import type { PhoneHeadingStatus } from '@/modules/map/lib/phoneHeading'
-import type { OffscreenMapIndicatorState } from '@/screens/main/map/offscreenMapIndicators'
 import { MapLoadingPlaceholder, MapUnavailable } from '@/screens/main/map/MainMapOverlays'
 import { MainMapScene } from '@/screens/main/map/MainMapScene'
 import { useLiveMapModel } from '@/screens/main/map/useLiveMapModel'
@@ -55,7 +54,12 @@ import { watchRouteSpanMeters } from '@/modules/map/lib/nearbyRadius'
 Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
 export interface MainMapHandle {
-  recenterLive: (options?: { resetPadding?: boolean; animationDuration?: number }) => void
+  recenterLive: (options?: {
+    resetPadding?: boolean
+    animationDuration?: number
+    /** Fly there even when it is far, instead of snapping. */
+    glide?: boolean
+  }) => void
   previewHistorySession: (preview: HistoryPreviewTarget) => void
   beginPreviewPan: () => void
   previewPanBy: (deltaX: number, deltaY: number, revealProgress: number) => void
@@ -71,6 +75,8 @@ export interface MainMapHandle {
   focusCoordinate: (coordinate: [number, number]) => void
   centerCoordinatePreservingCamera: (coordinate: [number, number]) => void
   focusWeather: () => void
+  /** Restores the camera from before a map layer; false when the caller should recenter instead. */
+  leaveOverview: () => boolean
   focusLegalLimits: () => void
   getViewfinderCoordinate: () => Promise<{ latitude: number; longitude: number }>
 }
@@ -96,7 +102,6 @@ export interface MainMapStyleProps {
   satelliteImageryOpacity: number
   satelliteMapImageryOpacity: number
   satelliteImagerySaturation: number
-  hideTelemetryMapDetails: boolean
 }
 
 export interface MainMapPointsProps {
@@ -126,7 +131,6 @@ interface MainMapProps {
   onRawMapPress: (selection: MapSelection) => boolean | undefined
   onMapPress: (selection: MapSelection) => void
   onEnterMapMode: () => void
-  onOffscreenMapIndicatorsChange: (indicators: OffscreenMapIndicatorState[]) => void
   directionPoint: DirectionPoint | null
   activeNavigationTarget: MapSelection | null
   selectedNavigationTarget: MapSelection | null
@@ -154,7 +158,6 @@ export const MainMap = memo(
       onRawMapPress,
       onMapPress,
       onEnterMapMode,
-      onOffscreenMapIndicatorsChange,
       directionPoint,
       activeNavigationTarget,
       selectedNavigationTarget,
@@ -309,7 +312,8 @@ export const MainMap = memo(
         focusRoute: chartZoomRoute,
       },
       follow: {
-        updatesEnabled: !(phoneHeadingMode && mode === 'map'),
+        // The ride dashboard covers the map, so following the rider there is wasted frames.
+        updatesEnabled: mode !== 'telemetry' && !(phoneHeadingMode && mode === 'map'),
       },
       getViewfinderCoordinateFromMap,
       onHeadingChange,
@@ -335,7 +339,7 @@ export const MainMap = memo(
       currentCameraRef,
       mapLayout,
       trackedPoints: trackedMapPoints,
-      enabled: !historyActive,
+      enabled: mode === 'map' && !historyActive,
     })
 
     const handlePhoneFollowHeading = useCallback(
@@ -451,12 +455,6 @@ export const MainMap = memo(
       onMapInteraction()
       stopCameraAnimation()
     }, [onMapInteraction, stopCameraAnimation])
-
-    useEffect(() => {
-      if (mode === 'telemetry') {
-        onOffscreenMapIndicatorsChange(offscreenMapIndicators)
-      }
-    }, [mode, offscreenMapIndicators, onOffscreenMapIndicatorsChange])
 
     // Mapbox gives Maestro no idle signal, so a screenshot flow would otherwise have to guess with a
     // sleep and can catch a half-drawn map. Publish the map's own idle event as a waitable marker.

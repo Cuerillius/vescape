@@ -1,11 +1,13 @@
 import { useResolvedAccentColors } from '@/hooks/useTheme'
 import Mapbox, { type Camera as CameraRef } from '@rnmapbox/maps'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
-import { Button } from '@/components/base/Button'
 import { Text } from '@/components/base/Text'
-import { ChipRow, ToggleRow, ValueRow } from '@/components/dev/ShowcaseControls'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Switch } from '@/components/ui/Switch'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
 import { MAPBOX_ACCESS_TOKEN } from '@/config/mapy'
 import { theme } from '@/constants/theme'
 import { makeCircleFeature, offsetCoordinate } from '@/helpers/mapGeometry'
@@ -40,7 +42,11 @@ const TELEPORT_DISTANCE_M = 50_000
 const TELEPORT_JUMP_M = 100_000
 /** Below the teleport threshold: exercises the ballistic zoom-out-and-back arc. */
 const MID_JUMP_M = 3000
-const GPS_MODES: FakeGpsMode[] = ['straight', 'curvy', 'jitter']
+const GPS_MODES = [
+  { key: 'straight', label: 'Straight' },
+  { key: 'curvy', label: 'Curvy' },
+  { key: 'jitter', label: 'Jitter' },
+] as const
 
 interface Traces {
   lng: SpringTraceSample[]
@@ -259,132 +265,170 @@ export function MapPlaygroundScreen() {
       </View>
 
       <ScrollView style={styles.panel} contentContainerStyle={styles.panelContent}>
-        <Text style={styles.section}>GPS driver</Text>
-        <ChipRow
-          label="mode"
-          options={GPS_MODES}
-          selected={gpsMode}
-          onSelect={(value) => setGpsMode(value as FakeGpsMode)}
-        />
-        <ToggleRow label="running (1 Hz)" value={gpsRunning} onToggle={setGpsRunning} />
-        <PlaygroundSlider
-          label="speed"
-          value={speedKmh}
-          min={5}
-          max={50}
-          step={1}
-          color={theme.palette.green.color}
-          format={(v) => `${v.toFixed(0)} km/h`}
-          onChange={setSpeedKmh}
-        />
-        <View style={styles.buttons}>
-          <Button
-            label="Jump 3 km"
-            onPress={() => jumpBy(MID_JUMP_M)}
-            size="sm"
-            variant="secondary"
+        <Section title="GPS driver">
+          <View style={styles.row}>
+            <Text style={styles.label}>Mode</Text>
+            <ToggleGroup activeKey={gpsMode} options={GPS_MODES} onSelect={setGpsMode} />
+          </View>
+          <ToggleRow label="Running (1 Hz)" value={gpsRunning} onToggle={setGpsRunning} />
+          <PlaygroundSlider
+            label="Speed"
+            value={speedKmh}
+            min={5}
+            max={50}
+            step={1}
+            format={(v) => `${v.toFixed(0)} km/h`}
+            onChange={setSpeedKmh}
           />
-          <Button
-            label="Teleport 100 km"
-            onPress={() => jumpBy(TELEPORT_JUMP_M)}
-            size="sm"
-            variant="secondary"
+          <View style={styles.buttons}>
+            <Button label="Jump 3 km" onPress={() => jumpBy(MID_JUMP_M)} />
+            <Button label="Teleport 100 km" onPress={() => jumpBy(TELEPORT_JUMP_M)} />
+            <Button label="Reset to Wrocław" onPress={recenter} />
+          </View>
+        </Section>
+
+        <Section title="Compass driver">
+          <ToggleRow label="Phone heading (10 Hz)" value={compassOn} onToggle={setCompassOn} />
+          <ToggleRow label="Heading noise" value={compassNoise} onToggle={setCompassNoise} />
+        </Section>
+
+        <Section title="Springs">
+          <PlaygroundSlider
+            label="Omega center"
+            value={omegaCenter}
+            min={1}
+            max={20}
+            onChange={setOmegaCenter}
           />
-          <Button label="Reset to Wrocław" onPress={recenter} size="sm" variant="secondary" />
-        </View>
+          <PlaygroundSlider
+            label="Omega zoom"
+            value={omegaZoom}
+            min={1}
+            max={20}
+            onChange={setOmegaZoom}
+          />
+          <PlaygroundSlider
+            label="Omega heading"
+            value={omegaHeading}
+            min={1}
+            max={20}
+            onChange={setOmegaHeading}
+          />
+          <PlaygroundSlider
+            label="Omega pitch"
+            value={omegaPitch}
+            min={1}
+            max={20}
+            onChange={setOmegaPitch}
+          />
+          <PlaygroundSlider
+            label="Zoom target"
+            value={zoom}
+            min={10}
+            max={19}
+            format={(v) => v.toFixed(1)}
+            onChange={setZoom}
+          />
+          <ToggleRow
+            label="Derive pitch (zoom→pitch)"
+            value={derivePitchOn}
+            onToggle={setDerivePitchOn}
+          />
+          <ToggleRow label="Ballistic transit zoom" value={ballisticOn} onToggle={setBallisticOn} />
+        </Section>
 
-        <Text style={styles.section}>Compass driver</Text>
-        <ToggleRow label="phone heading (10 Hz)" value={compassOn} onToggle={setCompassOn} />
-        <ToggleRow label="heading noise" value={compassNoise} onToggle={setCompassNoise} />
-
-        <Text style={styles.section}>Springs</Text>
-        <PlaygroundSlider
-          label="omega center"
-          value={omegaCenter}
-          min={1}
-          max={20}
-          onChange={setOmegaCenter}
-        />
-        <PlaygroundSlider
-          label="omega zoom"
-          value={omegaZoom}
-          min={1}
-          max={20}
-          onChange={setOmegaZoom}
-        />
-        <PlaygroundSlider
-          label="omega heading"
-          value={omegaHeading}
-          min={1}
-          max={20}
-          onChange={setOmegaHeading}
-        />
-        <PlaygroundSlider
-          label="omega pitch"
-          value={omegaPitch}
-          min={1}
-          max={20}
-          onChange={setOmegaPitch}
-        />
-        <PlaygroundSlider
-          label="zoom target"
-          value={zoom}
-          min={10}
-          max={19}
-          color={theme.palette.amber.color}
-          format={(v) => v.toFixed(1)}
-          onChange={setZoom}
-        />
-        <ToggleRow
-          label="derivePitch (zoom→pitch)"
-          value={derivePitchOn}
-          onToggle={setDerivePitchOn}
-        />
-        <ToggleRow label="ballistic transit zoom" value={ballisticOn} onToggle={setBallisticOn} />
-
-        <Text style={styles.section}>Telemetry</Text>
-        <SpringTraceChart
-          label="center lng"
-          samples={traces.lng}
-          windowMs={TRACE_WINDOW_MS}
-          format={(v) => v.toFixed(5)}
-        />
-        <SpringTraceChart
-          label="heading"
-          samples={traces.heading}
-          windowMs={TRACE_WINDOW_MS}
-          format={(v) => `${v.toFixed(1)}°`}
-        />
-        <ValueRow
-          label="center"
-          value={`${camera.centerCoordinate[0].toFixed(5)}, ${camera.centerCoordinate[1].toFixed(5)}`}
-        />
-        <ValueRow label="zoom" value={camera.zoomLevel.toFixed(3)} />
-        <ValueRow label="heading" value={`${camera.heading.toFixed(1)}°`} />
-        <ValueRow label="pitch" value={`${camera.pitch.toFixed(1)}°`} />
-        <ValueRow label="isAnimating" value={animating ? 'true' : 'false'} />
+        <Section title="Telemetry">
+          <SpringTraceChart
+            label="Center lng"
+            samples={traces.lng}
+            windowMs={TRACE_WINDOW_MS}
+            format={(v) => v.toFixed(5)}
+          />
+          <SpringTraceChart
+            label="Heading"
+            samples={traces.heading}
+            windowMs={TRACE_WINDOW_MS}
+            format={(v) => `${v.toFixed(1)}°`}
+          />
+          <ValueRow
+            label="Center"
+            value={`${camera.centerCoordinate[0].toFixed(5)}, ${camera.centerCoordinate[1].toFixed(5)}`}
+          />
+          <ValueRow label="Zoom" value={camera.zoomLevel.toFixed(3)} />
+          <ValueRow label="Heading" value={`${camera.heading.toFixed(1)}°`} />
+          <ValueRow label="Pitch" value={`${camera.pitch.toFixed(1)}°`} />
+          <ValueRow label="isAnimating" value={animating ? 'true' : 'false'} />
+        </Section>
       </ScrollView>
     </View>
   )
 }
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Card>
+        <View style={styles.sectionBody}>{children}</View>
+      </Card>
+    </View>
+  )
+}
+
+function ToggleRow({
+  label,
+  value,
+  onToggle,
+}: {
+  label: string
+  value: boolean
+  onToggle: (value: boolean) => void
+}) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Switch accessibilityLabel={label} value={value} onValueChange={onToggle} />
+    </View>
+  )
+}
+
+function ValueRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value} selectable>
+        {value}
+      </Text>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.palette.slate.bg },
+  screen: { flex: 1, backgroundColor: theme.ui.background },
   mapPane: { flex: 1, overflow: 'hidden' },
   map: { flex: 1 },
   panel: {
     flex: 1,
-    borderTopWidth: 1,
-    borderTopColor: theme.palette.slate.border,
-    backgroundColor: theme.palette.slate.surface,
+    borderTopWidth: StyleSheet.hairlineWidth * 2,
+    borderTopColor: theme.ui.border,
+    backgroundColor: theme.ui.background,
   },
-  panelContent: { padding: 12, gap: 8, paddingBottom: 32 },
-  section: {
-    color: theme.palette.sky.color,
-    fontSize: 11,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-    marginTop: 6,
+  panelContent: { padding: 16, gap: 24, paddingBottom: 32 },
+  section: { gap: 8 },
+  sectionTitle: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
   },
-  buttons: { flexDirection: 'row', gap: 8 },
+  sectionBody: { padding: 16, gap: 14 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  label: { color: theme.ui.mutedForeground, fontSize: 13, fontWeight: '500' },
+  value: { color: theme.ui.foreground, fontSize: 13, fontFamily: theme.mono('600') },
+  buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 })
