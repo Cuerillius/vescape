@@ -17,8 +17,8 @@ import type {
   ChartSeriesData,
   ChartTimeRange,
 } from '@/components/charts/line/types'
-import { ShowcaseCard } from '@/components/dev/ShowcaseCard'
-import { ChipRow } from '@/components/dev/ShowcaseControls'
+import { NewShowcaseCard } from '@/components/dev/NewShowcaseCard'
+import { NewChipRow } from '@/components/dev/NewShowcaseControls'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
 
@@ -46,7 +46,7 @@ const SPEED_RAMP: ChartColorRamp = {
 const DUTY_BANDS: ChartColorRamp = {
   mode: 'bands',
   stops: [
-    { value: 0, color: theme.neutral.textMuted },
+    { value: 0, color: theme.ui.mutedForeground },
     { value: 50, color: theme.palette.amber.color },
     { value: 75, color: theme.palette.red.color },
   ],
@@ -220,25 +220,31 @@ export function ChartStackShowcase() {
   )
 
   return (
-    <ShowcaseCard name="ChartStack / one canvas, shared camera">
-      <ChipRow
-        label="Dataset"
-        options={Object.keys(SIZES)}
-        selected={size}
-        onSelect={(value) => setSize(value as SizeKey)}
-      />
-      <ChipRow
-        label="Selection"
-        options={['off', 'on']}
-        selected={selectable ? 'on' : 'off'}
-        onSelect={(value) => setSelectable(value === 'on')}
-      />
-      <ChipRow
-        label="Second chart"
-        options={['hidden', 'shown']}
-        selected={showDuty ? 'shown' : 'hidden'}
-        onSelect={(value) => setShowDuty(value === 'shown')}
-      />
+    <NewShowcaseCard
+      name="ChartStack"
+      controls={
+        <>
+          <NewChipRow
+            label="Dataset"
+            options={Object.keys(SIZES)}
+            selected={size}
+            onSelect={(value) => setSize(value as SizeKey)}
+          />
+          <NewChipRow
+            label="Selection"
+            options={['off', 'on']}
+            selected={selectable ? 'on' : 'off'}
+            onSelect={(value) => setSelectable(value === 'on')}
+          />
+          <NewChipRow
+            label="Second chart"
+            options={['hidden', 'shown']}
+            selected={showDuty ? 'shown' : 'hidden'}
+            onSelect={(value) => setShowDuty(value === 'shown')}
+          />
+        </>
+      }
+    >
       <Text style={styles.note}>
         {count.toLocaleString()} samples per series, drawn from a min/max pyramid — the spikes are
         single samples. Drag to scrub, pinch to zoom and pan, double-tap to fit. With a selection
@@ -257,7 +263,7 @@ export function ChartStackShowcase() {
           visibleChartKeys={visibleChartKeys}
         />
       </View>
-    </ShowcaseCard>
+    </NewShowcaseCard>
   )
 }
 
@@ -266,7 +272,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   note: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 11,
     marginTop: 6,
   },

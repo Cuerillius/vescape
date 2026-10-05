@@ -1,7 +1,7 @@
 import type { StyleProp, ViewStyle } from 'react-native'
 import { LocalSvg } from 'react-native-svg/css'
 
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 
 const WORDMARK = require('@/../assets/logo/Vescape-text.svg')
 const ASPECT_RATIO = 1221 / 375
@@ -12,14 +12,14 @@ interface VescapeWordmarkProps {
 }
 
 export function VescapeWordmark({ width = 220, style }: VescapeWordmarkProps) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
 
   return (
     <LocalSvg
       asset={WORDMARK}
       width={width}
       height={width / ASPECT_RATIO}
-      color={neutral.textPrimary}
+      color={ui.foreground}
       style={style}
     />
   )

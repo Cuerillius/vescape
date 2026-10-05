@@ -15,7 +15,7 @@ import { toScrubTargets } from '@/components/charts/line/scrubTargets'
 import type { PreparedChart } from '@/components/charts/line/stackData'
 import type { ChartPlotBox, ChartYRange } from '@/components/charts/line/types'
 import type { useSkiaMonoFont } from '@/hooks/useSkiaFont'
-import { useResolvedAccentColors, useResolvedNeutralColors, useThemeStore } from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedUiColors, useThemeStore } from '@/hooks/useTheme'
 import { textAdvanceWidth } from '../../../helpers/skiaText'
 
 export interface LineChartProps {
@@ -38,7 +38,7 @@ export interface LineChartProps {
  * readout, all read on the UI thread.
  */
 export function LineChart({ chart, width, index }: LineChartProps) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const accents = useResolvedAccentColors()
   const appearance = useThemeStore((state) => state.resolvedTheme)
   // Resolved at render: the palette hue is a native adaptive color, which Skia cannot consume.
@@ -96,16 +96,16 @@ export function LineChart({ chart, width, index }: LineChartProps) {
           x={plot.x}
           y={labelBaseline}
           text={chart.label}
-          color={neutral.textSecondary}
+          color={ui.mutedForeground}
         />
       )}
 
       <Group transform={plotTransform}>
-        <Line p1={vec(0, 0.5)} p2={vec(plot.width, 0.5)} color={neutral.border} strokeWidth={0.5} />
+        <Line p1={vec(0, 0.5)} p2={vec(plot.width, 0.5)} color={ui.border} strokeWidth={0.5} />
         <Line
           p1={vec(0, plot.height / 2)}
           p2={vec(plot.width, plot.height / 2)}
-          color={neutral.border}
+          color={ui.border}
           strokeWidth={0.5}
         >
           <DashPathEffect intervals={[4, 4]} />
@@ -113,7 +113,7 @@ export function LineChart({ chart, width, index }: LineChartProps) {
         <Line
           p1={vec(0, plot.height - 0.5)}
           p2={vec(plot.width, plot.height - 0.5)}
-          color={neutral.border}
+          color={ui.border}
           strokeWidth={0.5}
         />
         {/* Thresholds are read against the value axis alone, so they need no camera: panning
@@ -250,7 +250,7 @@ interface AxisTicksProps {
 
 /** Three ticks — top, middle, bottom — matching the three grid lines of the plot. */
 function AxisTicks({ font, plot, range, side, displayScale = 1 }: AxisTicksProps) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const ticks = useMemo(() => {
     const values = [range.max, (range.min + range.max) / 2, range.min]
     const baselines = [
@@ -275,7 +275,7 @@ function AxisTicks({ font, plot, range, side, displayScale = 1 }: AxisTicksProps
           x={tick.x}
           y={tick.y}
           text={tick.text}
-          color={neutral.textDim}
+          color={ui.faintForeground}
         />
       ))}
     </>

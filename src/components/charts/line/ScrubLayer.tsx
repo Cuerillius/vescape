@@ -10,10 +10,8 @@ import type { ChartCamera, ChartPlotBox } from '@/components/charts/line/types'
 import type { useSkiaMonoFont } from '@/hooks/useSkiaFont'
 import { theme } from '@/constants/theme'
 import { DASH } from '@/helpers/format'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 
-const CURSOR_COLOR = theme.palette.slate.border
-const BANNER_BG = theme.alpha(theme.palette.slate.surfaceDeep, 0.85)
-const BANNER_BORDER = theme.palette.slate.surface
 export const SCRUB_FONT_SIZE = 11
 const FONT_SIZE = SCRUB_FONT_SIZE
 const ROW_HEIGHT = FONT_SIZE + 4
@@ -179,6 +177,9 @@ export function useScrubReadout({
 export function ScrubLayer({ targets, plot, index: chart, readout, font }: ScrubLayerProps) {
   // See SeriesLayer: derived values and React Compiler memoisation do not mix.
   'use no memo'
+  const ui = useResolvedUiColors()
+  const BANNER_BG = theme.alpha(ui.card, 0.85)
+  const BANNER_BORDER = ui.border
   // The row count never changes, so the banner is only ever as tall as the series it carries.
   const height = targets.length * ROW_HEIGHT + PADDING * 2
   const centeredY = Math.max((plot.height - height) / 2, 0)
@@ -312,6 +313,7 @@ export function ScrubCursor({
   timeline,
 }: ScrubCursorProps) {
   'use no memo'
+  const CURSOR_COLOR = useResolvedUiColors().border
   const transform = useDerivedValue(() => {
     const timeMs = scrubTimeMs.value
     if (timeMs == null) return [{ translateX: OFFSCREEN }]

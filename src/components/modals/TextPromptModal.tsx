@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Modal, Pressable, View, StyleSheet } from 'react-native'
 import { Text } from '@/components/base/Text'
-import { CheckIcon } from 'phosphor-react-native'
 import { theme } from '@/constants/theme'
-import { Input } from '@/components/forms/Input'
-import { useResolvedAccentColors } from '@/hooks/useTheme'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 interface TextPromptModalContentProps {
   title: string
@@ -30,37 +29,29 @@ function TextPromptModalContent({
   loading = false,
   error,
 }: TextPromptModalContentProps) {
-  const accents = useResolvedAccentColors()
   const [text, setText] = useState(initialValue)
   return (
     <Pressable style={styles.modalBackdrop} onPress={loading ? undefined : onDismiss}>
       <Pressable style={styles.promptModal} onPress={(e) => e.stopPropagation()}>
         <Text style={styles.promptTitle}>{title}</Text>
         <Input
-          style={styles.promptInput}
           value={text}
           onChangeText={setText}
           placeholder={placeholder}
-          placeholderTextColor={theme.neutral.textDim}
+          accessibilityLabel={title}
           autoFocus
           selectTextOnFocus
           editable={!loading}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <View style={styles.promptActions}>
-          <Pressable style={styles.promptCancelBtn} onPress={onDismiss} disabled={loading}>
-            <Text style={styles.promptCancelText}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.promptConfirmBtn, { backgroundColor: accents.sky.solid }]}
-            onPress={() => (allowEmpty || text.trim()) && onConfirm(text.trim())}
+          <Button variant="outline" label="Cancel" disabled={loading} onPress={onDismiss} />
+          <Button
+            variant="primary"
+            label={confirmLabel}
             disabled={loading}
-          >
-            <CheckIcon size={15} color={accents.sky.onSolid} weight="bold" />
-            <Text style={[styles.promptConfirmText, { color: accents.sky.onSolid }]}>
-              {confirmLabel}
-            </Text>
-          </Pressable>
+            onPress={() => (allowEmpty || text.trim()) && onConfirm(text.trim())}
+          />
         </View>
       </Pressable>
     </Pressable>
@@ -122,57 +113,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.alpha(theme.palette.mono.black, 0.6),
-    padding: 32,
+    padding: 24,
   },
   promptModal: {
     width: '100%',
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 12,
+    maxWidth: 420,
+    backgroundColor: theme.ui.card,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
     padding: 16,
-    gap: 14,
+    gap: 16,
   },
-  promptTitle: {
-    color: theme.neutral.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
-  },
+  promptTitle: { color: theme.ui.foreground, fontSize: 16, fontWeight: '600' },
   error: { color: theme.status.error.text, fontSize: 12 },
-  promptInput: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  promptActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-  },
-  promptCancelBtn: {
-    minHeight: 40,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  promptCancelText: {
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  promptConfirmBtn: {
-    minHeight: 40,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  promptConfirmText: {
-    fontSize: 13,
-    fontWeight: '900',
-  },
+  promptActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 })

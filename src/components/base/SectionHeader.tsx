@@ -1,4 +1,4 @@
-import type { Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 import type { ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native'
 
@@ -26,7 +26,7 @@ interface SectionHeaderProps {
 export function SectionHeader({
   icon: HeaderIcon,
   title,
-  color = theme.neutral.textSecondary,
+  color = theme.ui.mutedForeground,
   description,
   right,
   align = 'left',
@@ -35,7 +35,7 @@ export function SectionHeader({
   return (
     <View style={[styles.container, centered && styles.containerCentered]}>
       <View style={[styles.row, centered && styles.rowCentered]}>
-        <HeaderIcon size={20} color={color} weight="duotone" />
+        <HeaderIcon size={20} color={color} />
         <Text style={styles.title}>{title}</Text>
         {/* Rendered only when there is an action: an empty auto-margin spacer still claims the
             free space, which shoved a centred heading back to the left. */}
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.2,
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   description: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 11,
     letterSpacing: 0.3,
   },

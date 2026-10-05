@@ -12,9 +12,8 @@ import { useChartStack } from '@/components/charts/line/ChartStackContext'
 import { GapMarkersLayer } from '@/components/charts/line/GapMarkersLayer'
 import { viewportFor } from '@/components/charts/line/projection'
 import { toRealMs } from '@/components/charts/line/timeline'
-import { theme } from '@/constants/theme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 
-const AXIS_TEXT_COLOR = theme.palette.slate.textDim
 /** Below this window, wall-clock labels gain seconds — above it they would never change. */
 const CLOCK_SECONDS_BELOW_MS = 10 * 60_000
 
@@ -32,8 +31,10 @@ export interface ChartTimeAxisProps {
  * metric happens to sit at the bottom, and a chart closing must not take the time axis with it.
  */
 export function ChartTimeAxis({ timeMode, glyphWidth }: ChartTimeAxisProps) {
-  // See SeriesLayer: derived values and React Compiler memoisation do not mix.
   'use no memo'
+  // See SeriesLayer: derived values and React Compiler memoisation do not mix.
+  const ui = useResolvedUiColors()
+  const AXIS_TEXT_COLOR = ui.faintForeground
   const {
     camera,
     dataKey,
@@ -110,7 +111,7 @@ export function ChartTimeAxis({ timeMode, glyphWidth }: ChartTimeAxisProps) {
         x={scrubTimeX}
         y={TIME_AXIS_BASELINE}
         text={scrubTimeText}
-        color={theme.palette.mono.white}
+        color={ui.foreground}
         opacity={scrubTimeOpacity}
       />
     </Canvas>

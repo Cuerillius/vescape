@@ -1,8 +1,9 @@
 import { StyleSheet, View } from 'react-native'
-import { CheckIcon } from 'phosphor-react-native'
 
-import { CONTROL_INK, useColoredControlSurface } from '@/components/controls/coloredControlSurface'
+import { useColoredControlSurface } from '@/components/controls/coloredControlSurface'
 import { theme, type ThemeColor } from '@/constants/theme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
 
 const SIZES = {
   sm: { box: 22, check: 14 },
@@ -28,6 +29,7 @@ export function RadioIndicator({
   size = 'sm',
 }: RadioIndicatorProps) {
   const surface = useColoredControlSurface(accent)
+  const ui = useResolvedUiColors()
   const { box, check } = SIZES[size]
 
   return (
@@ -38,12 +40,12 @@ export function RadioIndicator({
           width: box,
           height: box,
           borderRadius: box / 2,
-          borderColor: selected ? surface.tint : CONTROL_INK.border,
+          borderColor: selected ? surface.tint : ui.border,
           backgroundColor: selected ? surface.selected : surface.unselected,
         },
       ]}
     >
-      {selected ? <CheckIcon size={check} color={surface.tint} weight="bold" /> : null}
+      {selected ? <IconCheck size={check} color={surface.tint} strokeWidth={2.5} /> : null}
     </View>
   )
 }

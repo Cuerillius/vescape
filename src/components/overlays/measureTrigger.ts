@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import type { View } from 'react-native'
 import { Dimensions, Platform } from 'react-native'
 
@@ -7,10 +6,6 @@ export interface TriggerLayout {
   y: number
   width: number
   height: number
-}
-
-export function useTriggerRef() {
-  return useRef<View>(null)
 }
 
 /**

@@ -25,7 +25,7 @@ import type {
   ChartYRange,
 } from '@/components/charts/line/types'
 import { resolveAdaptiveColor, type ThemeColor } from '@/constants/theme'
-import { useResolvedColor, useResolvedNeutralColors, useThemeStore } from '@/hooks/useTheme'
+import { useResolvedColor, useResolvedUiColors, useThemeStore } from '@/hooks/useTheme'
 
 const LINE_WIDTH = 2
 const DOT_DIAMETER = 3.5
@@ -73,7 +73,7 @@ export function SeriesLayer({
   // value must be rebuilt when its declared dependencies change.
   'use no memo'
   const resolvedColor = useResolvedColor(color)
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const appearance = useThemeStore((state) => state.resolvedTheme)
 
   // Fixed y means a fixed gradient: this survives every pan and zoom untouched.
@@ -176,7 +176,14 @@ export function SeriesLayer({
       {showHead && (
         <Group transform={headTransform}>
           <Circle cx={0} cy={0} r={HEAD_RADIUS} color={resolvedColor} />
-          <Circle cx={0} cy={0} r={HEAD_RADIUS} color={neutral.bg} style="stroke" strokeWidth={1} />
+          <Circle
+            cx={0}
+            cy={0}
+            r={HEAD_RADIUS}
+            color={ui.background}
+            style="stroke"
+            strokeWidth={1}
+          />
         </Group>
       )}
     </>

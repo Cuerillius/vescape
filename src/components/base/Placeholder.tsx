@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { StyleSheet, View, type ViewStyle } from 'react-native'
 import { Text } from '@/components/base/Text'
-import type { Icon } from 'phosphor-react-native'
 import { theme, type ThemeColor } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 interface PlaceholderProps {
-  icon: Icon
+  icon: ComponentType<{ size: number; color: string; strokeWidth?: number }>
   title?: string
   description: string
   iconColor?: ThemeColor
@@ -15,18 +15,22 @@ interface PlaceholderProps {
   style?: ViewStyle
 }
 
+/** Empty state: a bordered icon tile over a title and a muted description. */
 export function Placeholder({
   icon: IconComponent,
   title,
   description,
-  iconColor = theme.neutral.textMuted,
+  iconColor = theme.ui.mutedForeground,
   action,
   compact = false,
   style,
 }: PlaceholderProps) {
+  const resolvedIconColor = useResolvedColor(iconColor)
   return (
     <View style={[styles.container, compact && styles.containerCompact, style]}>
-      <IconComponent size={compact ? 40 : 58} color={iconColor} weight="thin" />
+      <View style={[styles.tile, compact && styles.tileCompact]}>
+        <IconComponent size={compact ? 20 : 26} color={resolvedIconColor} strokeWidth={2} />
+      </View>
       <View style={styles.textBlock}>
         {title ? <Text style={styles.title}>{title}</Text> : null}
         <Text style={styles.description}>{description}</Text>
@@ -42,27 +46,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 36,
-    gap: 18,
+    gap: 16,
   },
   containerCompact: {
     paddingHorizontal: 24,
     paddingVertical: 12,
     gap: 12,
   },
+  tile: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.muted,
+  },
+  tileCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.md,
+  },
   textBlock: {
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   title: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
   },
   description: {
-    color: theme.neutral.textMuted,
-    fontSize: 13,
-    lineHeight: 18,
+    color: theme.ui.mutedForeground,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
   },
 })

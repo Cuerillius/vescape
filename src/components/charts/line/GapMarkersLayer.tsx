@@ -6,7 +6,7 @@ import { projectX, viewportFor } from '@/components/charts/line/projection'
 import type { ChartTimeline } from '@/components/charts/line/timeline'
 import type { ChartCamera } from '@/components/charts/line/types'
 import type { useSkiaMonoFont } from '@/hooks/useSkiaFont'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 import { textAdvanceWidth } from '../../../helpers/skiaText'
 
 const DASH = [3, 3]
@@ -82,7 +82,7 @@ type GapMarkerProps = Omit<GapMarkersCommonProps, 'timeline'> &
 function GapMarker(props: GapMarkerProps) {
   // See SeriesLayer: derived values and React Compiler memoisation do not mix.
   'use no memo'
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const {
     chartMs,
     startMs,
@@ -112,7 +112,7 @@ function GapMarker(props: GapMarkerProps) {
         <Line
           p1={vec(0, props.top)}
           p2={vec(0, props.bottom)}
-          color={neutral.textMuted}
+          color={ui.mutedForeground}
           strokeWidth={1}
         >
           <DashPathEffect intervals={DASH} />
@@ -128,14 +128,14 @@ function GapMarker(props: GapMarkerProps) {
         x={-LABEL_GAP - startWidth}
         y={props.labelBaseline}
         text={startLabel}
-        color={neutral.textDim}
+        color={ui.faintForeground}
       />
       <Text
         font={font}
         x={LABEL_GAP}
         y={props.labelBaseline}
         text={endLabel}
-        color={neutral.textDim}
+        color={ui.faintForeground}
       />
     </Group>
   )

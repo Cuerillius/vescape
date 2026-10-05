@@ -6,7 +6,7 @@ import { projectX, viewportFor } from '@/components/charts/line/projection'
 import { toChartMs, type ChartTimeline } from '@/components/charts/line/timeline'
 import type { ChartCamera, ChartTimeRange } from '@/components/charts/line/types'
 import { theme } from '@/constants/theme'
-import { useResolvedAccentColors, useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedUiColors } from '@/hooks/useTheme'
 
 const HANDLE_WIDTH = 3
 
@@ -49,9 +49,9 @@ export function SelectionLayer({
   // See SeriesLayer: derived values and React Compiler memoisation do not mix.
   'use no memo'
   const accents = useResolvedAccentColors()
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const edgeColor = accents.amber.color
-  const dimColor = theme.alpha(neutral.bg, 0.6)
+  const dimColor = theme.alpha(ui.background, 0.6)
   const glowColors = useMemo(
     () => [
       theme.alpha(edgeColor, 0.3),

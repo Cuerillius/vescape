@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
 import { FadeCardModal } from '@/components/modals/FadeCardModal'
 import { theme } from '@/constants/theme'
 
@@ -35,54 +35,42 @@ export function ConfirmModal({
       visible={visible}
       onDismiss={onCancel}
       dismissDisabled={loading}
-      title={title}
-      showClose={false}
       scrollable={false}
       cardStyle={styles.card}
       footer={
         <View style={styles.actions}>
+          <Button variant="outline" label={cancelLabel} disabled={loading} onPress={onCancel} />
           <Button
-            style={styles.actionBtn}
-            label={cancelLabel}
-            variant="secondary"
-            disabled={loading}
-            onPress={onCancel}
-          />
-          <Button
-            style={styles.actionBtn}
+            variant={destructive ? 'outline' : 'primary'}
+            color={destructive ? theme.status.error.color : undefined}
             label={confirmLabel}
-            variant={destructive ? 'destructive' : 'primary'}
             loading={loading}
-            onPress={onConfirm}
+            onPress={() => void onConfirm()}
           />
         </View>
       }
     >
-      <Text style={styles.message}>{message}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <View style={styles.text}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.message}>{message}</Text>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
     </FadeCardModal>
   )
 }
 
 const styles = StyleSheet.create({
   card: {
-    maxWidth: 320,
-    padding: 20,
-    gap: 12,
+    maxWidth: 360,
+    padding: 16,
+    gap: 16,
+    borderRadius: theme.radius.lg,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
   },
-  message: {
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
+  text: { gap: 6 },
+  title: { color: theme.ui.foreground, fontSize: 16, fontWeight: '600' },
+  message: { color: theme.ui.mutedForeground, fontSize: 14, lineHeight: 20 },
   error: { color: theme.status.error.text, fontSize: 12 },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-  },
-  actionBtn: {
-    flex: 1,
-  },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 })

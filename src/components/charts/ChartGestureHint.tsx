@@ -1,18 +1,17 @@
-import {
-  ArrowsLeftRightIcon,
-  ArrowsOutSimpleIcon,
-  HandPointingIcon,
-  type Icon,
-} from 'phosphor-react-native'
+import IconArrowsHorizontal from '@tabler/icons-react-native/IconArrowsHorizontal'
+import IconArrowsMaximize from '@tabler/icons-react-native/IconArrowsMaximize'
+import IconHandFinger from '@tabler/icons-react-native/IconHandFinger'
+import type { Icon } from '@tabler/icons-react-native'
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 const HINTS: { icon: Icon; label: string }[] = [
-  { icon: ArrowsOutSimpleIcon, label: 'Pinch to zoom' },
-  { icon: ArrowsLeftRightIcon, label: 'Two fingers to pan' },
-  { icon: HandPointingIcon, label: 'Drag to read' },
+  { icon: IconArrowsMaximize, label: 'Pinch to zoom' },
+  { icon: IconArrowsHorizontal, label: 'Two fingers to pan' },
+  { icon: IconHandFinger, label: 'Drag to read' },
 ]
 
 /**
@@ -21,11 +20,12 @@ const HINTS: { icon: Icon; label: string }[] = [
  * trying them — see {@link useChartGestures} — so the stack says it once, quietly, underneath.
  */
 export function ChartGestureHint({ compact = false }: { compact?: boolean }) {
+  const iconColor = useResolvedColor(theme.ui.faintForeground)
   return (
     <View style={[styles.row, compact && styles.rowCompact]}>
       {HINTS.map(({ icon: HintIcon, label }) => (
         <View key={label} style={styles.hint}>
-          <HintIcon size={compact ? 9 : 12} color={theme.palette.slate.textMuted} weight="bold" />
+          <HintIcon size={compact ? 9 : 12} color={iconColor} strokeWidth={2.5} />
           <Text style={[styles.label, compact && styles.labelCompact]}>{label}</Text>
         </View>
       ))}
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    color: theme.palette.slate.textMuted,
+    color: theme.ui.faintForeground,
     fontSize: 11,
     letterSpacing: 0.3,
   },

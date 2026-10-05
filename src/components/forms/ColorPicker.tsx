@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native'
-import { CheckIcon } from 'phosphor-react-native'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
 
 import { interaction, theme } from '@/constants/theme'
 
@@ -13,13 +13,13 @@ interface ColorPickerProps {
   size?: number
 }
 
-/** A wrap of color swatches; the selected one shows a ring + check. Presentational. */
-export function ColorPicker({ value, colors, onChange, size = 34 }: ColorPickerProps) {
+/** A wrap of rounded-square swatches; the selected one shows a ring + check. Presentational. */
+export function ColorPicker({ value, colors, onChange, size = 36 }: ColorPickerProps) {
   return (
     <View style={styles.grid}>
       {colors.map((color) => {
         const selected = value === color
-        const dim = size - 8
+        const dim = size - 10
         return (
           <Pressable
             key={color}
@@ -29,7 +29,7 @@ export function ColorPicker({ value, colors, onChange, size = 34 }: ColorPickerP
             android_ripple={interaction.rippleBorderless}
             style={({ pressed }) => [
               styles.ring,
-              { width: size, height: size, borderRadius: size / 2 },
+              { width: size, height: size, borderRadius: theme.radius.md + 2 },
               selected && styles.ringSelected,
               pressed && { opacity: interaction.pressedOpacity },
             ]}
@@ -37,11 +37,16 @@ export function ColorPicker({ value, colors, onChange, size = 34 }: ColorPickerP
             <View
               style={[
                 styles.swatch,
-                { width: dim, height: dim, borderRadius: dim / 2, backgroundColor: color },
+                {
+                  width: dim,
+                  height: dim,
+                  borderRadius: theme.radius.md - 1,
+                  backgroundColor: color,
+                },
               ]}
             >
               {selected ? (
-                <CheckIcon size={dim * 0.55} color={theme.palette.mono.white} weight="bold" />
+                <IconCheck size={dim * 0.6} color={theme.palette.mono.white} strokeWidth={3} />
               ) : null}
             </View>
           </Pressable>
@@ -55,18 +60,20 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   ring: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: 'transparent',
   },
   ringSelected: {
-    borderColor: theme.neutral.textPrimary,
+    borderColor: theme.ui.foreground,
   },
   swatch: {
+    borderWidth: 1,
+    borderColor: theme.ui.border,
     alignItems: 'center',
     justifyContent: 'center',
   },

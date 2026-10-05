@@ -10,7 +10,7 @@ import { theme } from '@/constants/theme'
 export function ChartLoadingOverlay() {
   return (
     <View pointerEvents="none" style={styles.overlay}>
-      <ActivityIndicator size="small" color={theme.palette.sky.color} />
+      <ActivityIndicator size="small" color={theme.ui.mutedForeground} />
     </View>
   )
 }

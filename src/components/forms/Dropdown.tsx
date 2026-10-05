@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { View } from 'react-native'
+import type { StyleProp, View, ViewStyle } from 'react-native'
 import { Animated, Dimensions, Modal, Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -9,8 +9,6 @@ import {
   type TriggerLayout,
 } from '@/components/overlays/measureTrigger'
 import { theme } from '@/constants/theme'
-
-export { useTriggerRef } from '@/components/overlays/measureTrigger'
 
 const ANIM_DURATION = 150
 const SCREEN_EDGE_PADDING = 8
@@ -22,6 +20,8 @@ interface DropdownProps {
   maxHeight?: number
   matchTriggerWidth?: boolean
   minWidth?: number
+  /** Overrides the default navy control panel, e.g. for the zinc UI kit. */
+  panelStyle?: StyleProp<ViewStyle>
   children: React.ReactNode
 }
 
@@ -32,6 +32,7 @@ export function Dropdown({
   maxHeight = 380,
   matchTriggerWidth = true,
   minWidth,
+  panelStyle,
   children,
 }: DropdownProps) {
   const insets = useSafeAreaInsets()
@@ -172,7 +173,12 @@ export function Dropdown({
       <Pressable style={styles.backdrop} onPress={handleClose} />
       {layout ? (
         <Animated.View
-          style={[styles.panel, dropdownPosition, { opacity, transform: [{ translateY }] }]}
+          style={[
+            styles.panel,
+            panelStyle,
+            dropdownPosition,
+            { opacity, transform: [{ translateY }] },
+          ]}
         >
           {children}
         </Animated.View>
@@ -186,10 +192,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   panel: {
-    backgroundColor: theme.control.background,
+    backgroundColor: theme.ui.muted,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.control.border,
+    borderColor: theme.ui.border,
     overflow: 'hidden',
   },
 })

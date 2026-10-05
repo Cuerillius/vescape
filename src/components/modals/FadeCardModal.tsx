@@ -10,10 +10,11 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native'
-import { XIcon, type Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 
 import { Text } from '@/components/base/Text'
 import { theme, type ThemeColor } from '@/constants/theme'
+import IconX from '@tabler/icons-react-native/IconX'
 
 const FADE_DURATION = 120
 
@@ -32,7 +33,6 @@ interface FadeCardModalProps {
   title?: string
   titleIcon?: Icon
   titleIconColor?: ThemeColor
-  titleIconWeight?: 'bold' | 'fill'
   /** Overrides the default primary-text title colour (a type accent, say). */
   titleColor?: ThemeColor
   /** Close button in the header. Ignored when the card is non-dismissible. */
@@ -65,7 +65,6 @@ export function FadeCardModal({
   title,
   titleIcon: TitleIcon,
   titleIconColor,
-  titleIconWeight = 'bold',
   titleColor,
   showClose = true,
   footer,
@@ -124,9 +123,7 @@ export function FadeCardModal({
     title !== undefined ? (
       <View style={styles.header}>
         <View style={styles.titleWrap}>
-          {TitleIcon ? (
-            <TitleIcon size={16} color={titleIconColor} weight={titleIconWeight} />
-          ) : null}
+          {TitleIcon ? <TitleIcon size={16} color={titleIconColor} strokeWidth={2.5} /> : null}
           <Text style={[styles.title, titleColor ? { color: titleColor } : null]}>{title}</Text>
         </View>
         {onDismiss && showClose ? (
@@ -137,7 +134,7 @@ export function FadeCardModal({
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <XIcon size={15} color={theme.neutral.textSecondary} weight="bold" />
+            <IconX size={15} color={theme.ui.mutedForeground} strokeWidth={2.5} />
           </Pressable>
         ) : null}
       </View>
@@ -187,10 +184,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     maxHeight: '78%',
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
     padding: 18,
     gap: 14,
   },
@@ -208,7 +205,7 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -218,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.neutral.surface,
+    backgroundColor: theme.ui.card,
   },
   body: {
     paddingRight: 2,

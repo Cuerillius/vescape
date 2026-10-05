@@ -1,8 +1,10 @@
 import { StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
-import { InfoIcon, WarningIcon, WarningCircleIcon } from 'phosphor-react-native'
 
 import { theme } from '@/constants/theme'
+import IconAlertCircle from '@tabler/icons-react-native/IconAlertCircle'
+import IconAlertTriangle from '@tabler/icons-react-native/IconAlertTriangle'
+import IconInfoCircle from '@tabler/icons-react-native/IconInfoCircle'
 
 type Variant = 'info' | 'warning' | 'error'
 
@@ -15,15 +17,15 @@ interface BannerProps {
 const config = {
   info: {
     accent: theme.banner.info.icon,
-    Icon: InfoIcon,
+    Icon: IconInfoCircle,
   },
   warning: {
     accent: theme.banner.warning.icon,
-    Icon: WarningIcon,
+    Icon: IconAlertTriangle,
   },
   error: {
     accent: theme.banner.error.icon,
-    Icon: WarningCircleIcon,
+    Icon: IconAlertCircle,
   },
 } satisfies Record<Variant, object>
 
@@ -33,7 +35,7 @@ export function Banner({ variant = 'info', title, message }: BannerProps) {
   return (
     <View style={styles.container}>
       <View style={[styles.accent, { backgroundColor: accent }]} />
-      <Icon size={18} color={accent} weight="duotone" style={styles.icon} />
+      <Icon size={18} color={accent} style={styles.icon} />
       <View style={styles.body}>
         {title ? <Text style={styles.title}>{title}</Text> : null}
         <Text style={styles.message}>{message}</Text>
@@ -67,12 +69,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
   },
   message: {
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 19,
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
   },
 })

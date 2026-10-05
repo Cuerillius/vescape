@@ -63,10 +63,12 @@ export function formatDistanceMeters(meters: number, units: UnitSystem): string 
 }
 
 export function rideDistanceFromMeters(meters: number, units: UnitSystem): number {
+  'worklet'
   return meters / (units === 'imperial' ? METERS_PER_MILE : 1000)
 }
 
 export function rideDistanceUnit(units: UnitSystem): 'km' | 'mi' {
+  'worklet'
   return units === 'imperial' ? 'mi' : 'km'
 }
 

@@ -8,13 +8,13 @@ For visual design principles (colors, layout, typography, when to use cards), se
 
 Every color must come from the `theme` object in `src/constants/theme.ts`. Never hardcode a hex or rgba value directly in a component.
 
-Use `theme.neutral` for the white/read-only canvas, separators, and neutral copy. Use `theme.control` for interactive surfaces and their foregrounds. Use `theme.palette.<hue>` for adaptive accent text, icons, borders, and small tinted states rendered by React Native. Metric visuals use `theme.telemetry`. Raw `theme.palette.slate` values are fixed dark swatches for map JSON and other non-adaptive assets.
+Use `theme.ui` for the canvas, surfaces, separators, copy, and interactive surfaces. Use `theme.palette.<hue>` for adaptive accent text, icons, borders, and small tinted states rendered by React Native. Metric visuals use `theme.telemetry`. Raw `theme.palette.slate` values are fixed dark swatches for map JSON and other non-adaptive assets.
 
-The adaptive neutral, control, accent, and telemetry tokens are native color objects at runtime. Mapbox, Skia, Reanimated worklets, and string-valued state/options cannot consume them. Use the corresponding hooks from `src/hooks/useTheme.ts`: `useResolvedNeutralColors()`, `useResolvedControlColors()`, `useResolvedAccentColors()`, and `useResolvedTelemetryColors()`. Pass only their plain string values into the renderer or data structure.
+The adaptive ui, accent, and telemetry tokens are native color objects at runtime. Mapbox, Skia, Reanimated worklets, and string-valued state/options cannot consume them. Use the corresponding hooks from `src/hooks/useTheme.ts`: `useResolvedUiColors()`, `useResolvedAccentColors()`, and `useResolvedTelemetryColors()`. Pass only their plain string values into the renderer or data structure.
 
 Type native-facing color props as `ThemeColor`; keep renderer inputs and persisted colors typed as `string`. Resolve individual tokens with `useResolvedColor`, or `resolveAdaptiveColor(color, appearance)` outside React. Resolve before building color-based grouping keys, too. Casting a token to `string` bypasses this boundary without converting its runtime value.
 
-`theme.native.test.ts` exercises native-shaped Android/iOS colors in isolated processes, since the normal test preload uses strings. Its type assertions also prevent adaptive tokens from becoming string-compatible again. The Phosphor patch widens its native SVG color props to React Native's `ColorValue`; renderer props must retain their string-only contract. For Android rendering coverage, use the component-library smoke flow documented in `e2e/README.md`.
+`theme.native.test.ts` exercises native-shaped Android/iOS colors in isolated processes, since the normal test preload uses strings. Its type assertions also prevent adaptive tokens from becoming string-compatible again.md`.
 
 Filled actions use the resolved hue's `solid` background and `onSolid` content pair. Do not infer the foreground from `color`, `text`, or a fixed black/white value; the pair is contrast-checked separately for each appearance.
 
@@ -22,7 +22,7 @@ Filled actions use the resolved hue's `solid` background and `onSolid` content p
 import { theme } from '@/constants/theme'
 
 // ✅ Good
-backgroundColor: theme.control.background,
+backgroundColor: theme.ui.muted,
 color: theme.telemetry.speed,
 
 // ❌ Bad
@@ -40,28 +40,34 @@ Do not create `index.ts` barrel files under `src/components/` or any of its subd
 ## Component Gallery
 
 When creating or significantly changing a reusable UI component, add or update its showcase in
-`src/app/settings/components.tsx` in the same change.
+`src/app/settings/components/` in the same change.
 
 - When asked to create a component, create a real component file under `src/components/` or the
   appropriate subdirectory such as `src/components/settings/`. Do not hide reusable UI as a
   function at the top of a screen file.
-- Use existing `ShowcaseCard` and controls from `@/components/dev/ShowcaseControls`.
+- Use `NewShowcaseCard` and the controls from `@/components/dev/NewShowcaseControls`.
 - Include useful variants, states, and props that future agents/design checks need to see.
 - Keep showcase data local and deterministic enough for quick visual inspection.
 - Skip only components that are route-specific screens or tiny private sub-components with no reuse surface.
 
 ## Icons
 
-Use **`phosphor-react-native`** for all icons. Do **not** use emoji or unicode characters as icon substitutes.
+Use **`@tabler/icons-react-native`** for icons. Do **not** use emoji or unicode characters as icon substitutes.
 
 ```tsx
-import { LightningIcon, WarningCircleIcon } from 'phosphor-react-native'
+import IconBolt from '@tabler/icons-react-native/IconBolt'
+import type { Icon as TablerIcon } from '@tabler/icons-react-native'
 import { theme } from '@/constants/theme'
-;<LightningIcon size={16} color={theme.gps.text} weight="fill" />
+;<IconBolt size={16} color={theme.ui.foreground} strokeWidth={2.5} />
 ```
 
-- Always use the **`Icon`-suffixed** export, for example `LightningIcon`, not `Lightning`. The un-suffixed names are deprecated and will produce warnings.
-- The `type Icon` export for typing icon props is **not** suffixed; import it as `type Icon` as-is.
+- Import each icon from its own path (`@tabler/icons-react-native/Icon<Name>`) and keep Tabler's
+  `Icon<Name>` name. Never value-import the package root: Metro does not tree-shake, so the barrel
+  pulls all ~6,000 icons into the bundle (an icon barrel already exhausted Metro's open-file limit on
+  Windows). Type-only imports such as `type Icon` from the root are fine. Per-icon types come from
+  `src/types/tabler-icons.d.ts`, because the package's own `exports` types point at the wrong folder.
+- Outline icons take `strokeWidth` (2 default, 2.5–3.25 for heavier marks). For a solid glyph use
+  the `Icon<Name>Filled` variant, not a `fill` prop.
 - `size` is typically `10`-`16` for inline or label icons, larger for standalone UI elements.
 
 ## Icon buttons
@@ -70,50 +76,36 @@ Use **`IconButton`** (`@/components/IconButton`) for all circular icon-only pres
 
 ```tsx
 import { IconButton } from '@/components/IconButton'
-import { ArrowLeftIcon, TrashIcon } from 'phosphor-react-native'
+import IconArrowLeft from '@tabler/icons-react-native/IconArrowLeft'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
 
-<IconButton icon={ArrowLeftIcon} onPress={handleBack} />
-<IconButton icon={TrashIcon} destructive onPress={handleDelete} disabled={!canDelete} />
-<IconButton icon={ArrowsClockwiseIcon} size="lg" loading={syncing} onPress={handleSync} />
+<IconButton icon={IconArrowLeft} onPress={handleBack} />
+<IconButton icon={IconTrash} destructive onPress={handleDelete} disabled={!canDelete} />
+<IconButton icon={IconRefresh} size="lg" loading={syncing} onPress={handleSync} />
 ```
 
 - `size`: `'sm'` (default, 38×38 — headers, overlays) | `'lg'` (54×54 — bottom/content area)
 - `destructive` shifts border to red-tinted and auto-tints icon to `theme.error.text` — no manual color needed
 - `loading` disables the button and shows an `ActivityIndicator` in the icon color
 - `style` accepts layout-level `ViewStyle` (position, margin, bottom/top/left/right)
-- The default surface uses `theme.control.background`, `theme.control.border`, and `theme.control.icon`; destructive state changes the accent without abandoning the navy interaction language.
+- The default surface uses `theme.ui.muted`, `theme.ui.border`, and `theme.ui.foreground`; destructive state changes the accent without abandoning the muted interaction language.
 
 ## Switches
 
-Use **`Switch`** (`@/components/controls/Switch`) for every boolean toggle. React Native's `Switch` is
-not used anywhere in the app — it cannot show that the board has not answered yet, and its platform
-sizes disagree.
+Use **`Switch`** (`@/components/ui/Switch`) for every boolean toggle. React Native's `Switch` is
+not used anywhere in the app — its platform sizes disagree.
 
 ```tsx
-import { Switch } from '@/components/controls/Switch'
+import { Switch } from '@/components/ui/Switch'
 
-<Switch value={enabled} onValueChange={setEnabled} />
-<Switch value={lights} onValueChange={setLights} accent={theme.palette.amber.color} />
-<Switch value={capability.enabled} onValueChange={save} pending={saving} />
+;<Switch value={enabled} onValueChange={setEnabled} accessibilityLabel="Lights" />
 ```
 
-- `value` is `boolean | null`. `null` rests the thumb in the centre — the control does not know yet,
-  so it refuses to claim a side.
-- `pending` centres the thumb and spins it there until the owner answers. Prefer it over `disabled`
-  for a write in flight: `disabled` says "you may not", `pending` says "wait".
-- `accent` takes any `ThemeColor` and tints the on state. Inside a `SettingsRow` with an `iconColor`
-  the switch inherits it, so a tinted row states its colour once; without either it falls back to
-  `theme.palette.sky.color`. `SwitchAccentProvider` lends the same accent anywhere else.
-- A disabled switch drops its accent and dashes its outline instead of dimming its on colour.
-- The track follows the colored-action surface: on light it is a navy control base with the accent
-  washed over it when on, and the accent keeps its dark-theme tone; on dark the accent alone tints
-  the card beneath.
-- Tap and drag both toggle it. Inside a row that is itself pressable, wrap the switch in a
-  `<View pointerEvents="none">` so the row owns the tap and the switch only mirrors state.
+- It is a monochrome shadcn-style pill: the thumb rides to the primary-filled end when on.
+- `value` is a plain `boolean`; `disabled` dims it.
 
 For one-of-several choices, put **`RadioIndicator`** (`@/components/controls/RadioIndicator`) on
-the row that owns the press. It uses the same colored surface as `Switch`, from
-`useColoredControlSurface`.
+the row that owns the press.
 
 ## Buttons
 
@@ -121,17 +113,17 @@ Use **`Button`** (`@/components/Button`) for all tappable button actions. Do not
 
 ```tsx
 import { Button } from '@/components/Button'
-import { TrashIcon } from 'phosphor-react-native'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
 
 <Button label="Save" onPress={handleSave} />
 <Button label="Cancel" variant="secondary" onPress={handleCancel} />
-<Button label="Delete" variant="destructive" icon={TrashIcon} onPress={handleDelete} />
+<Button label="Delete" variant="destructive" icon={IconTrash} onPress={handleDelete} />
 <Button label="Saving…" loading={isSaving} onPress={handleSave} />
 ```
 
 - `variant`: `'primary'` (default, blue fill) | `'secondary'` (ghost/outline) | `'destructive'` (red fill)
 - `size`: `'md'` (default, h40) | `'sm'` (h32)
-- `icon`: phosphor `Icon` type — rendered left of the label
+- `icon`: Tabler `Icon` type — rendered left of the label
 - `loading` disables the button and shows an `ActivityIndicator`
 - `style` accepts layout-level `ViewStyle` (e.g. `flex: 1`, margins) — do not use it for visual overrides
 

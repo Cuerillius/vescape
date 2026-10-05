@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { Canvas, Path, Skia } from '@shopify/react-native-skia'
-import type { Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 import {
   ActivityIndicator,
   Pressable,
@@ -125,13 +125,13 @@ export function IconButton({
   // red meant for light surfaces.
   const resolvedIconColor = destructive
     ? theme.palette.red.light
-    : (activeAccent ?? iconColor ?? theme.control.icon)
-  const borderColor = destructive ? theme.palette.red.light : (activeAccent ?? theme.control.border)
+    : (activeAccent ?? iconColor ?? theme.ui.foreground)
+  const borderColor = destructive ? theme.palette.red.light : (activeAccent ?? theme.ui.border)
   // Colored actions (destructive, accent, takeover) wear the two-layer colored surface; a plain
   // button keeps the navy control surface. Hook runs unconditionally; result ignored when plain.
   const coloredAccent = destructive ? theme.palette.red.light : activeAccent
-  const coloredSurface = useColoredAction(coloredAccent ?? theme.control.background)
-  const background = coloredAccent ? coloredSurface : theme.control.background
+  const coloredSurface = useColoredAction(coloredAccent ?? theme.ui.muted)
+  const background = coloredAccent ? coloredSurface : theme.ui.muted
   const progress = takeover?.progress
 
   const pulse = useSharedValue(0)
@@ -174,7 +174,7 @@ export function IconButton({
       {loading ? (
         <ActivityIndicator size="small" color={resolvedIconColor} />
       ) : (
-        <Icon size={iconSize} color={resolvedIconColor} weight="bold" />
+        <Icon size={iconSize} color={resolvedIconColor} strokeWidth={2.5} />
       )}
       {progress != null && !loading ? (
         <ProgressRing dim={dim} color={resolvedIconColor} progress={progress} />
@@ -211,6 +211,6 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     borderWidth: 2,
-    borderColor: theme.control.background,
+    borderColor: theme.ui.muted,
   },
 })

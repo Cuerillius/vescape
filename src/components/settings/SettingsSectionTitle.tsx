@@ -12,7 +12,7 @@ export function SettingsSectionTitle({ children }: SettingsSectionTitleProps) {
 
 const styles = StyleSheet.create({
   title: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',

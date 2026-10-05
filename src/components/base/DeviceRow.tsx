@@ -1,7 +1,11 @@
 import React from 'react'
-import { Pressable, View, StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
+
 import { Text } from '@/components/base/Text'
-import { theme, interaction } from '@/constants/theme'
+import { Card, CardDescription } from '@/components/ui/Card'
+import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 interface Props {
   id: string
@@ -11,6 +15,7 @@ interface Props {
 }
 
 export const DeviceRow = React.memo(function DeviceRow({ id, name, rssi, onPress }: Props) {
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
   const signalColor =
     rssi > -60
       ? theme.palette.green.text
@@ -19,20 +24,18 @@ export const DeviceRow = React.memo(function DeviceRow({ id, name, rssi, onPress
         : theme.status.error.text
 
   return (
-    <Pressable
-      style={({ pressed }) => [styles.row, pressed && { opacity: interaction.pressedOpacity }]}
-      android_ripple={interaction.ripple}
-      onPress={onPress}
-      testID={`device-row-${id}`}
-      accessibilityLabel={name}
-    >
-      <View style={styles.info}>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.id}>{id}</Text>
+    <Card onPress={onPress} accessibilityLabel={name} testID={`device-row-${id}`}>
+      <View style={styles.row}>
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>
+            {name}
+          </Text>
+          <CardDescription>{id}</CardDescription>
+        </View>
         <Text style={[styles.rssi, { color: signalColor }]}>{rssi} dBm</Text>
+        <IconChevronRight size={18} color={mutedColor} />
       </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
+    </Card>
   )
 })
 
@@ -40,35 +43,23 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    gap: 12,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: theme.control.background,
-    borderWidth: 1,
-    borderColor: theme.control.border,
-    borderRadius: 10,
-    marginBottom: 8,
   },
   info: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   name: {
-    color: theme.control.text,
-    fontSize: 16,
+    color: theme.ui.foreground,
+    fontSize: 15,
     fontWeight: '600',
   },
   rssi: {
     fontSize: 12,
-    fontFamily: 'monospace',
-  },
-  id: {
-    color: theme.control.textMuted,
-    fontSize: 12,
-    fontFamily: 'monospace',
-  },
-  chevron: {
-    color: theme.control.textMuted,
-    fontSize: 22,
-    fontWeight: '300',
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
 })

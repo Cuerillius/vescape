@@ -271,22 +271,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     lineHeight: 21,
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
   },
   heading: {
     fontWeight: '700',
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
   },
   strong: {
     fontWeight: '700',
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
   },
   em: {
     fontStyle: 'italic',
   },
   strike: {
     textDecorationLine: 'line-through',
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
   },
   link: {
     color: theme.palette.sky.color,
@@ -296,12 +296,12 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 13,
     color: theme.palette.cyan.text,
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   codeBlock: {
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -310,14 +310,14 @@ const styles = StyleSheet.create({
   codeLanguage: {
     fontFamily: 'monospace',
     fontSize: 10,
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     textTransform: 'uppercase',
   },
   codeBlockText: {
     fontFamily: 'monospace',
     fontSize: 12,
     lineHeight: 18,
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
   },
   list: {
     gap: 6,
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 14,
     lineHeight: 21,
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
   },
   listBody: {
     flex: 1,
@@ -345,22 +345,22 @@ const styles = StyleSheet.create({
   },
   rule: {
     height: 1,
-    backgroundColor: theme.neutral.border,
+    backgroundColor: theme.ui.border,
   },
   table: {
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
     borderRadius: 8,
     overflow: 'hidden',
   },
   tableRow: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: theme.neutral.border,
+    borderTopColor: theme.ui.border,
   },
   tableHeaderRow: {
     borderTopWidth: 0,
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   tableCell: {
     width: CELL_WIDTH,
@@ -371,21 +371,21 @@ const styles = StyleSheet.create({
   tableHeaderText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
   },
   tableCellText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
   },
   image: {
     width: '100%',
     borderRadius: 8,
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   imageFallback: {
     fontSize: 13,
     fontStyle: 'italic',
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
   },
 })

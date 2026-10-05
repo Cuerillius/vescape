@@ -54,7 +54,7 @@ export function MonoText({
   text,
   size,
   weight = '700',
-  color = theme.palette.slate.textPrimary,
+  color = theme.ui.foreground,
   align = 'left',
   x = 0,
   y = 0,
@@ -67,7 +67,7 @@ export function MonoText({
   // Adaptive tokens are native color objects, not strings, so the split is on "is it a shared
   // value" — a `typeof === 'string'` test sends them to Skia raw, which crashes on paint.
   const staticColor = useResolvedColor(
-    isSharedValue<string>(color) ? theme.palette.slate.textPrimary : (color as ThemeColor),
+    isSharedValue<string>(color) ? theme.ui.foreground : (color as ThemeColor),
   )
   const rendererColor = isSharedValue<string>(color) ? color : staticColor
 

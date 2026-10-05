@@ -1,12 +1,11 @@
 import { Text as RNText, StyleSheet, type TextProps, type TextStyle } from 'react-native'
 
-import { font, neutral, resolveAdaptiveColor, type FontWeight } from '@/constants/theme'
+import { font, resolveAdaptiveColor, ui, type FontWeight } from '@/constants/theme'
 import { useThemeStore } from '@/hooks/useTheme'
 
-/** Map any RN `fontWeight` value to a shipped static Raleway weight.
- *  Defaults to 500 — Raleway's 400 regular reads too thin against the dark surface. */
+/** Map any RN `fontWeight` value to a shipped static Geist weight. Defaults to 400 (Regular). */
 const toFontWeight = (weight: TextStyle['fontWeight']): FontWeight => {
-  if (weight === undefined) return '500'
+  if (weight === undefined) return '400'
   if (weight === 'bold') return '700'
   if (weight === 'normal') return '400'
   const n = Math.min(900, Math.max(300, Number(weight)))
@@ -15,7 +14,7 @@ const toFontWeight = (weight: TextStyle['fontWeight']): FontWeight => {
 
 /**
  * App-wide `Text` wrapper. Resolves `fontWeight` from `style` to the matching
- * static Raleway family (`theme.font(weight)`) — each weight is a separately
+ * static Geist family (`theme.font(weight)`) — each weight is a separately
  * named font on both platforms. Pass an
  * explicit `fontFamily` in `style` (`'monospace'` for readouts) to opt out;
  * opted-out styles keep their `fontWeight` untouched.
@@ -33,7 +32,7 @@ export function Text({ style, ...rest }: TextProps) {
         fontWeight: undefined,
         fontVariant: ['lining-nums' as const, ...(flat?.fontVariant ?? [])],
       }
-  const color = resolveAdaptiveColor(flat?.color ?? neutral.textPrimary, resolvedTheme) as
+  const color = resolveAdaptiveColor(flat?.color ?? ui.foreground, resolvedTheme) as
     | TextStyle['color']
     | undefined
   return <RNText style={[style, { color }, raleway]} {...rest} />

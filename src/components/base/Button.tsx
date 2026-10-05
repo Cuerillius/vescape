@@ -1,4 +1,4 @@
-import type { Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 import {
   ActivityIndicator,
   Pressable,
@@ -60,19 +60,19 @@ export function Button({
   // against a light background until the label is unreadable.
   const button = isDisabled
     ? {
-        backgroundColor: theme.control.backgroundDisabled,
+        backgroundColor: theme.ui.muted,
         borderWidth: 1,
-        borderColor: theme.control.border,
+        borderColor: theme.ui.border,
       }
     : isColored
       ? { backgroundColor: coloredAction, borderWidth: 1, borderColor: coloredBorder }
       : {
-          backgroundColor: theme.control.background,
+          backgroundColor: theme.ui.muted,
           borderWidth: 1,
           borderColor: variantColors.border,
         }
   const foreground = isDisabled
-    ? theme.control.textMuted
+    ? theme.ui.mutedForeground
     : isColored
       ? coloredForeground
       : variantColors.foreground
@@ -81,7 +81,7 @@ export function Button({
       <IconComponent
         size={size === 'sm' ? 13 : size === 'lg' ? 17 : 15}
         color={foreground}
-        weight="bold"
+        strokeWidth={2.5}
       />
     ) : null
 
@@ -112,7 +112,7 @@ export function Button({
           size === 'sm' ? styles.labelSm : size === 'lg' ? styles.labelLg : styles.labelMd,
           {
             color: isDisabled
-              ? theme.control.textMuted
+              ? theme.ui.mutedForeground
               : isColored
                 ? coloredForeground
                 : variantColors.text,
@@ -127,15 +127,15 @@ export function Button({
 }
 
 /**
- * `foreground` is the label/icon/indicator token. Colored variants sit on the navy colored-action
+ * `foreground` is the label/icon/indicator token. Colored variants sit on the tinted colored-action
  * surface, so their foreground is resolved through `useColoredActionForeground`.
  */
 const accentColors = {
   primary: {
     colored: false,
-    border: theme.control.border,
-    foreground: theme.control.icon,
-    text: theme.control.text,
+    border: theme.ui.border,
+    foreground: theme.ui.foreground,
+    text: theme.ui.foreground,
   },
   accent: {
     colored: true,
@@ -151,9 +151,9 @@ const accentColors = {
   },
   secondary: {
     colored: false,
-    border: theme.control.border,
-    foreground: theme.control.textMuted,
-    text: theme.control.textMuted,
+    border: theme.ui.border,
+    foreground: theme.ui.mutedForeground,
+    text: theme.ui.mutedForeground,
   },
   success: {
     colored: true,
