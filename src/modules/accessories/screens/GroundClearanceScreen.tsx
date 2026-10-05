@@ -1,33 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import {
-  ArrowLineDownIcon,
-  ArrowLineUpIcon,
-  ArrowsVerticalIcon,
-  CompassIcon,
-  PulseIcon,
-  SlidersIcon,
-} from 'phosphor-react-native'
+import IconArrowBarDown from '@tabler/icons-react-native/IconArrowBarDown'
+import IconArrowBarUp from '@tabler/icons-react-native/IconArrowBarUp'
+import IconCompass from '@tabler/icons-react-native/IconCompass'
+import IconAdjustments from '@tabler/icons-react-native/IconAdjustments'
+import IconActivity from '@tabler/icons-react-native/IconActivity'
 import {
   saveGroundClearanceCalibration,
   setAccessorySamplingRate,
   type GroundClearanceDirection,
 } from 'vescape-core'
 
+import { MessageCard } from '@/components/ui/MessageCard'
+import { Stepper } from '@/components/ui/Stepper'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
 import { Text } from '@/components/base/Text'
-import { Stepper } from '@/components/forms/Stepper'
-import { SegmentedToggle } from '@/components/controls/SegmentedToggle'
-import { IconHero } from '@/components/settings/IconHero'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 import { GroundClearanceTelemetry } from '@/modules/accessories/components/GroundClearanceTelemetry'
 import { CapabilityEnabledControl } from '../components/CapabilityEnabledControl'
 import {
   calibrationProblemCopy,
   directionCopy,
 } from '@/modules/accessories/lib/groundClearanceCopy'
+import { AccessoryIcon } from '@/modules/accessories/constants/accessoryIcon'
 import { useSavedAccessory } from '@/modules/accessories/store/accessoryStore'
 import { theme } from '@/constants/theme'
 
@@ -159,8 +159,8 @@ export function GroundClearanceScreen({
   if (!accessory || !capability) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <IconHero
-          icon={ArrowsVerticalIcon}
+        <MessageCard
+          icon={AccessoryIcon}
           title="Sensor not found"
           description="This accessory no longer offers a ground-clearance sensor on this phone. Open it from the Board selector to see what it does offer."
         />
@@ -177,22 +177,14 @@ export function GroundClearanceScreen({
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <IconHero
-          icon={ArrowsVerticalIcon}
-          iconColor={theme.palette.sky.color}
-          title="Ground clearance"
-          description="Measures how far the board sits above the ground and turns that into Remote Tilt while you ride."
-        />
-        <CapabilityEnabledControl
-          accessoryId={accessoryId}
-          capability={capability}
-          accent={theme.palette.sky.color}
-        />
-        <SettingsSectionTitle>Sampling rate</SettingsSectionTitle>
-        <SettingsCard>
-          <SettingsRow
-            icon={PulseIcon}
-            iconColor={theme.palette.sky.color}
+        <SettingsDescription>
+          Measures how far the board sits above the ground and turns that into Remote Tilt while you
+          ride.
+        </SettingsDescription>
+        <CapabilityEnabledControl accessoryId={accessoryId} capability={capability} />
+        <SettingsGroup title="Sampling rate">
+          <SettingsLink
+            icon={IconActivity}
             label="Rate"
             hint="How often the sensor reports a distance."
             right={
@@ -210,7 +202,7 @@ export function GroundClearanceScreen({
               />
             }
           />
-        </SettingsCard>
+        </SettingsGroup>
         {rateFailed ? (
           <Text style={styles.warning}>Could not save sampling rate. Try again.</Text>
         ) : null}
@@ -241,47 +233,46 @@ export function GroundClearanceScreen({
 
         {draft ? (
           <>
-            <SettingsSectionTitle>Distances</SettingsSectionTitle>
-            <SettingsCard>
-              <SettingsRow
-                icon={ArrowLineUpIcon}
-                iconColor={theme.palette.sky.color}
+            <SettingsGroup title="Distances">
+              <SettingsLink
+                icon={IconArrowBarUp}
                 label="Far"
                 hint="Correction starts here."
                 right={
                   <Stepper
+                    label="far distance"
                     value={draft.farCm}
                     unit="cm"
-                    min={capability.rangeMin ?? undefined}
-                    max={capability.rangeMax ?? undefined}
+                    min={capability.rangeMin ?? 0}
+                    max={capability.rangeMax ?? 100}
+                    step={1}
                     onChange={(farCm) => edit({ farCm })}
                     testIDPrefix="ground-clearance-far"
                   />
                 }
               />
-              <SettingsRow
-                icon={ArrowLineDownIcon}
-                iconColor={theme.palette.sky.color}
+              <SettingsLink
+                icon={IconArrowBarDown}
                 label="Near"
                 hint="Full strength here. Always below the far distance."
                 right={
                   <Stepper
+                    label="near distance"
                     value={draft.nearCm}
                     unit="cm"
-                    min={capability.rangeMin ?? undefined}
-                    max={capability.rangeMax ?? undefined}
+                    min={capability.rangeMin ?? 0}
+                    max={capability.rangeMax ?? 100}
+                    step={1}
                     onChange={(nearCm) => edit({ nearCm })}
                     testIDPrefix="ground-clearance-near"
                   />
                 }
               />
-            </SettingsCard>
+            </SettingsGroup>
 
-            <SettingsSectionTitle>Mounting</SettingsSectionTitle>
-            <SettingsCard>
-              <SettingsRow
-                icon={CompassIcon}
-                iconColor={theme.neutral.textSecondary}
+            <SettingsGroup title="Mounting">
+              <SettingsLink
+                icon={IconCompass}
                 label="Mounted at"
                 hint={directionCopy(draft.direction)}
                 right={
@@ -296,13 +287,13 @@ export function GroundClearanceScreen({
                   />
                 }
               />
-              <SettingsRow
-                icon={SlidersIcon}
-                iconColor={theme.neutral.textSecondary}
+              <SettingsLink
+                icon={IconAdjustments}
                 label="Strength"
                 hint="The most Remote Tilt this sensor may command."
                 right={
                   <Stepper
+                    label="strength"
                     value={draft.strengthPercent}
                     unit="%"
                     min={1}
@@ -313,7 +304,7 @@ export function GroundClearanceScreen({
                   />
                 }
               />
-            </SettingsCard>
+            </SettingsGroup>
           </>
         ) : null}
       </ScrollView>
@@ -322,9 +313,9 @@ export function GroundClearanceScreen({
 }
 
 /**
- * A `SegmentedToggle` on a settings row's trailing edge.
+ * A `ToggleGroup` on a settings row's trailing edge.
  *
- * The toggle has no disabled state of its own — a control that still answers taps while a save is
+ * The group has no disabled state of its own — a control that still answers taps while a save is
  * in flight would let the rider queue two rates native has to pick between.
  */
 function Choice<T extends string>({
@@ -342,11 +333,10 @@ function Choice<T extends string>({
 }) {
   return (
     <View pointerEvents={disabled ? 'none' : 'auto'} style={disabled ? styles.inert : undefined}>
-      <SegmentedToggle
-        options={options}
-        value={value}
-        onChange={onChange}
-        variant="secondary"
+      <ToggleGroup
+        options={options.map((option) => ({ key: option.value, label: option.label }))}
+        activeKey={value}
+        onSelect={onChange}
         testID={testID}
       />
     </View>
@@ -355,19 +345,19 @@ function Choice<T extends string>({
 
 const styles = StyleSheet.create({
   inert: { opacity: 0.45 },
-  container: { flex: 1, backgroundColor: theme.neutral.bg },
-  content: { padding: 12, gap: 10, paddingBottom: 40 },
-  hint: { color: theme.neutral.textSecondary, fontSize: 12, lineHeight: 16 },
+  container: { flex: 1, backgroundColor: theme.ui.background },
+  content: { padding: 16, gap: 24, paddingBottom: 32 },
+  hint: { color: theme.ui.mutedForeground, fontSize: 13, lineHeight: 18 },
   explainer: {
-    color: theme.neutral.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
     paddingHorizontal: 4,
   },
   warning: {
     color: theme.status.caution.text,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
     paddingHorizontal: 4,
   },
 })

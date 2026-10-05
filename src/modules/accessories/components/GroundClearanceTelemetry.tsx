@@ -2,11 +2,11 @@ import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
 import { ChartStack } from '@/components/charts/line/ChartStack'
 import type { ChartSpec } from '@/components/charts/line/types'
 import { useResolvedAccentColors } from '@/hooks/useTheme'
 import { theme } from '@/constants/theme'
+import { SettingsGroup, SettingsValue } from '@/modules/settings/components/SettingsGroup'
 import { LiveNumber } from './LiveNumber'
 import { GroundClearanceTiltPreview } from './GroundClearanceTiltPreview'
 import { SensorBar } from './SensorBar'
@@ -55,56 +55,56 @@ export function GroundClearanceTelemetry({
   )
   return (
     <>
-      <GroundClearanceTiltPreview value={tiltPreviewPercent} />
-      <SettingsSectionTitle>Readings</SettingsSectionTitle>
-      <View style={styles.reading}>
-        <View style={styles.row}>
-          <Text>Ground clearance</Text>
-          <LiveNumber value={liveValue} decimals={1} unit="cm" />
+      <SettingsGroup title="Readings">
+        <View style={styles.reading}>
+          <View style={styles.readingRow}>
+            <Text style={styles.label}>Ground clearance</Text>
+            <LiveNumber value={liveValue} decimals={1} unit="cm" />
+          </View>
+          <SensorBar value={liveValue} range={range} color={colors.color} />
+          <Text style={styles.detail}>
+            {stalled
+              ? 'No fresh measurements.'
+              : reading
+                ? readingCopy(reading.status, reading.valueCm).detail || 'Live distance'
+                : 'Waiting for measurements…'}
+          </Text>
         </View>
-        <SensorBar value={liveValue} range={range} color={colors.color} />
-        <Text style={styles.detail}>
-          {stalled
-            ? 'No fresh measurements.'
-            : reading
-              ? readingCopy(reading.status, reading.valueCm).detail || 'Live distance'
-              : 'Waiting for measurements…'}
-        </Text>
-      </View>
-      <SettingsSectionTitle>Link · last 20 seconds</SettingsSectionTitle>
-      <View style={styles.row}>
-        <Text>Delivered</Text>
-        <Text>{diagnostics?.deliveredHz.toFixed(1) ?? '—'} Hz</Text>
-      </View>
-      <View style={styles.row}>
-        <Text>Missing samples</Text>
-        <Text>{diagnostics?.dropped ?? 0}</Text>
-      </View>
-      <View style={styles.row}>
-        <Text>Invalid readings</Text>
-        <Text>
-          {diagnostics?.invalid ?? 0} / {diagnostics?.samples ?? 0}
-        </Text>
-      </View>
-      <SettingsSectionTitle>History</SettingsSectionTitle>
-      {charts[0]!.series.some((series) => series.data.ts.length > 1) ? (
-        <ChartStack charts={charts} dataKey={accessoryId} follow timeMode="relative" showHead />
-      ) : (
-        <Text style={styles.detail}>
-          Waiting for valid distances. Invalid readings leave gaps in the chart.
-        </Text>
-      )}
+        <GroundClearanceTiltPreview value={tiltPreviewPercent} />
+      </SettingsGroup>
+      <SettingsGroup title="Link · last 20 seconds">
+        <SettingsValue
+          label="Delivered"
+          value={`${diagnostics?.deliveredHz.toFixed(1) ?? '—'} Hz`}
+        />
+        <SettingsValue label="Missing samples" value={String(diagnostics?.dropped ?? 0)} />
+        <SettingsValue
+          label="Invalid readings"
+          value={`${diagnostics?.invalid ?? 0} / ${diagnostics?.samples ?? 0}`}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="History">
+        <View style={styles.history}>
+          {charts[0]!.series.some((series) => series.data.ts.length > 1) ? (
+            <ChartStack charts={charts} dataKey={accessoryId} follow timeMode="relative" showHead />
+          ) : (
+            <Text style={styles.detail}>
+              Waiting for valid distances. Invalid readings leave gaps in the chart.
+            </Text>
+          )}
+        </View>
+      </SettingsGroup>
     </>
   )
 }
 const styles = StyleSheet.create({
-  reading: { padding: 12, gap: 10 },
-  row: {
+  reading: { padding: 16, gap: 10 },
+  readingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
   },
-  detail: { color: theme.neutral.textSecondary, fontSize: 12, paddingHorizontal: 12 },
+  label: { color: theme.ui.mutedForeground, fontSize: 14, fontWeight: '500' },
+  history: { padding: 16 },
+  detail: { color: theme.ui.mutedForeground, fontSize: 13, fontWeight: '500' },
 })

@@ -33,7 +33,7 @@ export function LiveNumber({ value, decimals, unit }: LiveNumberProps) {
       text={text}
       size={SIZE}
       weight="600"
-      color={theme.neutral.textPrimary}
+      color={theme.ui.foreground}
       align="right"
       width={WIDTH}
     />

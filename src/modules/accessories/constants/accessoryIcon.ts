@@ -1,5 +1,5 @@
-import { CircuitryIcon } from 'phosphor-react-native'
-import type { Icon } from 'phosphor-react-native'
+import IconCpu from '@tabler/icons-react-native/IconCpu'
+import type { Icon } from '@tabler/icons-react-native'
 
 /**
  * The single mark for an Accessory, wherever one is shown.
@@ -8,4 +8,4 @@ import type { Icon } from 'phosphor-react-native'
  * screen and the top bar's live badge are recognisably the same thing. A plug was the wrong mark:
  * the Board's own link timeline already wears it, so "connected" and "accessory" read alike.
  */
-export const AccessoryIcon: Icon = CircuitryIcon
+export const AccessoryIcon: Icon = IconCpu

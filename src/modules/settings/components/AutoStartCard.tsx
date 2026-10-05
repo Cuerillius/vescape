@@ -1,14 +1,15 @@
+import type { ReactNode } from 'react'
 import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native'
-import { CheckIcon, ClockCountdownIcon, RocketLaunchIcon } from 'phosphor-react-native'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
+import IconClockPause from '@tabler/icons-react-native/IconClockPause'
+import IconRocket from '@tabler/icons-react-native/IconRocket'
 
 import { Text } from '@/components/base/Text'
-import { Button } from '@/components/base/Button'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { Switch } from '@/components/controls/Switch'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
-import { Stepper } from '@/components/forms/Stepper'
+import { Button } from '@/components/ui/Button'
+import { Stepper } from '@/components/ui/Stepper'
+import { Switch } from '@/components/ui/Switch'
 import { theme } from '@/constants/theme'
+import { SettingsGroup, SettingsLink } from '@/modules/settings/components/SettingsGroup'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
@@ -21,6 +22,10 @@ export interface AutoStartBoard {
 }
 
 export interface AutoStartCardProps {
+  /** Group caption. */
+  title?: string
+  /** Further rows of the same group, after the auto start rows. */
+  children?: ReactNode
   /** Master switch — off means nothing wakes the app, whatever boards are armed. */
   enabled: boolean
   /** Every linked board, armed or not. */
@@ -53,6 +58,8 @@ export function AutoStartCard({
   onEnableBoard,
   onDisableBoard,
   onCooldownChange,
+  title = 'Wake up',
+  children,
 }: AutoStartCardProps) {
   const armed = new Set(armedBoardIds)
   const noBoards = boards.length === 0
@@ -81,80 +88,70 @@ export function AutoStartCard({
   }
 
   return (
-    <>
-      <SettingsSectionTitle>Wake up</SettingsSectionTitle>
-      <SettingsCard separatorInset={0}>
-        <SettingsRow
-          icon={RocketLaunchIcon}
-          iconColor={
-            !enabled
-              ? theme.palette.slate.textSecondary
-              : nothingArmed
-                ? theme.palette.amber.color
-                : theme.palette.green.color
-          }
-          label="Auto start app"
-          hint={hint}
+    <SettingsGroup title={title}>
+      <SettingsLink
+        icon={IconRocket}
+        label="Auto start app"
+        hint={hint}
+        right={
+          <Switch
+            accessibilityLabel="Auto start app"
+            value={enabled}
+            // Lockable only into the off state: unlinking every board must never strand the
+            // switch on with nothing to turn it off.
+            disabled={masterBusy || (noBoards && !enabled)}
+            onValueChange={toggle}
+          />
+        }
+      />
+
+      {enabled && !noBoards ? (
+        <View style={styles.boardList}>
+          {boards.map((board) => {
+            const isArmed = armed.has(board.id)
+            return (
+              <View key={board.id} style={styles.boardRow}>
+                <View style={styles.boardText}>
+                  <Text style={styles.boardName}>{board.name}</Text>
+                  <Text style={styles.boardBleId}>{board.bleId}</Text>
+                </View>
+                <Button
+                  label={isArmed ? 'Enabled' : 'Enable'}
+                  icon={isArmed ? IconCheck : undefined}
+                  variant={isArmed ? 'secondary' : 'outline'}
+                  color={isArmed ? theme.status.success.text : undefined}
+                  loading={busyBoardId === board.id}
+                  disabled={busyBoardId != null && busyBoardId !== board.id}
+                  onPress={() => setBoard(board.id, !isArmed)}
+                />
+              </View>
+            )
+          })}
+        </View>
+      ) : null}
+
+      {enabled ? (
+        <SettingsLink
+          icon={IconClockPause}
+          label="Don’t restart for"
+          hint="Quiet window after you close the app yourself"
           right={
-            <Switch
-              value={enabled}
-              // Lockable only into the off state: unlinking every board must never strand the
-              // switch on with nothing to turn it off.
-              disabled={masterBusy || (noBoards && !enabled)}
-              onValueChange={toggle}
+            <Stepper
+              label="restart cooldown"
+              value={cooldownMinutes}
+              unit="m"
+              min={0}
+              max={COOLDOWN_MAX_MINUTES}
+              step={cooldownStep}
+              onChange={(next) =>
+                onCooldownChange(Math.min(COOLDOWN_MAX_MINUTES, Math.max(0, next)))
+              }
             />
           }
         />
-
-        {enabled && !noBoards ? (
-          <View style={styles.boardList}>
-            {boards.map((board) => {
-              const isArmed = armed.has(board.id)
-              return (
-                <View key={board.id} style={styles.boardRow}>
-                  <View style={styles.boardText}>
-                    <Text style={[styles.boardName, isArmed && styles.boardNameArmed]}>
-                      {board.name}
-                    </Text>
-                    <Text style={styles.boardBleId}>{board.bleId}</Text>
-                  </View>
-                  <Button
-                    label={isArmed ? 'Enabled' : 'Enable'}
-                    icon={isArmed ? CheckIcon : undefined}
-                    size="sm"
-                    variant={isArmed ? 'success' : 'secondary'}
-                    loading={busyBoardId === board.id}
-                    disabled={busyBoardId != null && busyBoardId !== board.id}
-                    onPress={() => setBoard(board.id, !isArmed)}
-                  />
-                </View>
-              )
-            })}
-          </View>
-        ) : null}
-
-        {enabled ? (
-          <SettingsRow
-            icon={ClockCountdownIcon}
-            iconColor={theme.palette.orange.color}
-            label="Don’t restart for"
-            hint="Quiet window after you close the app yourself"
-            right={
-              <Stepper
-                value={cooldownMinutes}
-                unit="min"
-                min={0}
-                max={COOLDOWN_MAX_MINUTES}
-                step={cooldownStep}
-                onChange={(next) =>
-                  onCooldownChange(Math.min(COOLDOWN_MAX_MINUTES, Math.max(0, next)))
-                }
-              />
-            }
-          />
-        ) : null}
-      </SettingsCard>
-    </>
+      ) : null}
+      {children}
+    </SettingsGroup>
   )
 }
 
@@ -162,18 +159,15 @@ const styles = StyleSheet.create({
   boardList: {
     paddingHorizontal: 16,
     paddingVertical: 6,
-    gap: 2,
-    backgroundColor: theme.neutral.surface,
   },
   boardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   boardText: { flex: 1, gap: 2 },
-  boardName: { color: theme.neutral.textPrimary, fontSize: 15, fontWeight: '600' },
-  boardNameArmed: { color: theme.palette.green.text },
-  boardBleId: { fontSize: 11, color: theme.neutral.textMuted },
+  boardName: { color: theme.ui.foreground, fontSize: 15, fontWeight: '600' },
+  boardBleId: { color: theme.ui.mutedForeground, fontSize: 12, fontWeight: '500' },
 })

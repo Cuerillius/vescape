@@ -1,14 +1,16 @@
 import { Pressable, StyleSheet, View } from 'react-native'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
 
 import { Text } from '@/components/base/Text'
 import { AccessoryIcon } from '@/modules/accessories/constants/accessoryIcon'
 import { accessoryStatusCopy } from '@/modules/accessories/lib/accessoryStatus'
 import type { AccessoryLinkPhase } from 'vescape-core'
 import { interaction, theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 const TONE = {
   success: theme.status.success.color,
-  neutral: theme.neutral.textDim,
+  neutral: theme.ui.faintForeground,
   caution: theme.status.caution.color,
 } as const
 
@@ -24,38 +26,32 @@ export interface AccessoryRowProps {
 }
 
 /**
- * One Accessory in the Board selector's Accessories section: what it is, whether the app is
- * hearing it, and a way into its configuration.
+ * One Accessory in a list: what it is, whether the app is hearing it, and a way into its
+ * configuration.
  *
  * Deliberately dumb — it takes strings and a status, never a store or a manifest, so the same row
- * serves the selector, the showcase, and whatever screen lists Accessories next.
+ * serves the Accessories screen, the showcase, and whatever screen lists Accessories next.
  */
 export function AccessoryRow({ name, detail, phase, needsSetup, onPress }: AccessoryRowProps) {
   const copy = accessoryStatusCopy(phase)
   const label = needsSetup ? 'Setup required' : copy.label
   const tone = needsSetup ? TONE.caution : TONE[copy.tone]
-  const warn = needsSetup || phase === 'incompatible'
-  // Only a link that is actually answering lights the row up. Connecting keeps the quiet tile:
-  // the tint is a claim about the hardware, not about the app's intent.
-  const live = phase === 'connected' && !warn
+  const iconColor = useResolvedColor(theme.ui.mutedForeground)
+  const chevronColor = useResolvedColor(theme.ui.faintForeground)
+  // Only a link that is actually answering fills the dot. A hollow dot is the honest shape for
+  // "trying", and a filled one must never promise a connection there isn't.
+  const live = phase === 'connected' && !needsSetup
 
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      android_ripple={interaction.ripple}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${name}, ${label}`}
       testID={`accessory-row-${name}`}
     >
-      {/* One glyph in every state — an Accessory does not become a different thing because its
-          link dropped or its setup went stale. The tile's outline carries the state instead. */}
-      <View style={[styles.icon, (live || warn) && { borderColor: theme.alpha(tone, 0.3) }]}>
-        <AccessoryIcon
-          size={16}
-          color={live || warn ? tone : theme.neutral.textMuted}
-          weight="regular"
-        />
-      </View>
+      <AccessoryIcon size={20} color={iconColor} />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           {name}
@@ -64,15 +60,10 @@ export function AccessoryRow({ name, detail, phase, needsSetup, onPress }: Acces
           <View
             style={[
               styles.dot,
-              {
-                borderColor: tone,
-                // Filled only while the link is actually up: a hollow dot is the honest shape for
-                // "trying", and a filled one must never promise a connection there isn't.
-                backgroundColor: live ? tone : 'transparent',
-              },
+              { borderColor: tone, backgroundColor: live ? tone : 'transparent' },
             ]}
           />
-          <Text style={[styles.meta, { color: tone }]}>{label}</Text>
+          <Text style={styles.meta}>{label}</Text>
           {detail ? (
             <>
               <Text style={styles.meta}>·</Text>
@@ -83,6 +74,7 @@ export function AccessoryRow({ name, detail, phase, needsSetup, onPress }: Acces
           ) : null}
         </View>
       </View>
+      <IconChevronRight size={18} color={chevronColor} />
     </Pressable>
   )
 }
@@ -91,47 +83,36 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    gap: 10,
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   rowPressed: {
-    backgroundColor: interaction.pressedBg,
-  },
-  // Matches the board rows' tile: same size and place, so the two sections read as one list.
-  icon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.alpha(theme.neutral.border, 0.6),
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: theme.ui.muted,
   },
   info: {
     flex: 1,
     gap: 3,
   },
   name: {
-    color: theme.neutral.textSecondary,
-    fontSize: 14,
+    color: theme.ui.foreground,
+    fontSize: 15,
     fontWeight: '600',
   },
   metaLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     borderWidth: 1.5,
   },
   meta: {
-    color: theme.neutral.textDim,
-    fontSize: 11,
-    lineHeight: 14,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '500',
   },
 })

@@ -1,38 +1,45 @@
-import Mapbox, { Camera, MapView } from '@rnmapbox/maps'
+import Mapbox, { Camera, MapView, RasterLayer, RasterSource, StyleImport } from '@rnmapbox/maps'
 import { useNavigation } from 'expo-router'
-import { PencilSimpleIcon, TrashIcon } from 'phosphor-react-native'
-import { useLayoutEffect } from 'react'
+import IconStack2 from '@tabler/icons-react-native/IconStack2'
+import { useLayoutEffect, useState } from 'react'
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
 import { Text } from '@/components/base/Text'
-import {
-  PillSelector,
-  PillSelectorAdd,
-  PillSelectorDot,
-  PillSelectorItem,
-  PillSelectorMenuItem,
-} from '@/components/controls/PillSelector'
-import { ConfirmModal } from '@/components/modals/ConfirmModal'
-import { MAPBOX_ACCESS_TOKEN } from '@/config/mapy'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Drawer } from '@/components/ui/Drawer'
+import { IS_MAPY_CONFIGURED, MAPBOX_ACCESS_TOKEN, MAPY_TILE_URL_TEMPLATE } from '@/config/mapy'
 import { theme } from '@/constants/theme'
-import { useThemeStore } from '@/hooks/useTheme'
-import { ONE_DARK_MAP_STYLE } from '@/modules/map/constants/oneDarkMapStyle'
+import { MapStyleList } from '@/modules/map/components/MapStyleList'
+import { BLANK_STYLE, MAP_DEFAULTS, MAP_STYLES } from '@/modules/map/constants/mapStyles'
+import { mapStyleForTheme } from '@/modules/map/lib/mapTheme'
+import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 import { usePrivacyZoneEditor } from '@/screens/privacyZones/usePrivacyZoneEditor'
 import { ZoneNameModal } from '@/screens/privacyZones/ZoneNameModal'
+import { ZonePillBar } from '@/screens/privacyZones/ZonePillBar'
 
 Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN)
 
 const HEADER_HEIGHT = Platform.OS === 'android' ? 56 : 44
+/** Pill bar height (36) plus its 10 vertical padding on each side, and a gap. */
+const PILL_BAR_OFFSET = 64
 
 /** Areas where recording pauses. The map's camera is the editor: pan to move, zoom to resize. */
 export function PrivacyZonesScreen() {
   const insets = useSafeAreaInsets()
   const navigation = useNavigation()
   const editor = usePrivacyZoneEditor()
-  const resolvedTheme = useThemeStore((state) => state.resolvedTheme)
-  const isDark = resolvedTheme === 'dark'
+  const mapStyleKey = useSettingsStore((s) => s.mapStyleKey)
+  const setSetting = useSettingsStore((s) => s.set)
+  const [layersOpen, setLayersOpen] = useState(false)
+
+  const requestedStyle =
+    MAP_STYLES.find((style) => style.key === mapStyleForTheme(mapStyleKey)) ?? MAP_STYLES[0]
+  const mapStyle =
+    requestedStyle.key === 'mapy' && !IS_MAPY_CONFIGURED ? MAP_STYLES[0] : requestedStyle
+  const isMapy = mapStyle.key === 'mapy'
+  const isStandard = mapStyle.key === 'colorfulDark'
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerTransparent: true })
@@ -58,8 +65,9 @@ export function PrivacyZonesScreen() {
     <View style={styles.container}>
       <MapView
         style={StyleSheet.absoluteFill}
-        styleURL={isDark ? undefined : Mapbox.StyleURL.Outdoors}
-        styleJSON={isDark ? ONE_DARK_MAP_STYLE : undefined}
+        // Mapy draws its own raster tiles over an empty document; the rest are hosted styles.
+        styleURL={isMapy ? undefined : (mapStyle.styleURL ?? undefined)}
+        styleJSON={isMapy ? BLANK_STYLE : undefined}
         onCameraChanged={editor.handleCameraChanged}
         onDidFinishLoadingMap={() => editor.setMapReady(true)}
         scaleBarEnabled={false}
@@ -71,6 +79,23 @@ export function PrivacyZonesScreen() {
         scrollEnabled={mapInteractive}
         zoomEnabled={mapInteractive}
       >
+        {isStandard ? (
+          <StyleImport id="basemap" existing config={{ lightPreset: 'night' }} />
+        ) : null}
+        {isMapy && MAPY_TILE_URL_TEMPLATE ? (
+          <RasterSource
+            id="zone-mapy-tiles"
+            tileUrlTemplates={[MAPY_TILE_URL_TEMPLATE]}
+            tileSize={256}
+            maxZoomLevel={MAP_DEFAULTS.maxZoom}
+          >
+            <RasterLayer
+              id="zone-mapy-tiles-layer"
+              sourceID="zone-mapy-tiles"
+              style={{ rasterOpacity: 1 }}
+            />
+          </RasterSource>
+        ) : null}
         <Camera
           ref={cameraRef}
           defaultSettings={{ centerCoordinate: cameraCenter, zoomLevel: cameraZoom }}
@@ -93,58 +118,40 @@ export function PrivacyZonesScreen() {
       </View>
 
       <View style={[styles.pillsFloating, { top: insets.top + HEADER_HEIGHT }]}>
-        <PillSelector activeId={selectedId} centered>
-          {pills.map((pill) => {
-            const testIdSuffix = !pill.isSaved && !pill.isBuiltIn ? 'pending-custom' : pill.id
-            return (
-              <PillSelectorItem
-                key={pill.id}
-                id={pill.id}
-                label={pill.name}
-                icon={pill.icon}
-                labelBehavior="always"
-                testID={`privacy-zone-pill-${testIdSuffix}`}
-                badge={
-                  <PillSelectorDot
-                    status={!pill.isSaved ? 'draft' : pill.enabled ? 'enabled' : 'disabled'}
-                  />
-                }
-                color={theme.palette.green}
-                onPress={() => editor.handleSelectPill(pill.id)}
-              >
-                {!pill.isBuiltIn ? (
-                  <PillSelectorMenuItem
-                    icon={PencilSimpleIcon}
-                    label="Rename"
-                    testID={`privacy-zone-menu-rename-${testIdSuffix}`}
-                    onPress={() => editor.handleRenamePress(pill.id, pill.name)}
-                  />
-                ) : null}
-                {pill.isSaved || !pill.isBuiltIn ? (
-                  <PillSelectorMenuItem
-                    icon={TrashIcon}
-                    label="Delete"
-                    testID={`privacy-zone-menu-delete-${testIdSuffix}`}
-                    onPress={() => editor.handleDeletePress(pill.id)}
-                    danger
-                    separator={!pill.isBuiltIn}
-                  />
-                ) : null}
-              </PillSelectorItem>
-            )
-          })}
-          <PillSelectorAdd
-            testID="privacy-zone-add-button"
-            onPress={editor.handleAddPress}
-            style={styles.addZoneButton}
-          />
-        </PillSelector>
+        <ZonePillBar
+          pills={pills}
+          selectedId={selectedId}
+          onSelect={editor.handleSelectPill}
+          onAdd={editor.handleAddPress}
+          onRename={editor.handleRenamePress}
+          onDelete={editor.handleDeletePress}
+        />
       </View>
+
+      <View style={[styles.layersButton, { top: insets.top + HEADER_HEIGHT + PILL_BAR_OFFSET }]}>
+        <Button
+          icon={IconStack2}
+          variant="floating"
+          size="lg"
+          accessibilityLabel="Map layers"
+          testID="privacy-zone-map-layers"
+          onPress={() => setLayersOpen(true)}
+        />
+      </View>
+
+      <Drawer visible={layersOpen} title="Map type" onClose={() => setLayersOpen(false)}>
+        <MapStyleList
+          activeKey={mapStyleKey}
+          onSelect={(key) => void setSetting('mapStyleKey', key)}
+        />
+      </Drawer>
 
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
         {isUnsaved ? (
           <Button
             label="Save and enable"
+            variant="primary"
+            size="lg"
             testID="privacy-zone-save-button"
             onPress={() => void editor.handleSave()}
             loading={saving}
@@ -155,12 +162,15 @@ export function PrivacyZonesScreen() {
             <Button
               label="Cancel"
               testID="privacy-zone-edit-cancel-button"
-              variant="secondary"
+              variant="floating"
+              size="lg"
               onPress={editor.handleCancelEdit}
               style={styles.actionButton}
             />
             <Button
               label="Save changes"
+              variant="primary"
+              size="lg"
               testID="privacy-zone-save-button"
               onPress={() => void editor.handleUpdate()}
               loading={saving}
@@ -172,7 +182,8 @@ export function PrivacyZonesScreen() {
             <Button
               label="Change zone"
               testID="privacy-zone-change-button"
-              variant="secondary"
+              variant="floating"
+              size="lg"
               onPress={editor.handleStartEdit}
               style={styles.actionButton}
             />
@@ -180,7 +191,8 @@ export function PrivacyZonesScreen() {
               key={toggleLabel}
               label={toggleLabel}
               testID="privacy-zone-toggle-button"
-              variant={zoneEnabled ? 'secondary' : 'primary'}
+              variant={zoneEnabled ? 'floating' : 'primary'}
+              size="lg"
               onPress={() => void editor.handleToggle()}
               style={styles.actionButton}
             />
@@ -190,7 +202,7 @@ export function PrivacyZonesScreen() {
 
       {!loaded ? (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator color={theme.palette.green.color} />
+          <ActivityIndicator color={theme.ui.mutedForeground} />
         </View>
       ) : null}
 
@@ -218,14 +230,15 @@ export function PrivacyZonesScreen() {
         onCancel={() => editor.setRenameTarget(null)}
       />
 
-      <ConfirmModal
+      <ConfirmDialog
         visible={editor.confirmDeleteId != null}
         title="Delete zone"
         message="This zone will be removed and recording will resume in this area."
         confirmLabel="Delete"
         destructive
         onConfirm={() => void editor.handleDeleteConfirm()}
-        onCancel={() => editor.setConfirmDeleteId(null)}
+        cancelLabel="Cancel"
+        onDismiss={() => editor.setConfirmDeleteId(null)}
       />
     </View>
   )
@@ -234,7 +247,7 @@ export function PrivacyZonesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   pillsFloating: {
     position: 'absolute',
@@ -243,8 +256,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  addZoneButton: {
-    backgroundColor: theme.control.background,
+  layersButton: {
+    position: 'absolute',
+    right: 12,
   },
   circleWrapper: {
     ...StyleSheet.absoluteFill,
@@ -268,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   zoneLabel: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontWeight: '700',
     textShadowColor: theme.alpha(theme.palette.mono.black, 0.85),
@@ -279,7 +293,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.alpha(theme.neutral.bg, 0.6),
+    backgroundColor: theme.alpha(theme.ui.background, 0.6),
   },
   bottomBar: {
     position: 'absolute',

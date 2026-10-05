@@ -1,14 +1,13 @@
 import { useCallback, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-
-import { TrashIcon } from 'phosphor-react-native'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
 
 import { Text } from '@/components/base/Text'
-import { Button } from '@/components/base/Button'
-import { ConfirmModal } from '@/components/modals/ConfirmModal'
-import { IconHero } from '@/components/settings/IconHero'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
+import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { MessageCard } from '@/components/ui/MessageCard'
+import { SettingsGroup, SettingsValue } from '@/modules/settings/components/SettingsGroup'
 import { AccessoryCapabilityRow } from '@/modules/accessories/components/AccessoryCapabilityRow'
 import { AccessoryCompatibilityNotice } from '@/modules/accessories/components/AccessoryCompatibilityNotice'
 import { AccessoryIcon } from '@/modules/accessories/constants/accessoryIcon'
@@ -68,7 +67,7 @@ export function AccessoryDetailScreen({
   if (!accessory) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <IconHero
+        <MessageCard
           icon={AccessoryIcon}
           title="Accessory not found"
           description="This accessory is not saved on this phone. Add it again from the Board selector."
@@ -82,7 +81,7 @@ export function AccessoryDetailScreen({
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero icon={AccessoryIcon} title={accessory.name} />
+        <Text style={styles.name}>{accessory.name}</Text>
 
         {accessory.compatibility ? (
           <AccessoryCompatibilityNotice
@@ -98,25 +97,23 @@ export function AccessoryDetailScreen({
           </Text>
         ) : null}
 
-        <SettingsSectionTitle>Connection</SettingsSectionTitle>
-        <View style={styles.card}>
-          <Fact label="Status" value={status.label} />
+        <SettingsGroup title="Connection">
+          <SettingsValue label="Status" value={status.label} />
           {accessory.error ? (
-            <Fact label="Last problem" value={linkErrorCopy(accessory.error)} />
+            <SettingsValue label="Last problem" value={linkErrorCopy(accessory.error)} />
           ) : null}
-          <Fact
+          <SettingsValue
             label="Last connected"
             value={
               accessory.lastConnectedAt == null ? 'Not yet' : fmtTimeAgo(accessory.lastConnectedAt)
             }
           />
-        </View>
+        </SettingsGroup>
 
-        <SettingsSectionTitle>Identity</SettingsSectionTitle>
-        <View style={styles.card}>
-          <Fact label="Accessory ID" value={accessory.accessoryId} mono />
-          <Fact label="Firmware" value={accessory.firmwareVersion} />
-          <Fact
+        <SettingsGroup title="Identity">
+          <SettingsValue label="Accessory ID" value={accessory.accessoryId} mono />
+          <SettingsValue label="Firmware" value={accessory.firmwareVersion} />
+          <SettingsValue
             label="Protocol"
             value={
               accessory.protocolVersion == null
@@ -124,11 +121,10 @@ export function AccessoryDetailScreen({
                 : `v${accessory.protocolVersion}`
             }
           />
-          <Fact label="Added" value={fmtTimeAgo(accessory.enrolledAt)} />
-        </View>
+          <SettingsValue label="Added" value={fmtTimeAgo(accessory.enrolledAt)} />
+        </SettingsGroup>
 
-        <SettingsSectionTitle>Capabilities</SettingsSectionTitle>
-        <View style={styles.card}>
+        <SettingsGroup title="Capabilities">
           {accessory.capabilities.length === 0 ? (
             <Text style={styles.empty}>This accessory declared no capabilities.</Text>
           ) : (
@@ -144,19 +140,17 @@ export function AccessoryDetailScreen({
               />
             ))
           )}
-        </View>
+        </SettingsGroup>
 
-        <View style={styles.forgetRow}>
-          <Button
-            label="Forget accessory"
-            variant="secondary"
-            size="sm"
-            icon={TrashIcon}
-            onPress={() => setConfirming(true)}
-            loading={forgetting}
-            testID="accessory-forget"
-          />
-        </View>
+        <Button
+          label="Forget accessory"
+          variant="outline"
+          color={theme.status.error.color}
+          icon={IconTrash}
+          onPress={() => setConfirming(true)}
+          loading={forgetting}
+          testID="accessory-forget"
+        />
 
         {forgetFailed ? (
           <Text style={styles.warning}>
@@ -164,63 +158,35 @@ export function AccessoryDetailScreen({
           </Text>
         ) : null}
       </ScrollView>
-      <ConfirmModal
+      <ConfirmDialog
         visible={confirming}
         title="Forget accessory"
         message={`Vescape stops connecting to ${accessory.name} and everything saved about it — calibration, behaviour, capability switches — is removed from this phone.`}
         confirmLabel="Forget"
         destructive
         loading={forgetting}
-        onConfirm={onForget}
-        onCancel={() => setConfirming(false)}
+        onConfirm={() => void onForget()}
+        cancelLabel="Cancel"
+        onDismiss={() => setConfirming(false)}
       />
     </SafeAreaView>
   )
 }
 
-function Fact({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <View style={styles.fact}>
-      <Text style={styles.factLabel}>{label}</Text>
-      <Text style={[styles.factValue, mono && styles.factValueMono]} numberOfLines={1}>
-        {value}
-      </Text>
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.neutral.bg },
-  content: { padding: 12, gap: 8, paddingBottom: 40 },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    backgroundColor: theme.neutral.surface,
-    overflow: 'hidden',
-  },
-  fact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-  },
-  factLabel: { color: theme.neutral.textMuted, fontSize: 12, fontWeight: '600' },
-  factValue: { flexShrink: 1, color: theme.neutral.textSecondary, fontSize: 12 },
-  factValueMono: { fontFamily: theme.mono('600'), fontSize: 11 },
+  container: { flex: 1, backgroundColor: theme.ui.background },
+  content: { padding: 16, gap: 24, paddingBottom: 32 },
+  name: { color: theme.ui.foreground, fontSize: 20, fontWeight: '700', marginBottom: -8 },
   warning: {
     color: theme.status.caution.text,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
     paddingHorizontal: 4,
   },
   empty: {
-    color: theme.neutral.textDim,
-    fontSize: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  forgetRow: { alignItems: 'center', paddingTop: 40 },
 })

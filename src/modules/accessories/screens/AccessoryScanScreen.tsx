@@ -5,14 +5,13 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { Text } from '@/components/base/Text'
 import { DeviceRow } from '@/components/base/DeviceRow'
-import { IconHero } from '@/components/settings/IconHero'
 import { AccessoryCompatibilityNotice } from '@/modules/accessories/components/AccessoryCompatibilityNotice'
 import { AccessoryCapabilityRow } from '@/modules/accessories/components/AccessoryCapabilityRow'
-import { AccessoryIcon } from '@/modules/accessories/constants/accessoryIcon'
 import { inspectionErrorCopy } from '@/modules/accessories/lib/accessoryStatus'
 import { useAccessoryDiscoveryStore } from '@/modules/accessories/store/accessoryDiscoveryStore'
 import { useAccessoryStore } from '@/modules/accessories/store/accessoryStore'
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
+import { SettingsDescription, SettingsGroup } from '@/modules/settings/components/SettingsGroup'
 import { usePermissions } from '@/modules/settings/hooks/usePermissions'
 import { theme } from '@/constants/theme'
 import type { AccessoryInspection } from 'vescape-core'
@@ -142,13 +141,12 @@ export function AccessoryScanScreen({
         )}
         ListHeaderComponent={
           <View style={styles.header}>
-            <IconHero
-              icon={AccessoryIcon}
-              description="Accessories are found by the service they advertise, not by their name."
-            />
+            <SettingsDescription>
+              Accessories are found by the service they advertise, not by their name.
+            </SettingsDescription>
             <View style={styles.statusLine}>
               {(scanning || inspecting || enrolling) && (
-                <ActivityIndicator color={theme.palette.sky.color} size="small" />
+                <ActivityIndicator color={theme.ui.mutedForeground} size="small" />
               )}
               <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
@@ -166,12 +164,15 @@ export function AccessoryScanScreen({
                   compatibility={result.manifest.compatibility}
                   supportedVersions={result.manifest.supportedVersions}
                 />
-                {result.manifest.capabilities.map((capability) => (
-                  <AccessoryCapabilityRow key={capability.id} capability={capability} />
-                ))}
+                <SettingsGroup title="Capabilities">
+                  {result.manifest.capabilities.map((capability) => (
+                    <AccessoryCapabilityRow key={capability.id} capability={capability} />
+                  ))}
+                </SettingsGroup>
                 <Button
                   label={`Add ${result.manifest.name}`}
-                  onPress={() => onAdd(result.deviceId)}
+                  variant="primary"
+                  onPress={() => void onAdd(result.deviceId)}
                   loading={enrolling === result.deviceId}
                   disabled={enrolling !== null}
                   testID="accessory-add"
@@ -191,15 +192,15 @@ export function AccessoryScanScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.neutral.bg },
-  list: { padding: 16, flexGrow: 1 },
-  header: { gap: 12, marginBottom: 12 },
+  container: { flex: 1, backgroundColor: theme.ui.background },
+  list: { padding: 16, paddingBottom: 32, flexGrow: 1, gap: 8 },
+  header: { gap: 16, marginBottom: 8 },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  subtitle: { color: theme.neutral.textSecondary, fontSize: 14 },
+  subtitle: { color: theme.ui.mutedForeground, fontSize: 14, fontWeight: '500' },
   error: { color: theme.status.error.text, fontSize: 13, lineHeight: 18 },
-  preview: { gap: 8 },
+  preview: { gap: 16 },
   empty: {
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,

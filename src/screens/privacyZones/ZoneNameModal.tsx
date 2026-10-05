@@ -1,8 +1,8 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native'
 
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
 import { Text } from '@/components/base/Text'
-import { Input } from '@/components/forms/Input'
+import { Input } from '@/components/ui/Input'
 import { theme } from '@/constants/theme'
 
 /** Names a zone, whether it is being added or renamed. */
@@ -34,11 +34,9 @@ export function ZoneNameModal({
           <Text style={styles.modalTitle}>{title}</Text>
           <Input
             testID={`${testIdPrefix}-input`}
-            style={styles.modalInput}
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor={theme.neutral.textDim}
             autoFocus
             maxLength={32}
             onSubmitEditing={onConfirm}
@@ -48,12 +46,13 @@ export function ZoneNameModal({
             <Button
               label="Cancel"
               testID={`${testIdPrefix}-cancel-button`}
-              variant="secondary"
+              variant="outline"
               onPress={onCancel}
               style={styles.modalButton}
             />
             <Button
               label={confirmLabel}
+              variant="primary"
               testID={`${testIdPrefix}-${confirmLabel.toLowerCase()}-button`}
               onPress={onConfirm}
               disabled={!value.trim()}
@@ -76,21 +75,17 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 16,
+    backgroundColor: theme.ui.card,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
     padding: 20,
     gap: 16,
   },
   modalTitle: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 16,
     fontWeight: '700',
-  },
-  modalInput: {
-    borderRadius: 10,
-    fontWeight: '500',
   },
   modalActions: {
     flexDirection: 'row',

@@ -142,7 +142,7 @@ export function BrakeLightStates({
  */
 function BeamStrip({ beam }: { beam: Beam }) {
   const color = beam.dark
-    ? theme.alpha(theme.neutral.textDim, beam.alpha)
+    ? theme.alpha(theme.ui.faintForeground, beam.alpha)
     : theme.alpha(theme.palette.red.light, beam.alpha)
 
   return (
@@ -175,14 +175,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 14,
     paddingHorizontal: 10,
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
-    backgroundColor: theme.neutral.surface,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
   },
   tileLive: {
     borderColor: theme.alpha(theme.palette.red.color, 0.6),
-    backgroundColor: theme.alpha(theme.palette.red.color, 0.1),
   },
   tileHeld: { borderColor: theme.palette.red.color },
   tileDisabled: { opacity: 0.45 },
@@ -198,13 +197,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tileLabel: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 13,
     fontWeight: '700',
   },
   tileAppearance: {
-    color: theme.neutral.textSecondary,
-    fontSize: 11,
+    color: theme.ui.mutedForeground,
+    fontSize: 12,
+    fontWeight: '500',
   },
   tileTag: {
     color: theme.palette.red.light,
@@ -213,13 +213,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   tileTagLive: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.4,
   },
   tileTagIdle: {
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     fontSize: 9,
     fontWeight: '600',
   },

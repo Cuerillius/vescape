@@ -1,5 +1,7 @@
 import { StyleSheet, View } from 'react-native'
-import { CheckCircleIcon, WarningCircleIcon, XCircleIcon } from 'phosphor-react-native'
+import IconAlertCircle from '@tabler/icons-react-native/IconAlertCircle'
+import IconCircleCheck from '@tabler/icons-react-native/IconCircleCheck'
+import IconCircleX from '@tabler/icons-react-native/IconCircleX'
 import type { AccessoryCompatibility } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
@@ -7,9 +9,9 @@ import { compatibilityCopy } from '@/modules/accessories/lib/accessoryStatus'
 import { theme } from '@/constants/theme'
 
 const TONE = {
-  success: { color: theme.status.success.color, icon: CheckCircleIcon },
-  caution: { color: theme.status.caution.color, icon: WarningCircleIcon },
-  error: { color: theme.status.error.color, icon: XCircleIcon },
+  success: { color: theme.status.success.color, icon: IconCircleCheck },
+  caution: { color: theme.status.caution.color, icon: IconAlertCircle },
+  error: { color: theme.status.error.color, icon: IconCircleX },
 } as const
 
 /**
@@ -34,7 +36,7 @@ export function AccessoryCompatibilityNotice({
 
   return (
     <View style={[styles.card, { borderColor: theme.alpha(color, 0.4) }]}>
-      <ToneIcon size={20} color={color} weight="duotone" />
+      <ToneIcon size={20} color={color} />
       <View style={styles.body}>
         <Text style={[styles.title, { color }]}>{copy.title}</Text>
         <Text style={styles.detail}>
@@ -50,22 +52,22 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 12,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: theme.radius.lg,
+    padding: 14,
   },
   body: {
     flex: 1,
     gap: 3,
   },
   title: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
   detail: {
-    color: theme.neutral.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
   },
 })

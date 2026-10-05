@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   track: {
     height: HEIGHT,
     borderRadius: HEIGHT / 2,
-    backgroundColor: theme.neutral.border,
+    backgroundColor: theme.ui.muted,
     overflow: 'hidden',
   },
   fill: {

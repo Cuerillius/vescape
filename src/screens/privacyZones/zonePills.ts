@@ -1,7 +1,8 @@
-import { BriefcaseIcon, HouseIcon } from 'phosphor-react-native'
-import type { Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 
 import type { PrivacyZone } from '@/modules/history/store/privacyZoneStore'
+import IconBriefcase from '@tabler/icons-react-native/IconBriefcase'
+import IconHome from '@tabler/icons-react-native/IconHome'
 
 export interface ZonePill {
   id: string
@@ -32,7 +33,7 @@ export function buildZonePills(
       isBuiltIn: true,
       isSaved: !!homeZone,
       enabled: homeZone?.enabled ?? false,
-      icon: HouseIcon,
+      icon: IconHome,
     },
     {
       id: 'work',
@@ -40,7 +41,7 @@ export function buildZonePills(
       isBuiltIn: true,
       isSaved: !!workZone,
       enabled: workZone?.enabled ?? false,
-      icon: BriefcaseIcon,
+      icon: IconBriefcase,
     },
   ]
 

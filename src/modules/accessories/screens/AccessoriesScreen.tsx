@@ -1,15 +1,15 @@
 import { useFocusEffect } from 'expo-router'
 import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { PlusIcon } from 'phosphor-react-native'
+import IconPlus from '@tabler/icons-react-native/IconPlus'
 
-import { Button } from '@/components/base/Button'
-import { Placeholder } from '@/components/base/Placeholder'
-import { IconHero } from '@/components/settings/IconHero'
+import { Button } from '@/components/ui/Button'
+import { MessageCard } from '@/components/ui/MessageCard'
 import { theme } from '@/constants/theme'
 import { AccessoryRow } from '@/modules/accessories/components/AccessoryRow'
 import { AccessoryIcon } from '@/modules/accessories/constants/accessoryIcon'
 import { accessoryNeedsSetup, useAccessoryStore } from '@/modules/accessories/store/accessoryStore'
+import { SettingsDescription, SettingsGroup } from '@/modules/settings/components/SettingsGroup'
 
 export function AccessoriesScreen({
   onAddAccessory,
@@ -25,30 +25,30 @@ export function AccessoriesScreen({
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={AccessoryIcon}
-          iconColor={theme.palette.teal.color}
-          description="Accessories are sensors and lights that work with your connected board."
-        />
+        <SettingsDescription>
+          Accessories are sensors and lights that work with your board.
+        </SettingsDescription>
         {accessories.length === 0 ? (
-          <Placeholder
+          <MessageCard
             icon={AccessoryIcon}
-            description="No accessories yet. Add one and Vescape connects to it every ride."
-            compact
+            title="No accessories yet"
+            description="Sensors and lights that work with your board. Add one and Vescape connects to it every ride."
           />
         ) : (
-          accessories.map((accessory) => (
-            <AccessoryRow
-              key={accessory.accessoryId}
-              name={accessory.name}
-              detail={`v${accessory.firmwareVersion}`}
-              phase={accessory.phase}
-              needsSetup={accessoryNeedsSetup(accessory)}
-              onPress={() => onOpenAccessory(accessory.accessoryId)}
-            />
-          ))
+          <SettingsGroup title="Your accessories">
+            {accessories.map((accessory) => (
+              <AccessoryRow
+                key={accessory.accessoryId}
+                name={accessory.name}
+                detail={`v${accessory.firmwareVersion}`}
+                phase={accessory.phase}
+                needsSetup={accessoryNeedsSetup(accessory)}
+                onPress={() => onOpenAccessory(accessory.accessoryId)}
+              />
+            ))}
+          </SettingsGroup>
         )}
-        <Button label="Add accessory" icon={PlusIcon} onPress={onAddAccessory} />
+        <Button label="Add accessory" icon={IconPlus} variant="primary" onPress={onAddAccessory} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -57,10 +57,11 @@ export function AccessoriesScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 12,
+    paddingBottom: 32,
+    gap: 24,
   },
 })

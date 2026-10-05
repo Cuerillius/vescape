@@ -1,5 +1,7 @@
-import { ArrowsVerticalIcon, LightbulbFilamentIcon, QuestionIcon } from 'phosphor-react-native'
-import type { Icon } from 'phosphor-react-native'
+import IconArrowsVertical from '@tabler/icons-react-native/IconArrowsVertical'
+import IconBulb from '@tabler/icons-react-native/IconBulb'
+import IconHelp from '@tabler/icons-react-native/IconHelp'
+import type { Icon } from '@tabler/icons-react-native'
 import type { AccessoryCapability, AccessoryCapabilityType } from 'vescape-core'
 
 /**
@@ -24,7 +26,7 @@ const PRESENTATION = new Map<AccessoryCapabilityType, CapabilityPresentation>([
     {
       title: 'Ground clearance',
       description: 'Measures how far the board sits above the ground and can drive Remote Tilt.',
-      icon: ArrowsVerticalIcon,
+      icon: IconArrowsVertical,
     },
   ],
   [
@@ -32,7 +34,7 @@ const PRESENTATION = new Map<AccessoryCapabilityType, CapabilityPresentation>([
     {
       title: 'Brake light',
       description: 'Shows riding, braking and parked states from the Board’s own telemetry.',
-      icon: LightbulbFilamentIcon,
+      icon: IconBulb,
     },
   ],
 ])
@@ -45,6 +47,6 @@ export function capabilityPresentation(capability: AccessoryCapability): Capabil
     // one is still usable for everything else it offers.
     title: capability.type,
     description: 'This app does not know this capability type yet.',
-    icon: QuestionIcon,
+    icon: IconHelp,
   }
 }

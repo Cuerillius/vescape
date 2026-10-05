@@ -1,11 +1,13 @@
 import { Pressable, StyleSheet, View } from 'react-native'
-import { CaretRightIcon } from 'phosphor-react-native'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
 import type { AccessoryCapability, AccessoryLinkPhase } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
+import { Badge } from '@/components/ui/Badge'
 import { capabilityPresentation } from '@/modules/accessories/constants/accessoryCapabilities'
 import { capabilityStateCopy } from '@/modules/accessories/lib/capabilityStateCopy'
 import { interaction, theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 /**
  * One capability an Accessory declares, with what the app can do about it.
@@ -33,16 +35,13 @@ export function AccessoryCapabilityRow({
   onPress?: () => void
 }) {
   const { title, description, icon: CapabilityIcon } = capabilityPresentation(capability)
+  const iconColor = useResolvedColor(theme.ui.mutedForeground)
+  const chevronColor = useResolvedColor(theme.ui.faintForeground)
   const off = capability.supported && capability.enabled === false
-  const tint = !capability.supported
-    ? theme.neutral.textDim
-    : off
-      ? theme.neutral.textMuted
-      : theme.palette.sky.color
   const badge = !capability.supported
-    ? { label: 'Unsupported', tint }
+    ? { label: 'Unsupported', color: undefined }
     : off
-      ? { label: 'Off', tint: theme.status.caution.color }
+      ? { label: 'Off', color: theme.status.caution.color }
       : null
   // "Off" is already the badge's job, and the link phase is the screen header's — the state line is
   // for the half-second answer the list otherwise makes the rider open a row to get.
@@ -53,24 +52,18 @@ export function AccessoryCapabilityRow({
 
   const body = (
     <>
-      <View style={styles.icon}>
-        <CapabilityIcon size={18} color={tint} weight="duotone" />
-      </View>
+      <CapabilityIcon size={20} color={iconColor} />
       <View style={styles.body}>
         <View style={styles.titleLine}>
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
-          {badge ? (
-            <View style={[styles.badge, { borderColor: badge.tint }]}>
-              <Text style={[styles.badgeText, { color: badge.tint }]}>{badge.label}</Text>
-            </View>
-          ) : null}
+          {badge ? <Badge label={badge.label} variant="outline" color={badge.color} /> : null}
         </View>
         <Text style={styles.description}>{description}</Text>
         {state ? <Text style={styles.state}>{state}</Text> : null}
       </View>
-      {onPress ? <CaretRightIcon size={16} color={theme.neutral.textDim} weight="bold" /> : null}
+      {onPress ? <IconChevronRight size={18} color={chevronColor} /> : null}
     </>
   )
 
@@ -79,6 +72,7 @@ export function AccessoryCapabilityRow({
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      android_ripple={interaction.ripple}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Configure ${title}`}
@@ -93,20 +87,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  rowPressed: { backgroundColor: interaction.pressedBg },
-  icon: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: theme.alpha(theme.neutral.border, 0.6),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  rowPressed: { backgroundColor: theme.ui.muted },
   body: {
     flex: 1,
     gap: 3,
@@ -118,30 +103,18 @@ const styles = StyleSheet.create({
   },
   title: {
     flexShrink: 1,
-    color: theme.neutral.textPrimary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  badge: {
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  description: {
-    color: theme.neutral.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  state: {
-    color: theme.palette.sky.color,
-    fontSize: 11,
+    color: theme.ui.foreground,
+    fontSize: 15,
     fontWeight: '600',
   },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  description: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  state: {
+    color: theme.ui.foreground,
+    fontSize: 12,
+    fontWeight: '600',
   },
 })

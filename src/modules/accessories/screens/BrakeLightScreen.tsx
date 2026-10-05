@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { AppState, ScrollView, StyleSheet } from 'react-native'
+import { AppState, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { LightbulbFilamentIcon } from 'phosphor-react-native'
+import IconBulb from '@tabler/icons-react-native/IconBulb'
+import IconMoon from '@tabler/icons-react-native/IconMoon'
 import {
   saveBrakeLightSettings,
   setBrakeLightPreview,
@@ -10,12 +11,13 @@ import {
 } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
-import { Stepper } from '@/components/forms/Stepper'
-import { SegmentedToggle } from '@/components/controls/SegmentedToggle'
-import { IconHero } from '@/components/settings/IconHero'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
+import { Stepper } from '@/components/ui/Stepper'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 import { BrakeLightStates } from '@/modules/accessories/components/BrakeLightStates'
 import { CapabilityEnabledControl } from '@/modules/accessories/components/CapabilityEnabledControl'
 import { useSavedAccessory } from '@/modules/accessories/store/accessoryStore'
@@ -28,6 +30,11 @@ import { theme } from '@/constants/theme'
  * away does not leave the light pinned — native only drops a preview once the board starts moving.
  */
 const PREVIEW_SECONDS = 10
+
+const PARKED_OPTIONS = [
+  { key: 'off', label: 'Off' },
+  { key: 'glow', label: 'Glow' },
+] as const
 
 export function BrakeLightScreen({
   accessoryId,
@@ -113,41 +120,36 @@ export function BrakeLightScreen({
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={LightbulbFilamentIcon}
-          iconColor={theme.palette.red.color}
-          title="Brake light"
-          description="Drives the light from the Board’s own telemetry, on whichever Board you are riding."
-        />
+        <SettingsDescription>
+          Drives the light from the Board’s own telemetry, on whichever Board you are riding.
+        </SettingsDescription>
         {!accessory || !capability || !draft ? (
           <Text style={styles.hint}>Brake light not available.</Text>
         ) : (
           <>
-            <CapabilityEnabledControl
-              accessoryId={accessoryId}
-              capability={capability}
-              accent={theme.palette.red.color}
-            />
+            <CapabilityEnabledControl accessoryId={accessoryId} capability={capability} />
 
-            <SettingsSectionTitle>Light states</SettingsSectionTitle>
-            <BrakeLightStates
-              activeMode={capability.lightPreview ?? capability.lightMode ?? null}
-              previewMode={capability.lightPreview ?? null}
-              parked={draft.parked}
-              previewSecondsLeft={secondsLeft}
-              disabled={accessory.phase !== 'connected' || capability.enabled === false}
-              onPreview={preview}
-            />
+            <SettingsGroup title="Light states">
+              <View style={styles.states}>
+                <BrakeLightStates
+                  activeMode={capability.lightPreview ?? capability.lightMode ?? null}
+                  previewMode={capability.lightPreview ?? null}
+                  parked={draft.parked}
+                  previewSecondsLeft={secondsLeft}
+                  disabled={accessory.phase !== 'connected' || capability.enabled === false}
+                  onPreview={preview}
+                />
+              </View>
+            </SettingsGroup>
 
-            <SettingsSectionTitle>Behaviour</SettingsSectionTitle>
-            <SettingsCard>
-              <SettingsRow
-                icon={LightbulbFilamentIcon}
-                iconColor={theme.palette.red.color}
+            <SettingsGroup title="Behaviour">
+              <SettingsLink
+                icon={IconBulb}
                 label="Sensitivity"
                 hint="Higher reacts to gentler slowing, in either direction."
                 right={
                   <Stepper
+                    label="sensitivity"
                     value={draft.sensitivity}
                     unit="%"
                     min={1}
@@ -158,27 +160,20 @@ export function BrakeLightScreen({
                   />
                 }
               />
-              <SettingsRow
-                icon={LightbulbFilamentIcon}
-                iconColor={theme.neutral.textSecondary}
-                iconWeight="regular"
+              <SettingsLink
+                icon={IconMoon}
                 label="While parked"
                 hint="What the light does once the Board stops."
                 right={
-                  <SegmentedToggle
-                    options={[
-                      { value: 'off', label: 'Off' },
-                      { value: 'glow', label: 'Glow' },
-                    ]}
-                    value={draft.parked}
-                    onChange={(parked) => edit({ parked })}
-                    accent={theme.palette.red.color}
-                    variant="secondary"
+                  <ToggleGroup
+                    options={PARKED_OPTIONS}
+                    activeKey={draft.parked}
+                    onSelect={(parked) => edit({ parked })}
                     testID="brake-light-parked"
                   />
                 }
               />
-            </SettingsCard>
+            </SettingsGroup>
 
             {problem ? <Text style={styles.problem}>{problem}</Text> : null}
           </>
@@ -189,8 +184,9 @@ export function BrakeLightScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.neutral.bg },
-  content: { padding: 12, gap: 10, paddingBottom: 40 },
-  hint: { color: theme.neutral.textMuted, fontSize: 12, lineHeight: 16 },
-  problem: { color: theme.palette.red.color, fontSize: 12 },
+  container: { flex: 1, backgroundColor: theme.ui.background },
+  content: { padding: 16, gap: 24, paddingBottom: 32 },
+  states: { padding: 12 },
+  hint: { color: theme.ui.mutedForeground, fontSize: 13, lineHeight: 18 },
+  problem: { color: theme.status.error.text, fontSize: 13 },
 })
