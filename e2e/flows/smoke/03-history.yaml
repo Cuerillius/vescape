@@ -6,21 +6,21 @@
 # than specific distances, because the fixture is regenerated from real backups and its numbers move.
 appId: ${APP_ID}
 ---
-# Retried, like the map reveal: the history button sits on the main screen while the replay pushes
+# Retried, like the map reveal: the Profile tab sits on the main screen while the replay pushes
 # telemetry through the JS thread, and a tap that lands in a busy frame can be swallowed before the
-# drawer opens — the run then waits out its timeout on a screen that never changed. A failed attempt
+# view opens — the run then waits out its timeout on a screen that never changed. A failed attempt
 # leaves the screen where it started, so tapping again is safe.
 - retry:
     maxRetries: 3
     commands:
       - tapOn:
-          id: history-button
+          id: main-tab-profile
       - extendedWaitUntil:
           visible:
-            id: history-drawer
+            id: profile-last-rides
           timeout: 15000
 
-# History opens on the overview drawer. Open its newest restored ride, then wait on the metric tabs
+# The Profile tab lists the last rides. Open its newest restored ride, then wait on the metric tabs
 # rather than the map: the row only appears once the ride's samples are loaded.
 - extendedWaitUntil:
     visible:
@@ -33,15 +33,14 @@ appId: ${APP_ID}
       id: history-metric-tab-duty
     timeout: 30000
 
+# The stats open in a drawer; opening it is what computes them — a ride that loads but cannot
+# derive them fails here and nowhere earlier.
+- tapOn:
+    id: history-stats-bar
 - assertVisible:
     id: history-stat-distance
 - assertVisible:
     id: history-stat-topSpeed
-
-# Expanding the stats panel is what computes the secondary stats — a ride that loads but cannot
-# derive them fails here and nowhere earlier.
-- tapOn:
-    id: history-stats-bar
 - assertVisible:
     id: history-stat-avgSpeed
 - assertVisible:
@@ -50,6 +49,13 @@ appId: ${APP_ID}
     id: history-stat-mosfetTemp
 - assertVisible:
     id: history-stat-motorTemp
+# Same scrim trick as the ride list below: a point in the strip above the sheet.
+- tapOn:
+    point: 50%, 8%
+- extendedWaitUntil:
+    notVisible:
+      id: history-stats-sheet
+    timeout: 10000
 
 # Optional charts: each tab re-derives a trace from the same samples. The chart's own title is
 # drawn into the Skia canvas and never reaches the view hierarchy, so the row wrapper is the only
@@ -82,10 +88,11 @@ appId: ${APP_ID}
       id: history-session-sheet
     timeout: 10000
 # A point, not the element — the same trap `../fixture/_home.yaml` documents for the social drawer.
-# The backdrop is a full-screen `Pressable` *behind* the sheet, so tapping its centre lands on the
-# sheet content and the sheet stays open, leaving the run stranded on History.
+# The scrim is a full-screen `Pressable` *behind* the sheet, so tapping its centre lands on the
+# sheet content and the sheet stays open, leaving the run stranded on History. The sheet takes at
+# most the bottom 80% of the screen, so the top strip is always scrim.
 - tapOn:
-    point: 50%, 80%
+    point: 50%, 8%
 # Wait for the sheet to be *gone*, not just tapped. It slides out over several frames, and while any
 # of it is still on screen it covers the header — so `history-back` is not visible, every branch in
 # `_home.yaml` skips, and the run dies on `battery-bar` with History still underneath. Asserting the

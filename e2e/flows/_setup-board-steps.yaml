@@ -1,9 +1,9 @@
 appId: ${APP_ID}
 ---
 - tapOn:
-    id: board-selector-trigger
+    id: main-tab-board
 - tapOn:
-    id: board-selector-add-board
+    id: board-add-button
 
 - extendedWaitUntil:
     visible: Pair your board
@@ -13,24 +13,16 @@ appId: ${APP_ID}
     timeout: 15000
 - tapOn: E2E VESC Board
 
-- assertVisible: Name your board
+- assertVisible: Set up your board
 - tapOn:
     id: add-board-name-input
 - eraseText
 - inputText: E2E Board
 - hideKeyboard
 - tapOn:
-    id: add-board-description-input
-- inputText: Created by Maestro
-- hideKeyboard
-- tapOn:
-    id: add-board-name-next
-
-- assertVisible: Battery config
-- tapOn:
     id: add-board-battery-series-increment
 - tapOn:
-    id: add-board-battery-next
+    id: add-board-setup-next
 
 - assertVisible: Review & save
 - assertVisible: E2E Board

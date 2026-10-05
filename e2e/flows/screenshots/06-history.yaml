@@ -1,8 +1,14 @@
 appId: ${APP_ID}
 ---
 - tapOn:
-    id: history-button
-# Entering History opens the newest ride's detail directly — there is no list to pick from first.
+    id: main-tab-profile
+- extendedWaitUntil:
+    visible:
+      id: history-latest-ride
+    timeout: 30000
+# Opening the newest ride from the Profile tab enters its detail.
+- tapOn:
+    id: history-latest-ride
 # Waiting on the metric tabs rather than the map: the row appears once the ride's samples are
 # loaded, so the screenshot cannot catch a half-drawn sparkline.
 - extendedWaitUntil:

@@ -2,8 +2,8 @@
 # and smoke runs).
 #
 # Every dismissal goes through an on-screen affordance rather than `back`: Android's hardware back is
-# handled by `useMainScreenController`, but iOS has no equivalent for overlay state (map, weather,
-# legal limits and history are view states, not routes), and Maestro's `back` does not dismiss a
+# handled by `useMainScreenController`, but iOS has no equivalent for overlay state (map, legal
+# limits and history are view states, weather is a map layer, none are routes), and Maestro's `back` does not dismiss a
 # JS-rendered drawer either. Tapping the control the rider taps keeps this flow identical on both
 # platforms, which is the contract for the store set: one flow, two platforms, the same panels.
 #
@@ -15,20 +15,21 @@
 # never return early.
 appId: ${APP_ID}
 ---
+# Weather is a layer on the map, not a mode: the cloud button that switched it on is the way out.
 - runFlow:
     when:
       visible:
-        id: weather-exit
+        id: weather-panel
     commands:
       - tapOn:
-          id: weather-exit
+          id: map-mode-weather
 - runFlow:
     when:
       visible:
-        id: legal-limits-exit
+        id: legal-limits-panel
     commands:
       - tapOn:
-          id: legal-limits-exit
+          id: map-mode-legal-limits
 - runFlow:
     when:
       visible:
@@ -56,10 +57,10 @@ appId: ${APP_ID}
 - runFlow:
     when:
       visible:
-        id: map-exit
+        id: map-mode-weather
     commands:
       - tapOn:
-          id: map-exit
+          id: main-tab-ride
 - extendedWaitUntil:
     visible:
       id: battery-bar

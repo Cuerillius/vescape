@@ -8,7 +8,7 @@ appId: ${APP_ID}
 - assertVisible: Connecting…
 - extendedWaitUntil:
     visible:
-      id: board-disconnect-button
+      id: battery-bar
     timeout: 15000
 
 - assertVisible:
@@ -22,9 +22,9 @@ appId: ${APP_ID}
 - assertVisible:
     id: battery-bar
 
-# Editing lives in the board selector now, not on the pill.
+# Editing lives in the Board view.
 - tapOn:
-    id: board-selector-trigger
+    id: main-tab-board
 - tapOn:
     id: board-edit-button
 - assertVisible: 21s2p.*
@@ -58,7 +58,7 @@ appId: ${APP_ID}
 - back
 - assertVisible: E2E Renamed Board
 - tapOn:
-    id: board-disconnect-button
+    id: main-tab-connect
 - extendedWaitUntil:
     visible:
       id: floating-bar-connect
@@ -68,7 +68,7 @@ appId: ${APP_ID}
 - assertVisible: Connecting…
 - extendedWaitUntil:
     visible:
-      id: board-disconnect-button
+      id: board-dashboard-name
     timeout: 15000
 - assertVisible: E2E Renamed Board
 - assertVisible:

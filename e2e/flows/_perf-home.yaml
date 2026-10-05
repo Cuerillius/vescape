@@ -13,7 +13,5 @@ appId: ${APP_ID}
     id: floating-bar-connect
 - extendedWaitUntil:
     visible:
-      id: board-disconnect-button
+      id: battery-bar
     timeout: 15000
-- assertVisible:
-    id: battery-bar

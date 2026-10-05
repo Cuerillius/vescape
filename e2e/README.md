@@ -179,8 +179,8 @@ eight panels, the sparkline wait — happens before iOS starts.
 One flow set drives both platforms. The runner passes `OUT_DIR` to Maestro
 (`screenshots/android` or `screenshots/ios`), so the panel list, order and filenames are identical
 and the two sets can be compared side by side. The flows never use `back`: they dismiss through the
-same on-screen controls a rider taps (`weather-exit`, `legal-limits-exit`, `history-back`,
-`header-back`, `map-exit`, drawer backdrops), because Android's hardware back has no iOS equivalent
+same on-screen controls a rider taps (`map-mode-weather`, `map-mode-legal-limits`, `history-back`,
+`header-back`, the Ride tab, drawer backdrops), because Android's hardware back has no iOS equivalent
 for overlay view states. Anything genuinely platform-specific lives in `scripts/lib/androidCapture.ts`
 and `scripts/lib/iosCapture.ts` behind the `CaptureDriver` contract, not in a second flow set.
 

@@ -79,7 +79,7 @@ The Compass (`phoneHeading`) map mode wired the ~30Hz `DeviceMotion` magnetomete
 
 ### The guard: `useRenderRateWarning`
 
-`src/hooks/useRenderRateWarning.ts` is a dev-only canary — it `console.warn`s when a wired component commits more than 5 renders/second (no-op in production). Place it as a **tripwire at stream boundaries**, not on every component. Currently wired into `MainMap`, `BottomTelemetryStrip`, and `GroupRideWidget` — the three roots that consume live streams. If a warning fires, a stream has leaked into React state; move it to a SharedValue / cold-path publish.
+`src/hooks/useRenderRateWarning.ts` is a dev-only canary — it `console.warn`s when a wired component commits more than 5 renders/second (no-op in production). Place it as a **tripwire at stream boundaries**, not on every component. Currently wired into `MainMap` and `GroupRideWidget` — the roots that consume live streams. If a warning fires, a stream has leaked into React state; move it to a SharedValue / cold-path publish.
 
 ## Files
 

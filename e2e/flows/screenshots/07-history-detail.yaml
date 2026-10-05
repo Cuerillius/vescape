@@ -2,9 +2,13 @@
 appId: ${APP_ID}
 ---
 - tapOn:
-    id: history-button
-# The newest ride is already open — same one the ride list's first row would have selected, so
-# there is nothing to pick.
+    id: main-tab-profile
+- extendedWaitUntil:
+    visible:
+      id: history-latest-ride
+    timeout: 30000
+- tapOn:
+    id: history-latest-ride
 - extendedWaitUntil:
     visible:
       id: history-metric-tab-duty

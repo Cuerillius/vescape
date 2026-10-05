@@ -7,28 +7,30 @@ appId: ${APP_ID}
     timeout: 15000
 
 - tapOn:
-    id: history-button
+    id: main-tab-profile
 - extendedWaitUntil:
-    visible: History
+    visible:
+      id: history-latest-ride
     timeout: 15000
 
-# The drawer opens on riding totals and the ride list; the newest ride has to be opened for its stats.
+# The Profile tab lists the last rides; the newest has to be opened for its stats.
 - tapOn:
     id: history-latest-ride
 
+# The stats open in a drawer.
+- tapOn:
+    id: history-stats-bar
 - assertVisible: Distance
-- assertVisible: Top Speed
+- assertVisible: Top speed
 - assertVisible: '1.5'
 # Stat values and their units are separate Text nodes, so the unit cannot share the selector.
 - assertVisible: '25'
-
-# Expand the stats panel to verify secondary stats are computed too.
-- tapOn:
-    id: history-stats-bar
-- assertVisible: Avg Speed
+- assertVisible: Avg speed
 - assertVisible: Time
-- assertVisible: Ctrl Max
-- assertVisible: Motor Max
+- assertVisible: Ctrl max
+- assertVisible: Motor max
+- tapOn:
+    point: 50%, 8%
 
 # Toggle optional charts on and off. The chart headings are drawn on the Skia canvas and never
 # reach the view hierarchy, so each chart is asserted through its tab's selected state.
@@ -80,9 +82,9 @@ appId: ${APP_ID}
       id: history-session-sheet
     timeout: 20000
 
-# Close the sheet by tapping the backdrop.
+# Close the sheet by tapping the scrim above it (the sheet takes at most the bottom 80%).
 - tapOn:
-    id: history-session-sheet-backdrop
+    point: 50%, 8%
 
 # Favorites is a filtered History tab: newest Favorite opens immediately and keeps the same nav.
 - tapOn:
@@ -124,9 +126,12 @@ appId: ${APP_ID}
     visible:
       id: history-session-sheet
     timeout: 20000
-- tapOn:
-    id: history-session-sheet-backdrop
+# The History/Favorites switch lives in the ride list.
 - tapOn:
     id: history-tab-history
+- tapOn:
+    point: 50%, 8%
 - assertNotVisible: No rides yet
+- tapOn:
+    id: history-stats-bar
 - assertVisible: '1.5'

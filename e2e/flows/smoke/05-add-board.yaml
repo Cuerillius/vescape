@@ -25,19 +25,19 @@ appId: ${APP_ID}
 - runFlow:
     when:
       visible:
-        id: board-disconnect-button
+        id: battery-bar
     commands:
       - tapOn:
-          id: board-disconnect-button
+          id: main-tab-connect
 - extendedWaitUntil:
     visible:
       id: floating-bar-connect
     timeout: 30000
 
 - tapOn:
-    id: board-selector-trigger
+    id: main-tab-board
 - tapOn:
-    id: board-selector-add-board
+    id: board-add-button
 
 - extendedWaitUntil:
     visible: Pair your board
@@ -68,7 +68,7 @@ appId: ${APP_ID}
 - tapOn:
     id: add-board-link-offline
 
-- assertVisible: Name your board
+- assertVisible: Set up your board
 - tapOn:
     id: add-board-name-input
 - eraseText
@@ -77,29 +77,17 @@ appId: ${APP_ID}
 # cannot be used here: on Android Maestro implements it as a back press, so on the runs where the
 # keyboard is already down it pops the wizard modal instead and the flow lands back on the main
 # screen with nothing to say why. Blurring is the same intent without the second meaning.
-- tapOn: Name your board
+- tapOn: Set up your board
 - scrollUntilVisible:
     element:
-      id: add-board-name-next
+      id: add-board-battery-series-increment
     direction: DOWN
-- tapOn:
-    id: add-board-name-next
-
-- assertVisible: Battery config
 - tapOn:
     id: add-board-battery-series-increment
 - tapOn:
-    id: add-board-battery-next
+    id: add-board-setup-next
 
-# Alerts is its own wizard step (PAIR · NAME · BATTERY · ALERTS · CONFIRM). Skipping it is a real
-# choice a rider makes, and it keeps this flow about the wizard rather than about alert defaults.
-- extendedWaitUntil:
-    visible:
-      id: add-board-skip-alerts
-    timeout: 15000
-- tapOn:
-    id: add-board-skip-alerts
-
+# Alerts are optional: the flow keeps the defaults and goes straight to the review.
 - assertVisible: Review & save
 - assertVisible: Smoke Board
 # No linked device on the review step, on purpose: this board was created offline, so there is
