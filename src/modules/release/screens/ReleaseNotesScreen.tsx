@@ -1,5 +1,5 @@
 import Constants from 'expo-constants'
-import { NewspaperClippingIcon } from 'phosphor-react-native'
+import IconNews from '@tabler/icons-react-native/IconNews'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -20,7 +20,7 @@ export function ReleaseNotesScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {notes.length === 0 ? (
           <Placeholder
-            icon={NewspaperClippingIcon}
+            icon={IconNews}
             title="No release notes yet"
             description="Future app updates will appear here."
           />
@@ -40,7 +40,7 @@ export function ReleaseNotesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     flexGrow: 1,

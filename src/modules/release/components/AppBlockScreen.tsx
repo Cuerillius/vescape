@@ -1,11 +1,12 @@
 import { Modal, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ArrowFatLinesUpIcon, ArrowRightIcon } from 'phosphor-react-native'
 
 import { Button } from '@/components/base/Button'
 import { Markdown } from '@/components/base/Markdown'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
+import IconArrowBigUpLines from '@tabler/icons-react-native/IconArrowBigUpLines'
+import IconArrowRight from '@tabler/icons-react-native/IconArrowRight'
 
 interface AppBlockScreenProps {
   /** Markdown body — the server message or a bundled default. */
@@ -45,12 +46,12 @@ export function AppBlockScreen({
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <View style={styles.badge}>
-            <ArrowFatLinesUpIcon size={28} color={theme.status.upgrade.color} weight="bold" />
+            <IconArrowBigUpLines size={28} color={theme.status.upgrade.color} strokeWidth={2.5} />
           </View>
           <Text style={styles.title}>Update required</Text>
           <View style={styles.versions}>
             <Text style={styles.versionFrom}>v{installedVersion}</Text>
-            <ArrowRightIcon size={14} color={theme.neutral.textMuted} weight="bold" />
+            <IconArrowRight size={14} color={theme.ui.mutedForeground} strokeWidth={2.5} />
             <Text style={styles.versionTo}>v{latestVersion}</Text>
           </View>
         </View>
@@ -60,7 +61,7 @@ export function AppBlockScreen({
         <Button
           label="Update Vescape"
           variant="tune"
-          icon={ArrowFatLinesUpIcon}
+          icon={IconArrowBigUpLines}
           onPress={onUpdate}
         />
       </SafeAreaView>
@@ -71,7 +72,7 @@ export function AppBlockScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
     padding: 24,
     gap: 20,
   },
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     borderColor: theme.status.upgrade.border,
   },
   title: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   versionFrom: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 14,
   },
   versionTo: {

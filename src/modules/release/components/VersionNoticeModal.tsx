@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { ArrowFatLinesUpIcon } from 'phosphor-react-native'
 
 import { Button } from '@/components/base/Button'
 import { Markdown } from '@/components/base/Markdown'
 import { FadeCardModal } from '@/components/modals/FadeCardModal'
 import { theme } from '@/constants/theme'
 import { DEFAULT_UPDATE_WARNING_MESSAGE } from '@/modules/release/constants/updateWarning'
+import IconArrowBigUpLines from '@tabler/icons-react-native/IconArrowBigUpLines'
 
 /** The two dismissible version notices. An App Block is not one — it owns a full-screen shell. */
 export type VersionNoticeKind = 'update-warning' | 'online-block'
@@ -25,12 +25,12 @@ interface VersionNoticeModalProps {
 const NOTICE = {
   'update-warning': {
     title: 'Update available',
-    icon: ArrowFatLinesUpIcon,
+    icon: IconArrowBigUpLines,
     iconColor: theme.status.upgrade.color,
   },
   'online-block': {
     title: 'Update required',
-    icon: ArrowFatLinesUpIcon,
+    icon: IconArrowBigUpLines,
     iconColor: theme.status.upgrade.color,
   },
 } as const

@@ -1,20 +1,23 @@
 import { useState } from 'react'
-import { InfoIcon, WarningIcon, WarningOctagonIcon, type Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 
 import type { CommunityMessage, CommunityMessageAction, CommunityMessageType } from 'vescape-core'
 import { Button } from '@/components/base/Button'
 import { Markdown } from '@/components/base/Markdown'
 import { FadeCardModal } from '@/components/modals/FadeCardModal'
 import { theme, type ThemeColor } from '@/constants/theme'
+import IconAlertOctagon from '@tabler/icons-react-native/IconAlertOctagon'
+import IconAlertTriangle from '@tabler/icons-react-native/IconAlertTriangle'
+import IconInfoCircle from '@tabler/icons-react-native/IconInfoCircle'
 
 /**
  * Icon, accent color and fallback header label per message type — the importance cue (PRD story 27).
  * A message carrying its own `title` replaces the label; icon and color always follow the type.
  */
 const TYPE_STYLE: Record<CommunityMessageType, { icon: Icon; color: ThemeColor; label: string }> = {
-  info: { icon: InfoIcon, color: theme.status.info.color, label: 'Announcement' },
-  warning: { icon: WarningIcon, color: theme.status.warning.color, label: 'Heads up' },
-  critical: { icon: WarningOctagonIcon, color: theme.status.error.color, label: 'Important' },
+  info: { icon: IconInfoCircle, color: theme.status.info.color, label: 'Announcement' },
+  warning: { icon: IconAlertTriangle, color: theme.status.warning.color, label: 'Heads up' },
+  critical: { icon: IconAlertOctagon, color: theme.status.error.color, label: 'Important' },
 }
 
 interface CommunityMessageModalProps {

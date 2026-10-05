@@ -1,11 +1,12 @@
-import { CaretDownIcon, CaretUpIcon, ArrowLeftIcon } from 'phosphor-react-native'
+import IconChevronDown from '@tabler/icons-react-native/IconChevronDown'
+import IconChevronUp from '@tabler/icons-react-native/IconChevronUp'
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { IconButton } from '@/components/base/IconButton'
 import { Text } from '@/components/base/Text'
-import { theme } from '@/constants/theme'
+import { interaction, theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
+import { useLegalReferenceSpeedFormat } from '@/modules/legal/hooks/useLegalLimitsFormat'
 import { LegalLimitCountrySheet } from '@/modules/legal/components/LegalLimitCountrySheet'
 import {
   LEGAL_LIMIT_COUNTRIES,
@@ -14,28 +15,23 @@ import {
   LEGAL_ROAD_STATUS_LEGEND,
   type LegalLimitCountry,
 } from '@/modules/legal/lib/legalLimits'
-import { useLegalReferenceSpeedFormat } from '@/modules/legal/hooks/useLegalLimitsFormat'
 
-const LIST_PANEL_HEIGHT = 280
-const OVERLAY_GAP = 8
-const LEGEND_HEIGHT = 12
-const LIST_TOGGLE_HEIGHT = 42
+const LIST_HEIGHT = 220
 
 interface LegalLimitsMapOverlayProps {
   visible: boolean
-  /** Top of the map's control row, so the back button lines up with the mode tabs. */
-  top: number
-  onExit: () => void
+  /** Height of the tab bar, so the panel sits above it and navigation stays reachable. */
+  bottom: number
 }
 
-/** Legal limits mode: the road status legend, the country list and the per-country sheet. */
-export function LegalLimitsMapOverlay({ visible, top, onExit }: LegalLimitsMapOverlayProps) {
+/** The legal limits layer over the Explore map: the status legend, the country list and sheet. */
+export function LegalLimitsMapOverlay({ visible, bottom }: LegalLimitsMapOverlayProps) {
   const formatReferenceSpeed = useLegalReferenceSpeedFormat()
-  const insets = useSafeAreaInsets()
+  const muted = useResolvedColor(theme.ui.mutedForeground)
   const [listOpen, setListOpen] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState<LegalLimitCountry | null>(null)
 
-  // Leaving the mode drops the selection, so returning to it starts from the map rather than from
+  // Leaving the layer drops the selection, so returning to it starts from the map rather than from
   // whatever country was last read.
   useEffect(() => {
     if (visible) return
@@ -46,212 +42,171 @@ export function LegalLimitsMapOverlay({ visible, top, onExit }: LegalLimitsMapOv
     return () => cancelAnimationFrame(frame)
   }, [visible])
 
-  const listVisible = visible && listOpen
-  const baseBottom = listVisible ? LIST_PANEL_HEIGHT : Math.max(insets.bottom, 16)
-  const legendBottom = baseBottom + OVERLAY_GAP
-  const listToggleBottom = legendBottom + LEGEND_HEIGHT + OVERLAY_GAP
+  if (!visible) return null
+
+  const Chevron = listOpen ? IconChevronDown : IconChevronUp
 
   return (
-    <View
-      pointerEvents={visible ? 'box-none' : 'none'}
-      style={[styles.legalLimitsInterface, visible ? styles.visible : styles.hidden]}
-    >
-      <IconButton
-        icon={ArrowLeftIcon}
-        size="sm"
-        testID="legal-limits-exit"
-        accessibilityLabel="Exit legal limits"
-        onPress={onExit}
-        style={[styles.mapTopBackButton, { top }]}
-      />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={listVisible ? 'Hide legal limits list' : 'Show legal limits list'}
-        onPress={() => setListOpen((open) => !open)}
-        style={({ pressed }) => [
-          styles.legalListToggle,
-          { bottom: listToggleBottom },
-          pressed && styles.legalListTogglePressed,
-        ]}
-      >
-        {listVisible ? (
-          <CaretDownIcon size={18} color={theme.neutral.textSecondary} weight="bold" />
-        ) : (
-          <CaretUpIcon size={18} color={theme.neutral.textSecondary} weight="bold" />
-        )}
-        <Text style={styles.legalListToggleLabel}>{listVisible ? 'HIDE LIST' : 'SHOW LIST'}</Text>
-      </Pressable>
-      <View pointerEvents="none" style={[styles.legalLegend, { bottom: legendBottom }]}>
-        {LEGAL_ROAD_STATUS_LEGEND.map((status) => (
-          <View key={status} style={styles.legalLegendItem}>
-            <View
-              style={[styles.legalLegendDot, { backgroundColor: LEGAL_ROAD_STATUS_COLORS[status] }]}
-            />
-            <Text style={styles.legalLegendText}>{LEGAL_ROAD_STATUS_LABELS[status]}</Text>
+    <View pointerEvents="box-none" style={styles.interface}>
+      <View testID="legal-limits-panel" style={[styles.panel, { bottom: bottom + 8 }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={listOpen ? 'Hide legal limits list' : 'Show legal limits list'}
+          onPress={() => setListOpen((open) => !open)}
+          style={({ pressed }) => [styles.header, pressed && styles.pressed]}
+        >
+          <View style={styles.legend}>
+            {LEGAL_ROAD_STATUS_LEGEND.map((status) => (
+              <View key={status} style={styles.legendItem}>
+                <View
+                  style={[styles.legendDot, { backgroundColor: LEGAL_ROAD_STATUS_COLORS[status] }]}
+                />
+                <Text style={styles.legendText}>{LEGAL_ROAD_STATUS_LABELS[status]}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
-      {listVisible ? (
-        <View style={[styles.legalListPanel, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={styles.listToggle}>
+            <Text style={styles.listToggleText}>
+              {listOpen ? 'Hide countries' : 'Browse countries'}
+            </Text>
+            <Chevron size={18} color={muted} />
+          </View>
+        </Pressable>
+        {listOpen ? (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.legalListContent}
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
           >
             {LEGAL_LIMIT_COUNTRIES.map((country) => (
               <Pressable
                 key={country.code}
                 accessibilityRole="button"
                 accessibilityLabel={`${country.name} legal limits`}
-                style={({ pressed }) => [
-                  styles.legalCountryRow,
-                  pressed && styles.legalCountryRowPressed,
-                ]}
+                style={({ pressed }) => [styles.countryRow, pressed && styles.pressed]}
                 onPress={() => setSelectedCountry(country)}
               >
                 <View
                   style={[
-                    styles.legalCountryDot,
+                    styles.countryDot,
                     { backgroundColor: LEGAL_ROAD_STATUS_COLORS[country.status] },
                   ]}
                 />
-                <Text style={styles.legalCountryName} numberOfLines={1}>
+                <Text style={styles.countryName} numberOfLines={1}>
                   {country.name}
                 </Text>
-                <Text style={styles.legalCountryStatus} numberOfLines={1}>
+                <Text style={styles.countryStatus} numberOfLines={1}>
                   {LEGAL_ROAD_STATUS_LABELS[country.status]}
                 </Text>
-                <Text style={styles.legalCountrySpeed}>
+                <Text style={styles.countrySpeed}>
                   {formatReferenceSpeed(country.referenceSpeedKmh)}
                 </Text>
               </Pressable>
             ))}
           </ScrollView>
-        </View>
-      ) : null}
-      <LegalLimitCountrySheet
-        country={visible ? selectedCountry : null}
-        onClose={() => setSelectedCountry(null)}
-      />
+        ) : null}
+      </View>
+      <LegalLimitCountrySheet country={selectedCountry} onClose={() => setSelectedCountry(null)} />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  legalLimitsInterface: {
+  interface: {
     ...StyleSheet.absoluteFill,
-    zIndex: 9,
+    // Above the navigation sheets (45) and map controls, which sit in the same strip.
+    zIndex: 50,
   },
-  visible: {
-    opacity: 1,
-  },
-  hidden: {
-    opacity: 0,
-  },
-  mapTopBackButton: {
+  // One sheet just above the tab bar, matching the weather panel, so navigation stays reachable.
+  panel: {
     position: 'absolute',
-    left: 12,
-    zIndex: 32,
+    left: 8,
+    right: 8,
+    zIndex: 30,
+    backgroundColor: theme.ui.background,
+    borderRadius: theme.radius.lg + 4,
+    borderWidth: 1,
+    borderColor: theme.ui.border,
+    overflow: 'hidden',
   },
-  legalLegend: {
-    position: 'absolute',
-    left: 54,
-    right: 54,
-    zIndex: 28,
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
+  // Tall enough to cover the Map Point add button beneath it.
+  header: {
+    minHeight: 92,
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
   },
-  legalLegendItem: {
+  listToggle: {
+    height: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.ui.muted,
   },
-  legalLegendDot: {
+  listToggleText: { color: theme.ui.foreground, fontSize: 13, fontWeight: '600' },
+  pressed: {
+    opacity: interaction.pressedOpacity,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  legalLegendText: {
-    color: theme.neutral.textPrimary,
-    fontSize: 9,
-    fontWeight: '800',
-    textShadowColor: theme.alpha(theme.neutral.surfaceDeep, 0.6),
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+  legendText: {
+    color: theme.ui.foreground,
+    fontSize: 12,
+    fontWeight: '600',
   },
-  legalListToggle: {
-    position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minHeight: LIST_TOGGLE_HEIGHT,
-    paddingHorizontal: 16,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.85),
-    zIndex: 31,
-  },
-  legalListTogglePressed: {
-    backgroundColor: theme.neutral.surface,
-  },
-  legalListToggleLabel: {
-    color: theme.neutral.textSecondary,
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  legalListPanel: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    maxHeight: LIST_PANEL_HEIGHT,
-    paddingTop: 14,
-    paddingHorizontal: 14,
-    gap: 8,
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.85),
+  list: {
+    maxHeight: LIST_HEIGHT,
     borderTopWidth: 1,
-    borderTopColor: theme.neutral.border,
-    zIndex: 30,
+    borderTopColor: theme.ui.border,
   },
-  legalListContent: {
-    gap: 8,
+  listContent: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
-  legalCountryRow: {
-    minHeight: 28,
+  countryRow: {
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderRadius: 8,
-    paddingHorizontal: 2,
   },
-  legalCountryRowPressed: {
-    backgroundColor: theme.alpha(theme.palette.slate.light, 0.12),
-  },
-  legalCountryDot: {
+  countryDot: {
     width: 9,
     height: 9,
     borderRadius: 5,
   },
-  legalCountryName: {
+  countryName: {
     flex: 1.1,
-    color: theme.neutral.textPrimary,
-    fontSize: 12,
-    fontWeight: '800',
+    color: theme.ui.foreground,
+    fontSize: 13,
+    fontWeight: '600',
   },
-  legalCountryStatus: {
+  countryStatus: {
     flex: 0.9,
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  legalCountrySpeed: {
-    minWidth: 64,
-    color: theme.neutral.textPrimary,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
-    fontWeight: '900',
+  },
+  countrySpeed: {
+    minWidth: 64,
+    color: theme.ui.foreground,
+    fontSize: 13,
+    fontWeight: '600',
     textAlign: 'right',
+    fontVariant: ['tabular-nums'],
   },
 })

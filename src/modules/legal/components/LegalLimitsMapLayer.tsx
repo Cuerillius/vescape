@@ -1,7 +1,7 @@
 import { FillLayer, LineLayer, ShapeSource, SymbolLayer, VectorSource } from '@rnmapbox/maps'
 
 import { theme } from '@/constants/theme'
-import { useResolvedAccentColors, useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedUiColors } from '@/hooks/useTheme'
 import {
   getLegalLimitCountryByCode,
   legalCountryFilterExpression,
@@ -18,7 +18,7 @@ export function LegalLimitsMapLayer({
   onSelectCountry: (country: LegalLimitCountry) => void
 }) {
   const labelShape = useLegalLimitLabelShape()
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const accents = useResolvedAccentColors()
   const statusColors = {
     likelyLegal: accents.green.color,
@@ -58,7 +58,7 @@ export function LegalLimitsMapLayer({
           style={{
             fillColor: legalStatusColorExpression(statusColors) as never,
             fillOpacity: 0.48,
-            fillOutlineColor: theme.alpha(neutral.textPrimary, 0.7),
+            fillOutlineColor: theme.alpha(ui.foreground, 0.7),
           }}
         />
         <LineLayer
@@ -66,7 +66,7 @@ export function LegalLimitsMapLayer({
           sourceLayerID="country_boundaries"
           filter={legalCountryFilterExpression() as never}
           style={{
-            lineColor: theme.alpha(neutral.textPrimary, 0.85),
+            lineColor: theme.alpha(ui.foreground, 0.85),
             lineWidth: ['interpolate', ['linear'], ['zoom'], 3, 0.75, 6, 1.6],
           }}
         />

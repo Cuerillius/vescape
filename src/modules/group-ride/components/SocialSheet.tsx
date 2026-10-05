@@ -1,91 +1,99 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import IconAlertTriangle from '@tabler/icons-react-native/IconAlertTriangle'
+import IconBroadcast from '@tabler/icons-react-native/IconBroadcast'
+import IconCurrentLocation from '@tabler/icons-react-native/IconCurrentLocation'
+import IconLogout from '@tabler/icons-react-native/IconLogout'
+import IconPlus from '@tabler/icons-react-native/IconPlus'
+import IconUsers from '@tabler/icons-react-native/IconUsers'
+import IconWifiOff from '@tabler/icons-react-native/IconWifiOff'
+import type { Icon as TablerIcon } from '@tabler/icons-react-native'
+
 import { Text } from '@/components/base/Text'
-import {
-  BroadcastIcon,
-  CrosshairIcon,
-  PaletteIcon,
-  PlusIcon,
-  SignOutIcon,
-  UsersIcon,
-  WarningIcon,
-  XIcon,
-} from 'phosphor-react-native'
-import { Button } from '@/components/base/Button'
-import { Placeholder } from '@/components/base/Placeholder'
 import { ColorPicker } from '@/components/forms/ColorPicker'
-import { Switch } from '@/components/controls/Switch'
-import { CanvasWidget } from '@/components/widgets/CanvasWidget'
-import { InputWidget } from '@/components/widgets/InputWidget'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Card, CardDescription } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
+import { MessageCard } from '@/components/ui/MessageCard'
+import { Switch } from '@/components/ui/Switch'
+import { theme } from '@/constants/theme'
+import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
+import { NearbyRideBody, RosterList } from '@/modules/group-ride/components/GroupRideRoster'
 import { riderColorOptions } from '@/modules/group-ride/constants/riderColors'
 import { useGroupRideStore } from '@/modules/group-ride/store/groupRideStore'
-import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 import { useRiderStore } from '@/modules/group-ride/store/riderStore'
-import { theme } from '@/constants/theme'
-import { NearbyRideBody, RosterGrid } from '@/modules/group-ride/components/GroupRideRoster'
 
+/** The Group Ride drawer's content: who you ride as, then starting, joining or leaving a ride. */
 export function SocialSheet() {
   return (
-    <View testID="social-sheet" style={styles.list}>
-      <RiderNameWidget />
-      <GroupRideWidget />
+    <View testID="social-sheet" style={styles.sheet}>
+      <RiderIdentity />
+      <GroupRide />
     </View>
   )
 }
 
-function RiderNameWidget() {
+/** Connection pill for the drawer header: Live while the relay socket is up, Offline when presence
+ *  can't reach the server (e.g. no internet). Absent outside a ride. */
+export function GroupRideStatusBadge() {
+  const active = useGroupRideStore((s) => s.activeRideId !== null)
+  const connected = useGroupRideStore((s) => s.connection === 'connected')
+  if (!active) return null
+  return (
+    <Badge
+      label={connected ? 'Live' : 'Offline'}
+      variant="outline"
+      dot={connected ? theme.palette.groupRide.color : theme.palette.amber.color}
+    />
+  )
+}
+
+function RiderIdentity() {
   const riderName = useRiderStore((s) => s.riderName)
   const setName = useRiderStore((s) => s.setName)
   const riderColor = useRiderStore((s) => s.riderColor)
   const setColor = useRiderStore((s) => s.setColor)
   const error = useRiderStore((s) => s.error)
+  // The text being typed; null while the field just shows the stored name.
+  const [draft, setDraft] = useState<string | null>(null)
+
+  const commit = () => {
+    if (draft === null) return
+    setDraft(null)
+    if (draft.trim() === (riderName ?? '').trim()) return
+    // intentional-suppression: Rider store error is rendered below
+    void setName(draft).catch(() => undefined) // The store exposes this failure below.
+  }
 
   return (
-    <View style={styles.riderIdentity}>
-      <InputWidget
-        label="Your name"
-        value={riderName}
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>You</Text>
+      <Input
+        value={draft ?? riderName ?? ''}
         placeholder="Add a display name"
         maxLength={32}
-        onCommit={(value) => {
-          // intentional-suppression: Rider store error is rendered by Social Sheet
-          void setName(value).catch(() => undefined) // The store exposes this failure below.
-        }}
+        returnKeyType="done"
+        autoCorrect={false}
+        onChangeText={setDraft}
+        onBlur={commit}
+        onSubmitEditing={commit}
         accessibilityLabel="Rider display name"
-        commitOnBlur={false}
-        leading={
-          <View
-            style={[
-              styles.colorDot,
-              riderColor ? { backgroundColor: riderColor } : styles.colorDotEmpty,
-            ]}
-            accessibilityLabel={riderColor ? `Your color ${riderColor}` : 'No color selected'}
-          >
-            {riderColor ? null : (
-              <PaletteIcon size={14} color={theme.neutral.textSecondary} weight="duotone" />
-            )}
-          </View>
-        }
-        editingContent={
-          <View style={styles.colorEditor}>
-            <Text style={styles.fieldLabel}>Color</Text>
-            <ColorPicker
-              value={riderColor}
-              colors={riderColorOptions}
-              onChange={(color) => {
-                // intentional-suppression: Rider store error is rendered by Social Sheet
-                void setColor(color).catch(() => undefined) // The store exposes this failure below.
-              }}
-            />
-          </View>
-        }
+      />
+      <ColorPicker
+        value={riderColor}
+        colors={riderColorOptions}
+        onChange={(color) => {
+          // intentional-suppression: Rider store error is rendered below
+          void setColor(color).catch(() => undefined) // The store exposes this failure below.
+        }}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   )
 }
 
-function GroupRideWidget() {
+function GroupRide() {
   useRenderRateWarning('GroupRideWidget')
   const activeRideId = useGroupRideStore((s) => s.activeRideId)
   const rides = useGroupRideStore((s) => s.rides)
@@ -99,206 +107,150 @@ function GroupRideWidget() {
   const publicRiding = useGroupRideStore((s) => s.publicRiding)
   const setPublicRiding = useGroupRideStore((s) => s.setPublicRiding)
 
-  const [nearbyDismissed, setNearbyDismissed] = useState(false)
-
-  const activeRide = rides.find((r) => r.id === activeRideId)
   const active = activeRideId != null
   const connected = connection === 'connected'
+
   // Native gates the relay socket when the installed version is Online/App Blocked and reports it
   // as `blocked`; Group Ride is unusable until the app updates, so replace the live UI entirely.
-  const blocked = connection === 'blocked'
-  const showNearby = !active && nearby.length > 0 && !nearbyDismissed
-  const accent = theme.palette.groupRide.color
-  const rideName = activeRide?.name?.trim() || 'Your group ride'
-
-  if (blocked) {
+  if (connection === 'blocked') {
     return (
-      <CanvasWidget
-        icon={BroadcastIcon}
-        title="Group Ride"
-        accent={accent}
-        surface="secondary"
-        height={240}
-        footer={
-          <Button
-            label="Create"
-            variant="groupRide"
-            icon={PlusIcon}
-            onPress={() => {}}
-            disabled
-            style={styles.fill}
-            accessibilityLabel="Create group ride"
-          />
-        }
-      >
-        <Placeholder icon={WarningIcon} description="Not available in this version." />
-      </CanvasWidget>
+      <MessageCard
+        icon={IconAlertTriangle}
+        title="Group Ride is unavailable"
+        description="Update the app to use it."
+      />
     )
   }
 
-  const footer = active ? (
-    <Button
-      label="Leave"
-      variant="destructive"
-      icon={SignOutIcon}
-      onPress={leaveRide}
-      style={styles.fill}
-      accessibilityLabel="Leave group ride"
-    />
-  ) : showNearby ? (
-    <Button
-      label="Join"
-      variant="groupRide"
-      onPress={() => joinRide(nearby[0].ride.id)}
-      disabled={!connected}
-      style={styles.fill}
-      accessibilityLabel="Join nearest group ride"
-    />
-  ) : (
-    <Button
-      label="Create"
-      variant="groupRide"
-      icon={PlusIcon}
-      onPress={() => createRide('')}
-      disabled={!hasLocation || !connected}
-      style={styles.fill}
-      accessibilityLabel="Create group ride"
-    />
-  )
+  const rideName = rides.find((r) => r.id === activeRideId)?.name?.trim() || 'Your group ride'
 
-  const status = active ? (
-    <LiveBadge connected={connection === 'connected'} />
-  ) : showNearby ? (
-    <Pressable
-      onPress={() => setNearbyDismissed(true)}
-      hitSlop={10}
-      accessibilityLabel="Dismiss nearby rides"
-    >
-      <XIcon size={18} color={theme.neutral.textSecondary} weight="bold" />
-    </Pressable>
-  ) : null
+  if (active) {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{rideName}</Text>
+        {rosterRows.length > 0 ? (
+          <RosterList rows={rosterRows} connected={connected} />
+        ) : (
+          <Empty icon={IconUsers} text="Waiting for other riders to join." />
+        )}
+        <Button
+          label="Leave ride"
+          icon={IconLogout}
+          variant="outline"
+          color={theme.status.error.text}
+          onPress={leaveRide}
+          accessibilityLabel="Leave group ride"
+        />
+      </View>
+    )
+  }
 
-  const action = (
-    <View style={styles.headerActions}>
-      {status}
-      <Text style={styles.fieldLabel}>Auto</Text>
-      <Switch
-        value={publicRiding}
-        onValueChange={setPublicRiding}
-        accent={accent}
-        accessibilityLabel="Ride publicly"
-      />
-    </View>
-  )
+  const nearbyRide = nearby.length > 0
 
   return (
-    <CanvasWidget
-      icon={BroadcastIcon}
-      title={active ? rideName : 'Group Ride'}
-      accent={accent}
-      surface="secondary"
-      active={active}
-      height={active && rosterRows.length > 0 ? undefined : 240}
-      footer={footer}
-      action={action}
-    >
-      {active ? (
-        rosterRows.length > 0 ? (
-          <RosterGrid rows={rosterRows} accent={accent} connected={connection === 'connected'} />
-        ) : (
-          <Placeholder icon={UsersIcon} description="Waiting for other riders to join." />
-        )
-      ) : publicRiding ? (
-        <Placeholder
-          icon={BroadcastIcon}
-          description="Auto is on. When your board connects, you join the nearest group ride or start one."
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Group ride</Text>
+      {publicRiding ? (
+        <Empty
+          icon={IconBroadcast}
+          text="Auto is on. When your board connects, you join the nearest ride or start one."
         />
-      ) : showNearby ? (
+      ) : nearbyRide ? (
         <NearbyRideBody nearby={nearby} />
       ) : !connected ? (
-        <Placeholder icon={BroadcastIcon} description="Connecting to server…" />
+        <Empty icon={IconWifiOff} text="Connecting to server…" />
       ) : !hasLocation ? (
-        <Placeholder icon={CrosshairIcon} description="Finding your location…" />
+        <Empty icon={IconCurrentLocation} text="Finding your location…" />
       ) : (
-        <Placeholder icon={BroadcastIcon} description="No group rides near you right now." />
+        <Empty icon={IconBroadcast} text="No group rides near you right now." />
       )}
-    </CanvasWidget>
+      {nearbyRide ? (
+        <Button
+          label="Join nearest ride"
+          variant="primary"
+          disabled={!connected}
+          onPress={() => joinRide(nearby[0].ride.id)}
+          accessibilityLabel="Join nearest group ride"
+        />
+      ) : (
+        <Button
+          label="Start a ride"
+          icon={IconPlus}
+          variant="primary"
+          disabled={!hasLocation || !connected}
+          onPress={() => createRide('')}
+          accessibilityLabel="Create group ride"
+        />
+      )}
+      <Card style={styles.autoCard}>
+        <View style={styles.autoText}>
+          <Text style={styles.autoTitle}>Join automatically</Text>
+          <CardDescription numberOfLines={2}>
+            Join the nearest ride, or start one, when your board connects.
+          </CardDescription>
+        </View>
+        <Switch
+          value={publicRiding}
+          onValueChange={setPublicRiding}
+          accessibilityLabel="Ride publicly"
+        />
+      </Card>
+    </View>
   )
 }
 
-/** Connection-state pill in the header: green "LIVE" when the relay socket is up, amber
- *  "OFFLINE" when presence can't reach the server (e.g. no internet). */
-function LiveBadge({ connected }: { connected: boolean }) {
-  const tone = connected ? theme.palette.groupRide : theme.palette.amber
+/** A quiet one-line state: what the panel is waiting on, or why there is nothing to show. */
+function Empty({ icon: StateIcon, text }: { icon: TablerIcon; text: string }) {
   return (
-    <View style={[styles.badge, { backgroundColor: tone.bg, borderColor: tone.border }]}>
-      <View style={[styles.badgeDot, { backgroundColor: tone.color }]} />
-      <Text style={[styles.badgeLabel, { color: tone.light }]}>
-        {connected ? 'LIVE' : 'OFFLINE'}
-      </Text>
+    <View style={styles.empty}>
+      <StateIcon size={18} color={theme.ui.mutedForeground} />
+      <Text style={styles.emptyText}>{text}</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: 1,
+  sheet: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 24,
   },
-  badgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  badgeLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  colorDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: theme.neutral.border,
-  },
-  colorDotEmpty: {
-    backgroundColor: theme.neutral.surfaceDeep,
-  },
-  colorEditor: {
-    marginLeft: 36,
-    gap: 8,
-  },
-  fieldLabel: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  fill: {
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  list: {
+  section: {
     gap: 12,
   },
-  riderIdentity: {
-    gap: 6,
+  sectionTitle: {
+    color: theme.ui.foreground,
+    fontSize: 15,
+    fontWeight: '700',
   },
   errorText: {
     color: theme.status.error.text,
     fontSize: 12,
+  },
+  empty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyText: {
+    flex: 1,
+    color: theme.ui.mutedForeground,
+    fontSize: 14,
+  },
+  autoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+  },
+  autoText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  autoTitle: {
+    color: theme.ui.foreground,
+    fontSize: 14,
+    fontWeight: '700',
   },
 })
