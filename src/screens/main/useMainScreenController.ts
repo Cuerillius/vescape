@@ -30,6 +30,7 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
   const [openMediaAssetId, setOpenMediaAssetId] = useState<string | null>(null)
   const {
     mode,
+    mapLayer,
     historySheetVisible,
     mapSelector,
     perspectiveEnabled,
@@ -38,6 +39,7 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
     enterMap,
     enterWeather,
     enterLegalLimits,
+    exitMapLayer,
     enterHistory,
     setHistorySheetVisible,
     setMapSelector,
@@ -47,6 +49,7 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
   } = useMainScreenStore(
     useShallow((s) => ({
       mode: s.mode,
+      mapLayer: s.mapLayer,
       historySheetVisible: s.historySheetVisible,
       mapSelector: s.mapSelector,
       perspectiveEnabled: s.perspectiveEnabled,
@@ -55,6 +58,7 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
       enterMap: s.enterMap,
       enterWeather: s.enterWeather,
       enterLegalLimits: s.enterLegalLimits,
+      exitMapLayer: s.exitMapLayer,
       enterHistory: s.enterHistory,
       setHistorySheetVisible: s.setHistorySheetVisible,
       setMapSelector: s.setMapSelector,
@@ -70,7 +74,6 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
   const satelliteImageryOpacity = useSettingsStore((s) => s.satelliteImageryOpacity)
   const satelliteMapImageryOpacity = useSettingsStore((s) => s.satelliteMapImageryOpacity)
   const satelliteImagerySaturation = useSettingsStore((s) => s.satelliteImagerySaturation)
-  const hideTelemetryMapDetails = useSettingsStore((s) => s.hideTelemetryMapDetails)
   const mapOrientationMode = useSettingsStore((s) => s.mapOrientationMode)
   const setSetting = useSettingsStore((s) => s.set)
   const {
@@ -168,8 +171,8 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
     void reloadMapPoints()
   }, [canContribute, reloadMapPoints])
 
-  const weatherActive = mode === 'weather'
-  const legalLimitsActive = mode === 'legalLimits'
+  const weatherActive = mode === 'map' && mapLayer === 'weather'
+  const legalLimitsActive = mode === 'map' && mapLayer === 'legalLimits'
   const historyActive = mode === 'history'
   const rotationLocked = mapOrientationMode === 'northUp'
   const previousRide = getPreviousRideSession(sessions, selectedSession)
@@ -203,31 +206,23 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
     mapRef.current?.recenterLive()
   }, [enterTelemetry, mapRef])
 
-  // An accidental reveal undone mid-pinch: back to telemetry without touching the camera, which
-  // the pinch is still driving.
-  const cancelMapFocus = useCallback(() => {
-    enterTelemetry()
-  }, [enterTelemetry])
-
+  // Weather and Legal limits are layers, but each only reads at its own overview zoom, so entering
+  // one frames that view and leaving it puts the camera back where the rider had it.
   const enterWeatherMode = useCallback(() => {
     enterWeather()
     mapRef.current?.focusWeather()
   }, [enterWeather, mapRef])
-
-  const exitWeatherMode = useCallback(() => {
-    enterTelemetry()
-    requestAnimationFrame(() => mapRef.current?.recenterLive())
-  }, [enterTelemetry, mapRef])
 
   const enterLegalLimitsMode = useCallback(() => {
     enterLegalLimits()
     mapRef.current?.focusLegalLimits()
   }, [enterLegalLimits, mapRef])
 
-  const exitLegalLimitsMode = useCallback(() => {
-    enterTelemetry()
-    requestAnimationFrame(() => mapRef.current?.recenterLive())
-  }, [enterTelemetry, mapRef])
+  const exitMapLayerMode = useCallback(() => {
+    exitMapLayer()
+    if (mapRef.current?.leaveOverview()) return
+    requestAnimationFrame(() => mapRef.current?.recenterLive({ glide: true }))
+  }, [exitMapLayer, mapRef])
 
   const historyNavigation = useMainScreenHistoryNavigation({
     mapRef,
@@ -251,10 +246,7 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
   const handleMapFocus = useCallback(() => {
     if (mode === 'map') return
     enterMap()
-    if (mode === 'weather' || mode === 'legalLimits') {
-      requestAnimationFrame(() => mapRef.current?.recenterLive())
-    }
-  }, [enterMap, mapRef, mode])
+  }, [enterMap, mode])
 
   const setMapStyleKey = useCallback(
     (key: typeof mapStyleKey) => {
@@ -280,6 +272,10 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
   useFocusEffect(
     useCallback(() => {
       const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (useMainScreenStore.getState().coverTab) {
+          useMainScreenStore.getState().closeCoverTab()
+          return true
+        }
         if (mode === 'history') {
           if (useMainScreenStore.getState().trimRange) {
             void cancelHistoryTrim()
@@ -288,12 +284,8 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
           exitHistory()
           return true
         }
-        if (mode === 'weather') {
-          exitWeatherMode()
-          return true
-        }
-        if (mode === 'legalLimits') {
-          exitLegalLimitsMode()
+        if (weatherActive || legalLimitsActive) {
+          exitMapLayerMode()
           return true
         }
         if (mode === 'map') {
@@ -312,7 +304,15 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
         return true
       })
       return () => handler.remove()
-    }, [cancelHistoryTrim, exitHistory, exitLegalLimitsMode, exitMapFocus, exitWeatherMode, mode]),
+    }, [
+      cancelHistoryTrim,
+      exitHistory,
+      exitMapFocus,
+      exitMapLayerMode,
+      legalLimitsActive,
+      mode,
+      weatherActive,
+    ]),
   )
 
   return {
@@ -328,7 +328,6 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
     satelliteMapImageryOpacity,
     setSatelliteMapImageryOpacity,
     satelliteImagerySaturation,
-    hideTelemetryMapDetails,
     setMapStyleKey,
     mapOrientationMode,
     setMapOrientationMode,
@@ -385,12 +384,10 @@ export function useMainScreenController({ mapRef }: UseMainScreenControllerArgs)
     selectFavoriteRide,
     weatherActive,
     enterWeatherMode,
-    exitWeatherMode,
     enterLegalLimitsMode,
-    exitLegalLimitsMode,
+    exitMapLayerMode,
     handleMapFocus,
     exitMapFocus,
-    cancelMapFocus,
     activeHistoryMapMetric,
     setActiveHistoryMapMetric,
   }

@@ -1,1 +1,1 @@
-export type MainViewState = 'telemetry' | 'map' | 'weather' | 'legalLimits' | 'history'
+export type MainViewState = 'telemetry' | 'map' | 'history'

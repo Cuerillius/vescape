@@ -5,7 +5,7 @@ import type { ChartTimeRange } from '@/components/charts/line/types'
 import { useSettledZoomWindow } from '@/modules/history/hooks/useSettledZoomWindow'
 import { summarizeFavoriteRange } from '@/modules/history/lib/favoritePreview'
 import type { HistorySession } from '@/modules/history/store/historyStore'
-import { HistoryStatsBar } from '@/screens/main/history/HistoryStatsBar'
+import { HistoryStatsGrid } from '@/screens/main/history/HistoryStats'
 import { useMainScreenStore } from '@/screens/main/mainScreenStore'
 
 interface RangeStatsBarProps {
@@ -50,5 +50,5 @@ export function RangeStatsBar({ session, samples, gpsSamples, trimming }: RangeS
     }
   }, [range, session, sortedGps, sortedSamples])
 
-  return <HistoryStatsBar session={rangeSession} />
+  return <HistoryStatsGrid session={rangeSession} />
 }

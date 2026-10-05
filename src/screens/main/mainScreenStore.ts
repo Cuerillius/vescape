@@ -3,7 +3,13 @@ import { create } from 'zustand'
 import type { HistoryMetricKey } from '@/modules/history/lib/metricColorScale'
 import type { MainViewState } from '@/screens/main/mainViewState'
 
-export type MapSelector = 'navigation' | 'style' | null
+export type MapSelector = 'navigation' | 'layers' | null
+
+/** The tabs that cover the Ride dashboard or the map instead of replacing them. */
+export type CoverTab = 'board' | 'profile'
+
+/** Overlays that sit on the Explore map without taking the map over, so navigation stays live. */
+export type MapLayer = 'weather' | 'legalLimits'
 
 /** Which list the history screen shows: recorded rides, or the Favorites the rider starred. */
 export type HistoryTab = 'history' | 'favorites'
@@ -16,6 +22,10 @@ export interface TrimRange {
 
 interface MainScreenState {
   mode: MainViewState
+  /** Weather and Legal limits are layers on the Explore map, not modes of their own. */
+  mapLayer: MapLayer | null
+  /** The Board or Profile view covers the Ride dashboard or the map; Home and Map close it. */
+  coverTab: CoverTab | null
   historyTab: HistoryTab
   /** The Favorite whose detail is open, or null while the Favorites list is showing. */
   openFavoriteId: string | null
@@ -31,9 +41,14 @@ interface MainScreenState {
 interface MainScreenActions {
   reset: () => void
   enterTelemetry: () => void
+  openCoverTab: (tab: CoverTab) => void
+  closeCoverTab: () => void
   enterMap: () => void
+  /** Explore map with the weather layer on. */
   enterWeather: () => void
+  /** Explore map with the legal limits layer on. */
   enterLegalLimits: () => void
+  exitMapLayer: () => void
   enterHistory: () => void
   setHistoryTab: (tab: HistoryTab) => void
   /** Open one Favorite's detail. */
@@ -56,6 +71,8 @@ interface MainScreenActions {
 
 const initialState: MainScreenState = {
   mode: 'telemetry',
+  mapLayer: null,
+  coverTab: null,
   historyTab: 'history',
   openFavoriteId: null,
   historySheetVisible: false,
@@ -76,6 +93,8 @@ export const useMainScreenStore = create<MainScreenState & MainScreenActions>((s
   enterTelemetry() {
     set({
       mode: 'telemetry',
+      mapLayer: null,
+      coverTab: null,
       historySheetVisible: false,
       mapSelector: null,
       trimRange: null,
@@ -83,20 +102,32 @@ export const useMainScreenStore = create<MainScreenState & MainScreenActions>((s
     })
   },
 
+  openCoverTab(tab) {
+    set((state) => (state.coverTab === tab ? state : { coverTab: tab, mapSelector: null }))
+  },
+
+  closeCoverTab() {
+    set((state) => (state.coverTab ? { coverTab: null } : state))
+  },
+
   enterMap() {
-    set({ mode: 'map', mapSelector: null })
+    set({ mode: 'map', mapLayer: null, coverTab: null, mapSelector: null })
   },
 
   enterWeather() {
-    set({ mode: 'weather', mapSelector: null })
+    set({ mode: 'map', mapLayer: 'weather', coverTab: null, mapSelector: null })
+  },
+
+  exitMapLayer() {
+    set((state) => (state.mapLayer ? { mapLayer: null } : state))
   },
 
   enterLegalLimits() {
-    set({ mode: 'legalLimits', mapSelector: null })
+    set({ mode: 'map', mapLayer: 'legalLimits', coverTab: null, mapSelector: null })
   },
 
   enterHistory() {
-    set({ mode: 'history', mapSelector: null })
+    set({ mode: 'history', mapLayer: null, coverTab: null, mapSelector: null })
   },
 
   setHistoryTab(tab) {

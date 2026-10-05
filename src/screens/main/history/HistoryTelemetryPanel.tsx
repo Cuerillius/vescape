@@ -1,5 +1,4 @@
-import { useRouter } from 'expo-router'
-import { memo, useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { memo, useCallback, type ReactNode, useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
@@ -13,9 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CHART_CHANGE_FADE_MS, ChartStack } from '@/components/charts/line/ChartStack'
 import { stackChromeHeight } from '@/components/charts/line/chartLayout'
-import { routes } from '@/navigation/routes'
 import type { ChartTimeRange } from '@/components/charts/line/types'
-import { InfoModal } from '@/components/modals/InfoModal'
+import { theme } from '@/constants/theme'
 import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 import {
   isHistoryMetricKey,
@@ -26,8 +24,6 @@ import {
 } from '@/modules/history/components/historyChartMetrics'
 import { HistoryMetricLegend } from '@/modules/history/components/HistoryMetricLegend'
 import { HistoryMetricTabs } from '@/modules/history/components/HistoryMetricTabs'
-import { HistoryPanelNav } from '@/modules/history/components/HistoryPanelNav'
-import { HistoryRideMediaDrawer } from '@/modules/history/components/HistoryRideMediaDrawer'
 import {
   useChartExclusionBands,
   useChartRanges,
@@ -39,45 +35,34 @@ import {
   useMetricRamps,
   useVisibleRideSamples,
 } from '@/modules/history/hooks/useHistoryChartData'
-import type { MediaAssetInput, MediaHistoryAsset } from '@/modules/history/lib/mediaHistory'
 import { scrubHeadMs, zoomWindowMs } from '@/modules/history/lib/chartFocus'
 import type { HistoryMetricKey } from '@/modules/history/lib/metricColorScale'
-import { rideMovingWindow } from '@/modules/history/lib/sessions'
-import { useHistoryStore, type TelemetrySample } from '@/modules/history/store/historyStore'
+import {
+  useHistoryStore,
+  type HistorySession,
+  type TelemetrySample,
+} from '@/modules/history/store/historyStore'
 
 /** Stable identity, so a loading ride does not rebuild the stack on every render. */
 const EMPTY_SAMPLES: TelemetrySample[] = []
 const CHART_HEIGHT_DURATION_MS = 180
+/** The panel's charts, taller than the stack's defaults now the stats no longer sit above them. */
+const SPEED_CHART_HEIGHT = 76
+const METRIC_CHART_HEIGHT = 60
+const CHART_MIN_HEIGHT = 104
 
 interface HistoryTelemetryPanelProps {
-  startAtMs: number
-  endAtMs: number
-  movingStartAtMs: number | null
-  movingEndAtMs: number | null
-  boardName: string
-  navigationTitle?: string
-  navigationSubtitle?: string
+  /** The ride being replayed; its figures sit in the panel's expandable stats. */
+  session: HistorySession
+  /** The button before the chart toggles. */
+  leadingTool?: ReactNode
+  /** The button after the chart toggles. */
+  tool?: ReactNode
   /** Full-density samples retained for recording-continuity and GPS-gap detection. */
   gpsGapSamples: TelemetrySample[]
   /** Decimated samples used to draw the compact chart lines. */
   samples: TelemetrySample[]
-  canPrevious: boolean
-  canNext: boolean
-  favoriteMode: boolean
   favoriteRanges: { startMs: number; endMs: number }[]
-  favorited: boolean
-  actionDisabled: boolean
-  mediaAssets: MediaHistoryAsset[]
-  mediaUnmatched: MediaAssetInput[]
-  mediaLoading: boolean
-  mediaError: string | null
-  listButtonRef: RefObject<View | null>
-  onPrevious: () => void
-  onNext: () => void
-  onOpenList: () => void
-  onAddMedia: () => void
-  onOpenMedia: (asset: MediaAssetInput) => void
-  onToggleFavorite: () => void
   onMetricInteraction?: (metric: HistoryMetricKey) => void
   onHeightChange?: (height: number) => void
   /** When set, the stack becomes a Favorite range trimmer and scrubbing is suspended. */
@@ -97,54 +82,31 @@ export interface HistoryTrimConfig {
  * of the screen around it is not a reason to do that work again.
  */
 export const HistoryTelemetryPanel = memo(function HistoryTelemetryPanel({
-  startAtMs,
-  endAtMs,
-  movingStartAtMs,
-  movingEndAtMs,
-  boardName,
-  navigationTitle,
-  navigationSubtitle,
+  session,
+  leadingTool,
+  tool,
   gpsGapSamples,
   samples,
-  canPrevious,
-  canNext,
-  favoriteMode,
   favoriteRanges,
-  favorited,
-  actionDisabled,
-  mediaAssets,
-  mediaUnmatched,
-  mediaLoading,
-  mediaError,
-  listButtonRef,
-  onPrevious,
-  onNext,
-  onOpenList,
-  onAddMedia,
-  onOpenMedia,
-  onToggleFavorite,
   onMetricInteraction,
   onHeightChange,
   trim,
 }: HistoryTelemetryPanelProps) {
   useRenderRateWarning('HistoryTelemetryPanel')
   const insets = useSafeAreaInsets()
-  const router = useRouter()
   // Speed is on by default and closable like any other line — the rider who wants the map back
   // should not have to keep a chart they are not reading.
   const [activeCharts, setActiveCharts] = useState<Set<ChartToggleMetric>>(
     () => new Set<ChartToggleMetric>(['speed']),
   )
   const [displayedCharts, setDisplayedCharts] = useState(activeCharts)
-  const [shareInfoVisible, setShareInfoVisible] = useState(false)
-  const [mediaDrawerVisible, setMediaDrawerVisible] = useState(false)
-  const mediaButtonRef = useRef<View>(null)
   const chartHeightAnimatingRef = useRef(false)
   const pendingPanelHeightRef = useRef<number | null>(null)
   const selection = useSharedValue<ChartTimeRange | null>(null)
   const trimRef = useRef(trim)
   trimRef.current = trim
   const trimming = trim != null
+  const { startAtMs, movingStartAtMs, movingEndAtMs } = session
 
   // No lines while a ride is loading, whatever the store still holds. Samples and the ride they
   // belong to have to be drawn as a pair: feeding the previous ride's samples through the new
@@ -192,13 +154,15 @@ export const HistoryTelemetryPanel = memo(function HistoryTelemetryPanel({
     exclusionBands,
     activeMetrics: displayedCharts,
     speedOptional: true,
+    speedHeight: SPEED_CHART_HEIGHT,
+    metricHeight: METRIC_CHART_HEIGHT,
     gpsGapBands,
   })
   const chartViewportTargetHeight =
     charts.length === 0
       ? 0
       : Math.max(
-          76,
+          CHART_MIN_HEIGHT,
           charts.reduce((height, chart) => height + chart.height, 0) +
             stackChromeHeight(charts.length),
         )
@@ -228,10 +192,7 @@ export const HistoryTelemetryPanel = memo(function HistoryTelemetryPanel({
     [onHeightChange],
   )
 
-  const rideWindow = rideMovingWindow({ movingStartAtMs, movingEndAtMs })
-  const titleStartMs = rideWindow?.startMs ?? startAtMs
-  const titleEndMs = rideWindow?.endMs ?? endAtMs
-  const bottomInset = Math.max(insets.bottom, 16) + 8
+  const bottomInset = Math.max(insets.bottom, 8) + 4
 
   // The scrub head and the zoom window outlive this component (the map reads both), so a ride
   // switch has to clear them — otherwise the map keeps marking a moment from the previous ride.
@@ -300,34 +261,9 @@ export const HistoryTelemetryPanel = memo(function HistoryTelemetryPanel({
 
   return (
     <View
-      style={[styles.panel, { bottom: bottomInset }]}
+      style={[styles.panel, { paddingBottom: bottomInset }]}
       onLayout={(e) => handlePanelLayout(e.nativeEvent.layout.height)}
     >
-      {!trim ? (
-        <HistoryPanelNav
-          titleStartMs={titleStartMs}
-          titleEndMs={titleEndMs}
-          boardName={boardName}
-          title={navigationTitle}
-          subtitle={navigationSubtitle}
-          canPrevious={canPrevious}
-          canNext={canNext}
-          favoriteMode={favoriteMode}
-          favorited={favorited}
-          actionDisabled={actionDisabled}
-          mediaCount={mediaAssets.length + mediaUnmatched.length}
-          mediaLoading={mediaLoading}
-          mediaButtonRef={mediaButtonRef}
-          listButtonRef={listButtonRef}
-          onPrevious={onPrevious}
-          onNext={onNext}
-          onOpenList={onOpenList}
-          onOpenMediaDrawer={() => setMediaDrawerVisible(true)}
-          onToggleFavorite={onToggleFavorite}
-          onOpenShareInfo={() => setShareInfoVisible(true)}
-          onOpenCharts={() => router.push(routes.historyCharts)}
-        />
-      ) : null}
       {/* Drawn whether or not the samples have landed, so the empty frames hold the panel's height
           and a ride switch fills lines into a stack that never moved. Every metric closed means
           the rider wants the map: the tabs below stay, to bring one back. */}
@@ -355,45 +291,52 @@ export const HistoryTelemetryPanel = memo(function HistoryTelemetryPanel({
         ) : null}
       </Animated.View>
 
-      <HistoryMetricTabs
-        activeCharts={activeCharts}
-        onToggle={handleToggleMetric}
-        metrics={PANEL_CHART_METRICS}
-      />
       <HistoryMetricLegend />
-      {favoriteMode ? (
-        <HistoryRideMediaDrawer
-          visible={mediaDrawerVisible}
-          triggerRef={mediaButtonRef}
-          assets={mediaAssets}
-          unmatched={mediaUnmatched}
-          loading={mediaLoading}
-          error={mediaError}
-          onClose={() => setMediaDrawerVisible(false)}
-          onAdd={onAddMedia}
-          onOpenMedia={onOpenMedia}
-        />
-      ) : null}
-      <InfoModal
-        visible={shareInfoVisible}
-        title="Share Ride"
-        message="Ride sharing is coming in the future."
-        onDismiss={() => setShareInfoVisible(false)}
-      />
+      <View style={styles.tabsRow}>
+        {leadingTool}
+        <View style={styles.tabs}>
+          <HistoryMetricTabs
+            activeCharts={activeCharts}
+            onToggle={handleToggleMetric}
+            metrics={PANEL_CHART_METRICS}
+          />
+        </View>
+        {tool}
+      </View>
     </View>
   )
 })
 
 const styles = StyleSheet.create({
+  // A bottom bar like the main tab bar: edge to edge on the app surface, so the nav, the charts and
+  // the tabs read as one panel instead of loose controls floating over the map.
   panel: {
     position: 'absolute',
-    left: 8,
-    right: 8,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 20,
     gap: 8,
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    borderTopLeftRadius: theme.radius.lg + 4,
+    borderTopRightRadius: theme.radius.lg + 4,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.background,
   },
   chart: {
-    minHeight: 76,
+    minHeight: CHART_MIN_HEIGHT,
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+  },
+  tabs: {
+    flex: 1,
+    minWidth: 0,
   },
   chartViewport: {
     overflow: 'hidden',

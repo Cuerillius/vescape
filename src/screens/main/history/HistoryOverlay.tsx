@@ -1,12 +1,11 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import type { Favorite, HistoryGpsSample, HistoryMarker } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
-import { ConfirmModal } from '@/components/modals/ConfirmModal'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { theme } from '@/constants/theme'
 import { HistoryEmptyState } from '@/modules/history/components/HistoryEmptyState'
-import { HistorySessionSheet } from '@/modules/history/components/HistorySessionSheet'
 import { MediaHistoryViewer } from '@/modules/history/components/MediaHistoryViewer'
 import type { MediaAssetInput, MediaHistoryAsset } from '@/modules/history/lib/mediaHistory'
 import { favoriteSessionId, sessionContainsFavorite } from '@/modules/history/lib/favorites'
@@ -18,8 +17,9 @@ import type {
 } from '@/modules/history/store/historyStore'
 import { HistoryControls } from '@/screens/main/history/HistoryControls'
 import { HistoryRideDetail } from '@/screens/main/history/HistoryRideDetail'
+import { HistorySessionSheet } from '@/screens/main/history/HistorySessionSheet'
 import type { HistoryTab } from '@/screens/main/mainScreenStore'
-import { useAboveStripBottom } from '@/screens/main/overlays/BottomTelemetryStrip'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export interface MainHistoryOverlayProps {
   selectedSession: HistorySession | null
@@ -96,13 +96,14 @@ export function HistoryOverlay({
   onPanelHeightChange,
 }: HistoryOverlayProps) {
   const [removeConfirmVisible, setRemoveConfirmVisible] = useState(false)
-  const listButtonRef = useRef<View>(null)
   const busy =
     history.loadingSession ||
     history.historyLoading ||
     history.favoritesLoading ||
     history.favoritesSaving
-  const aboveStripBottom = useAboveStripBottom()
+  const insets = useSafeAreaInsets()
+  // Error text sits just above the ride panel, or above the home indicator when no ride is open.
+  const errorBottom = Math.max(panelHeight, insets.bottom) + 16
   const favoriteMode = history.historyTab === 'favorites'
   const detailSession =
     history.historyTab === 'history' || history.openFavorite ? history.selectedSession : null
@@ -125,7 +126,6 @@ export function HistoryOverlay({
           busy={busy}
           onRemoveSession={() => setRemoveConfirmVisible(true)}
           onPanelHeightChange={onPanelHeightChange}
-          listButtonRef={listButtonRef}
         />
       )}
 
@@ -133,16 +133,13 @@ export function HistoryOverlay({
         <>
           {!busy && <HistoryEmptyState favoriteMode={favoriteMode} />}
           <HistoryControls
-            loading={busy}
             tab={history.historyTab}
-            canRemove={false}
             trimming={false}
             saving={false}
             trimName=""
             onTrimNameChange={() => undefined}
             onSelectTab={history.selectHistoryTab}
             onBack={history.exitHistory}
-            onOpenActions={() => undefined}
             onCancelTrim={() => undefined}
             onSaveTrim={() => undefined}
           />
@@ -151,13 +148,14 @@ export function HistoryOverlay({
 
       <HistorySessionSheet
         visible={history.historySheetVisible}
-        triggerRef={listButtonRef}
         favoriteMode={favoriteMode}
         sessions={favoriteMode ? history.favoriteSessions : history.sessions}
         favorites={favoriteMode ? history.favorites : []}
         selectedSessionId={history.selectedSession?.id ?? null}
         hasMore={!favoriteMode && history.historyHasMore}
         loadingMore={history.historyLoading}
+        tab={history.historyTab}
+        onSelectTab={history.selectHistoryTab}
         onClose={() => history.setHistorySheetVisible(false)}
         onSelectSession={(session) => {
           history.setHistorySheetVisible(false)
@@ -176,7 +174,7 @@ export function HistoryOverlay({
       />
 
       {visible && (history.historyError ?? history.favoritesError) ? (
-        <View style={[styles.historyError, { bottom: aboveStripBottom }]}>
+        <View style={[styles.historyError, { bottom: errorBottom }]}>
           <Text style={styles.historyErrorText} selectable>
             {history.historyError ?? history.favoritesError}
           </Text>
@@ -194,7 +192,7 @@ export function HistoryOverlay({
         />
       ) : null}
 
-      <ConfirmModal
+      <ConfirmDialog
         visible={removeConfirmVisible}
         title="Delete Ride"
         message={
@@ -206,7 +204,7 @@ export function HistoryOverlay({
         cancelLabel="Keep"
         destructive
         onConfirm={handleRemoveConfirm}
-        onCancel={() => setRemoveConfirmVisible(false)}
+        onDismiss={() => setRemoveConfirmVisible(false)}
       />
     </>
   )
@@ -218,15 +216,15 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     zIndex: 25,
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: theme.radius.lg,
+    padding: 12,
     backgroundColor: theme.status.error.bg,
     borderWidth: 1,
-    borderColor: theme.status.error.bg,
+    borderColor: theme.status.error.border,
   },
   historyErrorText: {
     color: theme.status.error.text,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
   },
 })

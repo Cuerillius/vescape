@@ -1,57 +1,41 @@
 import { StyleSheet, View } from 'react-native'
-import {
-  ArrowLeftIcon,
-  CheckIcon,
-  ClockCounterClockwiseIcon,
-  PencilSimpleIcon,
-  StarIcon,
-  DotsThreeIcon,
-  XIcon,
-} from 'phosphor-react-native'
+import IconArrowLeft from '@tabler/icons-react-native/IconArrowLeft'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
+import IconX from '@tabler/icons-react-native/IconX'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { IconButton } from '@/components/base/IconButton'
-import { PillSelector, PillSelectorItem } from '@/components/controls/PillSelector'
-import { Input } from '@/components/forms/Input'
-import { theme } from '@/constants/theme'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
 import type { HistoryTab } from '@/screens/main/mainScreenStore'
 
 interface HistoryControlsProps {
-  loading: boolean
   tab: HistoryTab
-  canRemove: boolean
-  /** Trim mode swaps tabs/star/trash for a cancel/save pair over the range being pinned. */
+  /** Trim mode swaps the tabs for a cancel/save pair around the Favorite's name. */
   trimming: boolean
-  /**
-   * Favorite tab actions. Selection stays in the shared history panel below.
-   */
-  favorite?: {
-    onEdit: () => void
-  }
   saving: boolean
   trimName: string
   trimNamePlaceholder?: string
   onTrimNameChange: (name: string) => void
   onSelectTab: (tab: HistoryTab) => void
   onBack: () => void
-  onOpenActions: () => void
   onCancelTrim: () => void
   onSaveTrim: () => void
 }
 
+/**
+ * The top of the History view, over the map: the Favorite trimmer's name bar, or, with no ride
+ * open, back and the History/Favorites switch. An open ride has its controls above its panel.
+ */
 export function HistoryControls({
-  loading,
   tab,
-  canRemove,
   trimming,
-  favorite,
   saving,
   trimName,
   trimNamePlaceholder = 'Favorite name',
   onTrimNameChange,
   onSelectTab,
   onBack,
-  onOpenActions,
   onCancelTrim,
   onSaveTrim,
 }: HistoryControlsProps) {
@@ -61,8 +45,10 @@ export function HistoryControls({
     return (
       <View style={[styles.wrap, { paddingTop: Math.max(insets.top, 8) }]} pointerEvents="box-none">
         <View style={styles.row}>
-          <IconButton
-            icon={XIcon}
+          <Button
+            icon={IconX}
+            variant="floating"
+            size="lg"
             onPress={onCancelTrim}
             disabled={saving}
             testID="trim-cancel"
@@ -83,12 +69,13 @@ export function HistoryControls({
               style={styles.nameInput}
             />
           </View>
-          <IconButton
-            icon={CheckIcon}
+          <Button
+            icon={IconCheck}
+            variant="primary"
+            size="lg"
             onPress={onSaveTrim}
             loading={saving}
             testID="trim-save"
-            accent={theme.palette.amber.color}
             accessibilityLabel="Save Favorite"
           />
         </View>
@@ -99,71 +86,22 @@ export function HistoryControls({
   return (
     <View style={[styles.wrap, { paddingTop: Math.max(insets.top, 8) }]} pointerEvents="box-none">
       <View style={styles.row}>
-        <IconButton
-          icon={ArrowLeftIcon}
+        <Button
+          icon={IconArrowLeft}
+          variant="floating"
           testID="history-back"
           onPress={onBack}
           accessibilityLabel="Back"
         />
         <View style={styles.tabsWrap} pointerEvents="box-none">
-          <PillSelector
-            activeId={tab}
-            contained
-            fitContent
-            variant="lightTabs"
-            style={styles.tabs}
-            contentContainerStyle={styles.tabsContent}
-          >
-            <PillSelectorItem
-              id="history"
-              label="History"
-              icon={ClockCounterClockwiseIcon}
-              activeWidth={116}
-              inactiveWidth={46}
-              color={theme.palette.sky}
-              testID="history-tab-history"
-              onPress={() => onSelectTab('history')}
-            />
-            <PillSelectorItem
-              id="favorites"
-              label="Favorites"
-              icon={StarIcon}
-              activeWidth={126}
-              inactiveWidth={46}
-              color={theme.palette.amber}
-              testID="history-tab-favorites"
-              onPress={() => onSelectTab('favorites')}
-            />
-          </PillSelector>
-        </View>
-        <View style={styles.actions}>
-          {favorite ? (
-            <>
-              <IconButton
-                icon={PencilSimpleIcon}
-                onPress={favorite.onEdit}
-                disabled={loading}
-                testID="favorite-edit"
-                accessibilityLabel="Edit Favorite"
-              />
-              <IconButton
-                icon={DotsThreeIcon}
-                onPress={onOpenActions}
-                testID="favorite-actions"
-                accessibilityLabel="Favorite actions"
-              />
-            </>
-          ) : null}
-          {!favorite && canRemove ? (
-            <IconButton
-              icon={DotsThreeIcon}
-              onPress={onOpenActions}
-              testID="history-actions"
-              accessibilityLabel="Ride actions"
-            />
-          ) : !favorite ? (
-            <View style={styles.actionSpacer} />
-          ) : null}
+          <ToggleGroup<HistoryTab>
+            activeKey={tab}
+            options={[
+              { key: 'history', label: 'History', testID: 'history-tab-history' },
+              { key: 'favorites', label: 'Favorites', testID: 'history-tab-favorites' },
+            ]}
+            onSelect={onSelectTab}
+          />
         </View>
       </View>
     </View>
@@ -171,10 +109,6 @@ export function HistoryControls({
 }
 
 const styles = StyleSheet.create({
-  actionSpacer: {
-    width: 38,
-    height: 38,
-  },
   wrap: {
     position: 'absolute',
     top: 0,
@@ -194,27 +128,10 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  actions: {
-    marginLeft: 'auto',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    zIndex: 1,
-  },
-  tabs: {
-    alignSelf: 'center',
-  },
-  tabsContent: {
-    justifyContent: 'center',
-  },
   headerTitleWrap: {
     flex: 1,
-    alignItems: 'center',
   },
   nameInput: {
-    width: '100%',
-    height: 38,
-    paddingVertical: 0,
     textAlign: 'center',
   },
 })

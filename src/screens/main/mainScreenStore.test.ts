@@ -23,8 +23,8 @@ describe('mainScreenStore', () => {
     store.setMapSelector('navigation')
     expect(useMainScreenStore.getState().mapSelector).toBe('navigation')
 
-    store.setMapSelector('style')
-    expect(useMainScreenStore.getState().mapSelector).toBe('style')
+    store.setMapSelector('layers')
+    expect(useMainScreenStore.getState().mapSelector).toBe('layers')
 
     store.enterTelemetry()
     expect(useMainScreenStore.getState().mapSelector).toBe(null)
@@ -42,16 +42,29 @@ describe('mainScreenStore', () => {
     unsubscribe()
 
     store.enterMap()
-    store.setMapSelector('style')
+    store.setMapSelector('layers')
     store.dismissMapSelector()
     expect(useMainScreenStore.getState().mapSelector).toBe(null)
 
     store.setMapSelector('navigation')
     store.enterWeather()
     expect(useMainScreenStore.getState().mapSelector).toBe(null)
+    expect(useMainScreenStore.getState().mode).toBe('map')
+    expect(useMainScreenStore.getState().mapLayer).toBe('weather')
+
+    store.enterLegalLimits()
+    expect(useMainScreenStore.getState().mode).toBe('map')
+    expect(useMainScreenStore.getState().mapLayer).toBe('legalLimits')
+
+    store.exitMapLayer()
+    expect(useMainScreenStore.getState().mapLayer).toBe(null)
+
+    store.enterWeather()
+    store.enterHistory()
+    expect(useMainScreenStore.getState().mapLayer).toBe(null)
 
     store.enterMap()
-    store.setMapSelector('style')
+    store.setMapSelector('layers')
     store.enterHistory()
     expect(useMainScreenStore.getState().mapSelector).toBe(null)
   })
@@ -90,5 +103,27 @@ describe('mainScreenStore', () => {
     useMainScreenStore.getState().beginTrim({ startMs: 3_000, endMs: 4_000 })
     useMainScreenStore.getState().openFavorite('favorite-1')
     expect(useMainScreenStore.getState().trimRange).toBe(null)
+  })
+
+  test('the Board and Profile views cover either main view until Home or Map is chosen', () => {
+    const store = useMainScreenStore.getState()
+
+    store.openCoverTab('board')
+    expect(useMainScreenStore.getState().coverTab).toBe('board')
+
+    store.openCoverTab('profile')
+    expect(useMainScreenStore.getState().coverTab).toBe('profile')
+
+    store.enterMap()
+    expect(useMainScreenStore.getState().coverTab).toBe(null)
+
+    store.openCoverTab('profile')
+    store.enterTelemetry()
+    expect(useMainScreenStore.getState().coverTab).toBe(null)
+
+    store.openCoverTab('board')
+    store.closeCoverTab()
+    expect(useMainScreenStore.getState().mode).toBe('telemetry')
+    expect(useMainScreenStore.getState().coverTab).toBe(null)
   })
 })

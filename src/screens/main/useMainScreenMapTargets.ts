@@ -17,9 +17,6 @@ export function useMainScreenMapTargets(
   controller: ReturnType<typeof useMainScreenController>,
   mapRef: React.RefObject<MainMapHandle | null>,
 ) {
-  const [offscreenMapIndicators, setOffscreenMapIndicators] = useState<
-    OffscreenMapIndicatorState[]
-  >([])
   const [selectedNavigationTarget, setSelectedNavigationTarget] = useState<MapSelection | null>(
     null,
   )
@@ -207,12 +204,6 @@ export function useMainScreenMapTargets(
     if (!selectedNavigationTarget) return
     await navigateToTarget(selectedNavigationTarget)
   }, [navigateToTarget, selectedNavigationTarget])
-  const handleNavigateTarget = useCallback(
-    async (target: MapSelection) => {
-      await navigateToTarget(target)
-    },
-    [navigateToTarget],
-  )
 
   useEffect(() => {
     if (!selectedNavigationTarget?.loadingDetails) return
@@ -278,8 +269,6 @@ export function useMainScreenMapTargets(
   }, [activeNavigationTarget])
 
   return {
-    offscreenMapIndicators,
-    setOffscreenMapIndicators,
     selectedNavigationTarget,
     activeNavigationTarget,
     longPressMapTarget,
@@ -298,6 +287,5 @@ export function useMainScreenMapTargets(
     handleDismissSelectedTarget,
     handleOffscreenIndicatorPress,
     handleNavigateSelectedTarget,
-    handleNavigateTarget,
   }
 }

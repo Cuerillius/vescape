@@ -8,6 +8,7 @@ import { MainOverlays } from '@/screens/main/overlays/MainOverlays'
 import { useMainScreenController } from '@/screens/main/useMainScreenController'
 import { useMainScreenMapTargets } from '@/screens/main/useMainScreenMapTargets'
 
+import type { RecordingState } from '@/modules/board/lib/boardConnection'
 import type { Board } from '@/modules/board/store/boardStore'
 import type { MapSelection } from '@/modules/map/lib/mapSelection'
 import { theme } from '@/constants/theme'
@@ -18,10 +19,13 @@ interface MainScreenProps {
   boards: Board[]
   boardsLoaded: boolean
   bleStatus: string
+  recordingState?: RecordingState
   onStopScan: () => void
   onRetryConnect: () => void
-  onSelectBoard: (id: string) => void
+  onConnectBoard: (id: string) => void
   onAddBoard: () => void
+  onEndRide: () => void
+  onStartRecording: () => void
 }
 
 function buildHistoryOverlayProps(controller: ReturnType<typeof useMainScreenController>) {
@@ -84,10 +88,13 @@ export function MainScreen({
   boards,
   boardsLoaded,
   bleStatus,
+  recordingState,
   onStopScan,
   onRetryConnect,
-  onSelectBoard,
+  onConnectBoard,
   onAddBoard,
+  onEndRide,
+  onStartRecording,
 }: MainScreenProps) {
   const mapRef = useRef<MainMapHandle>(null)
   const cameraHeading = useSharedValue(0)
@@ -117,7 +124,6 @@ export function MainScreen({
   }, [cameraHeading, controller.mapOrientationMode, controller.mode, selectorHeading])
   const targets = useMainScreenMapTargets(controller, mapRef)
   const {
-    offscreenMapIndicators,
     selectedNavigationTarget,
     activeNavigationTarget: detailedActiveNavigationTarget,
     longPressMapTarget,
@@ -181,10 +187,8 @@ export function MainScreen({
       satelliteImageryOpacity: controller.satelliteImageryOpacity,
       satelliteMapImageryOpacity: controller.satelliteMapImageryOpacity,
       satelliteImagerySaturation: controller.satelliteImagerySaturation,
-      hideTelemetryMapDetails: controller.hideTelemetryMapDetails,
     }),
     [
-      controller.hideTelemetryMapDetails,
       controller.mapStyleKey,
       controller.satelliteImageryOpacity,
       controller.satelliteImagerySaturation,
@@ -242,7 +246,6 @@ export function MainScreen({
         onRawMapPress={targets.handleRawMapPress}
         onMapPress={targets.handleMapPress}
         onEnterMapMode={controller.handleMapFocus}
-        onOffscreenMapIndicatorsChange={targets.setOffscreenMapIndicators}
         directionPoint={controller.directionPoint}
         activeNavigationTarget={activeNavigationTarget}
         selectedNavigationTarget={selectedNavigationTarget}
@@ -258,10 +261,13 @@ export function MainScreen({
           activeBoardId,
           activeBoard,
           bleStatus,
+          recordingState,
           onStopScan,
           onRetryConnect,
-          onSelectBoard,
+          onConnectBoard,
           onAddBoard,
+          onEndRide,
+          onStartRecording,
         }}
         map={{
           heading: selectorHeading,
@@ -273,11 +279,11 @@ export function MainScreen({
           setMapSelector: controller.setMapSelector,
           enterMapFocus: controller.handleMapFocus,
           exitMapFocus: controller.exitMapFocus,
-          cancelMapFocus: controller.cancelMapFocus,
           enterWeather: controller.enterWeatherMode,
-          exitWeather: controller.exitWeatherMode,
+          weatherActive: controller.weatherActive,
+          legalLimitsActive: controller.legalLimitsActive,
           enterLegalLimits: controller.enterLegalLimitsMode,
-          exitLegalLimits: controller.exitLegalLimitsMode,
+          exitMapLayer: controller.exitMapLayerMode,
           weatherLocation: controller.liveLocations.at(-1) ?? controller.latestApproximateLocation,
           directionPoint: controller.directionPoint,
           activeNavigationTarget,
@@ -285,15 +291,12 @@ export function MainScreen({
           longPressMapTarget,
           onLongPressMapTargetHandled: () => targets.setLongPressMapTarget(null),
           onSelectNavigationTarget: targets.handleSelectNavigationTarget,
-          onNavigateTarget: targets.handleNavigateTarget,
           onNavigateSelectedTarget: targets.handleNavigateSelectedTarget,
           onCancelNavigation: targets.handleClearDirectionPoint,
           onDismissSelectedTarget: targets.handleDismissSelectedTarget,
           updateMapPoint: targets.handleUpdateMapPoint,
           setMapPointReaction: targets.handleSetMapPointReaction,
           onRemoveMapPoint: targets.handleRemoveMapPoint,
-          offscreenMapIndicators,
-          onOffscreenIndicatorPress: targets.handleOffscreenIndicatorPress,
         }}
         history={buildHistoryOverlayProps(controller)}
       />
@@ -304,7 +307,7 @@ export function MainScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   empty: {
     flex: 1,
