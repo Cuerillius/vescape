@@ -11,28 +11,24 @@ import {
   TUNE_PREVIEW_WHEEL_RADIUS_PIXELS,
 } from '@/modules/tune/lib/tunePreviewGeometry'
 
-export const GROUND_Y = 58
+export const GROUND_Y = 112
 export const WHEEL_RADIUS = TUNE_PREVIEW_WHEEL_RADIUS_PIXELS
 export const DECK_HALF_LENGTH = 72
 export const DECK_CENTER_Y = GROUND_Y - WHEEL_RADIUS
 export const ZERO_MARKER_GAP = 6
-export const ZERO_MARKER_LENGTH = 12
 export const GROUND_TICK_SPACING = GROUND_TICK_SPACING_METERS * TUNE_PREVIEW_PIXELS_PER_METER
 export const FOOTPAD_OFFSET = 46
-const INPUT_ARROW_IDLE_GAP = 34
+const INPUT_ARROW_IDLE_GAP = 62
 const INPUT_ARROW_TRAVEL = 18
-const INPUT_ARROW_LENGTH = 16
-const INPUT_ARROW_HEAD = 4
-export const CANVAS_HEIGHT = 122
-export const READOUT_FONT_SIZE = 9
-export const READOUT_BASELINE = 9
-export const READOUT_HEIGHT = 12
-export const LEGEND_VALUE_WIDTH = 44
-export const SPEED_FONT_SIZE = 16
-export const SPEED_BASELINE = 17
-export const SPEED_WIDTH = 38
-export const SPEED_HEIGHT = 20
-export const GROUND_TO_BOARD_BASELINE_Y = CANVAS_HEIGHT - 32
+const INPUT_ARROW_HEAD = 6
+const INPUT_ARROW_CHEVRON_GAP = 6
+export const CANVAS_HEIGHT = 168
+export const READOUT_FONT_SIZE = 14
+export const READOUT_BASELINE = 15
+export const READOUT_HEIGHT = 20
+export const READOUT_VALUE_WIDTH = 72
+export const SPEED_FONT_SIZE = 22
+export const SCENE_LABEL_FONT_SIZE = 11
 
 export function formatSignedDegrees(value: number): string {
   'worklet'
@@ -58,15 +54,15 @@ export function pitchInputArrow(
   const footpadX = centerX + Math.cos(radians) * footpadOffset
   const footpadY = DECK_CENTER_Y + Math.sin(radians) * footpadOffset
   const arrowTop = footpadY - INPUT_ARROW_IDLE_GAP + INPUT_ARROW_TRAVEL * progress
-  const arrowTip = arrowTop + INPUT_ARROW_LENGTH
-  const headY = arrowTip - INPUT_ARROW_HEAD
   const opacity = progress <= 0 ? 0 : 0.18 + progress * 0.82
 
+  // Two stacked chevrons pointing down at the footpad.
   const path = Skia.Path.Make()
-  path.moveTo(footpadX, arrowTop)
-  path.lineTo(footpadX, arrowTip)
-  path.moveTo(footpadX - INPUT_ARROW_HEAD, headY)
-  path.lineTo(footpadX, arrowTip)
-  path.lineTo(footpadX + INPUT_ARROW_HEAD, headY)
+  for (let index = 0; index < 2; index += 1) {
+    const tipY = arrowTop + INPUT_ARROW_CHEVRON_GAP * index + INPUT_ARROW_HEAD
+    path.moveTo(footpadX - INPUT_ARROW_HEAD, tipY - INPUT_ARROW_HEAD)
+    path.lineTo(footpadX, tipY)
+    path.lineTo(footpadX + INPUT_ARROW_HEAD, tipY - INPUT_ARROW_HEAD)
+  }
   return { path, opacity }
 }

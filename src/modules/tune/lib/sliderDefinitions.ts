@@ -65,7 +65,6 @@ export interface BasicSliderItem {
   step: number
   source: string
   info: string
-  modifiedManually: boolean
 }
 
 export interface BasicSliderDefinition {
@@ -128,10 +127,6 @@ export function snapValue(value: number, min: number, max: number, step: number)
 export function formatSliderValue(item: BasicSliderItem): string {
   if (item.value == null) return 'Missing'
   return Number.isInteger(item.value) ? item.value.toFixed(0) : item.value.toFixed(1)
-}
-
-export function formatProfileValue(value: TuneProfileFieldValue | undefined): string {
-  return isDisplayableFieldValue(value) ? formatTuneValue(value) : 'Missing'
 }
 
 export function isEditableNumberField(field: RefloatConfigField): boolean {
@@ -322,7 +317,6 @@ export function basicSlidersFromGroups(
     step: slider.step,
     source: slider.source,
     info: slider.info,
-    modifiedManually: !slider.checkMatch(fieldMap),
   }))
 }
 

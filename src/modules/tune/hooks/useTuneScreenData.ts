@@ -259,11 +259,6 @@ export function useTuneScreenData() {
     return { profileOnly, boardOnly }
   }, [activeProfile, boardSnapshot])
 
-  const boardDiffByField = useMemo(
-    () => new Map(boardDiff.map((item) => [item.fieldId, item])),
-    [boardDiff],
-  )
-
   const boardSnapshotReady = firmwareCommandsTrusted && boardSnapshotStatus === 'ready'
   const syncBarState = useMemo(
     () =>
@@ -303,23 +298,18 @@ export function useTuneScreenData() {
     allBoards,
     basicSliders,
     bleStatus,
-    boardConnected,
     firmwareCommandBlockReason,
     firmwareCommandsTrusted,
     boardDiff,
-    boardDiffByField,
     boardSnapshot: boardSnapshot as RefloatConfigSnapshot | null,
     boardSnapshotError,
-    boardSnapshotStatus,
     boardsLoaded,
-    dirtyFields,
     displayGroups,
     draftFields,
     loadOffline: loadProfileConfig,
     loadOnline: retryBoardSnapshot,
     profileError,
     profileFields,
-    profiles,
     profileState,
     retryBoardSnapshot,
     schemaMismatchFields,

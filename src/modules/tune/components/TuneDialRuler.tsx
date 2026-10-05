@@ -15,11 +15,7 @@ import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated'
 
-import {
-  useResolvedAccentColors,
-  useResolvedColor,
-  useResolvedNeutralColors,
-} from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedColor, useResolvedUiColors } from '@/hooks/useTheme'
 import { useSkiaFont } from '@/hooks/useSkiaFont'
 import { formatTuneValue } from '@/modules/tune/lib/fields'
 import {
@@ -66,7 +62,7 @@ export function TuneDialRuler({
   valueToOffset: (value: number) => number
   layout: ReturnType<typeof computeTuneDialLayout>
 }) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const accents = useResolvedAccentColors()
   const resolvedColor = useResolvedColor(color)
   const {
@@ -142,8 +138,8 @@ export function TuneDialRuler({
   return (
     <Canvas style={styles.canvas}>
       <Group transform={stripTransform}>
-        <Path path={minorTicksPath} style="stroke" color={neutral.border} strokeWidth={1} />
-        <Path path={majorTicksPath} style="stroke" color={neutral.textMuted} strokeWidth={1} />
+        <Path path={minorTicksPath} style="stroke" color={ui.border} strokeWidth={1} />
+        <Path path={majorTicksPath} style="stroke" color={ui.mutedForeground} strokeWidth={1} />
         {labelFont &&
           labels.map((label) => (
             <SkiaText
@@ -152,7 +148,7 @@ export function TuneDialRuler({
               y={LABEL_BASELINE_Y}
               text={label.text}
               font={labelFont}
-              color={neutral.textMuted}
+              color={ui.mutedForeground}
             />
           ))}
         {prevMarkOffset != null && (
@@ -162,7 +158,7 @@ export function TuneDialRuler({
               y={TOP_VALUE_BAND_HEIGHT}
               width={3}
               height={RULER_LABEL_BAND_TOP - TOP_VALUE_BAND_HEIGHT}
-              color={neutral.surface}
+              color={ui.card}
             />
             <Line
               p1={vec(prevMarkOffset, TOP_VALUE_BAND_HEIGHT)}

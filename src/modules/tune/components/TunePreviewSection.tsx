@@ -1,23 +1,17 @@
 import { type ReactNode, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
-import { Canvas, LinearGradient, Rect, vec } from '@shopify/react-native-skia'
-import { EyeIcon, QuestionIcon } from 'phosphor-react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useSharedValue } from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { TuneProfileFieldValue } from 'vescape-core'
 
-import { Switch } from '@/components/controls/Switch'
-import { Text } from '@/components/base/Text'
 import { InfoModal } from '@/components/modals/InfoModal'
 import { theme } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
-import { TunePreview, TUNE_PREVIEW_DESCRIPTION } from '@/modules/tune/components/TunePreview'
+import { useResolvedUiColors } from '@/hooks/useTheme'
+import { TunePreviewTerrainSelect } from '@/modules/tune/components/TunePreviewTerrainSelect'
+import { TunePreview } from '@/modules/tune/components/TunePreview'
 import {
   TunePreviewScenarioControls,
   type HillsPresetId,
 } from '@/modules/tune/components/TunePreviewScenarioControls'
-
-const PREVIEW_PINNED_GRADIENT_HEIGHT = 210
 
 interface TunePreviewSectionProps {
   fields: Record<string, TuneProfileFieldValue>
@@ -27,83 +21,30 @@ interface TunePreviewSectionProps {
 }
 
 export function TunePreviewSection({ fields, active, visible, children }: TunePreviewSectionProps) {
-  const neutral = useResolvedNeutralColors()
-  const insets = useSafeAreaInsets()
-  const { width } = useWindowDimensions()
+  const ui = useResolvedUiColors()
   const pitchInputDegrees = useSharedValue(0)
   const pitchInputActive = useSharedValue(false)
   const previewSpeedKmh = useSharedValue(15)
   const groundToBoardAngleDegrees = useSharedValue(0)
-  const previewGradientColor = neutral.bg
-  const previewGradientColors = [
-    theme.alpha(previewGradientColor, 1),
-    theme.alpha(previewGradientColor, 0.75),
-    theme.alpha(previewGradientColor, 0),
-  ]
   const [hillsPreset, setHillsPreset] = useState<HillsPresetId>('flat')
-  const [previewEnabled, setPreviewEnabled] = useState(false)
   const [hillHeightMeters, setHillHeightMeters] = useState(2.5)
   const [hillSpacingMeters, setHillSpacingMeters] = useState(30)
-  const [previewPinnedHeight, setPreviewPinnedHeight] = useState(PREVIEW_PINNED_GRADIENT_HEIGHT)
   const hillsEnabled = hillsPreset !== 'flat'
+  const [expanded, setExpanded] = useState(false)
   const [previewHelpVisible, setPreviewHelpVisible] = useState(false)
 
   if (!visible) return null
 
   return (
-    <View style={[styles.tuneView, { backgroundColor: neutral.bg }]}>
+    <View style={[styles.tuneView, { backgroundColor: ui.background }]}>
       <ScrollView
-        style={[styles.formScroll, { backgroundColor: neutral.bg }]}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+        style={[styles.formScroll, { backgroundColor: ui.background }]}
+        contentContainerStyle={{ paddingBottom: 24 }}
         contentInsetAdjustmentBehavior="automatic"
-        stickyHeaderIndices={previewEnabled ? [0] : undefined}
+        stickyHeaderIndices={[0]}
       >
-        {!previewEnabled ? (
-          <View style={styles.previewToggleWrap}>
-            <View style={styles.previewToggleCard}>
-              <View style={styles.previewToggleTitleRow}>
-                <EyeIcon size={16} color={theme.tune.color} weight="duotone" />
-                <View style={styles.previewToggleText}>
-                  <View style={styles.previewToggleHeading}>
-                    <Text style={styles.previewToggleTitle}>Tune Preview</Text>
-                    <Pressable
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel="About Tune Preview"
-                      onPress={() => setPreviewHelpVisible(true)}
-                    >
-                      <QuestionIcon size={14} color={theme.palette.slate.textMuted} weight="bold" />
-                    </Pressable>
-                  </View>
-                  <Text style={styles.previewToggleDescription}>{TUNE_PREVIEW_DESCRIPTION}</Text>
-                </View>
-              </View>
-              <View style={styles.previewToggleActions}>
-                <Switch
-                  value={previewEnabled}
-                  onValueChange={setPreviewEnabled}
-                  accent={theme.palette.purple.color}
-                  accessibilityLabel="Enable Tune Preview"
-                />
-              </View>
-            </View>
-          </View>
-        ) : null}
-        {previewEnabled ? (
-          <View
-            style={styles.previewPinned}
-            onLayout={(event) => setPreviewPinnedHeight(event.nativeEvent.layout.height)}
-          >
-            <Canvas style={styles.previewGradient} pointerEvents="none">
-              <Rect x={0} y={0} width={width} height={previewPinnedHeight}>
-                <LinearGradient
-                  start={vec(0, 0)}
-                  end={vec(0, previewPinnedHeight)}
-                  colors={previewGradientColors}
-                  positions={[0, 0.7, 1]}
-                />
-              </Rect>
-            </Canvas>
+        <View style={[styles.pinned, { backgroundColor: ui.background }]}>
+          <View style={styles.previewCard}>
             <TunePreview
               fields={fields}
               pitchInputDegrees={pitchInputDegrees}
@@ -112,43 +53,43 @@ export function TunePreviewSection({ fields, active, visible, children }: TunePr
               hillHeightMeters={hillHeightMeters}
               hillSpacingMeters={hillSpacingMeters}
               active={active}
-              onDisable={() => setPreviewEnabled(false)}
+              expanded={expanded}
+              onToggleExpanded={() => setExpanded((current) => !current)}
               onHelp={() => setPreviewHelpVisible(true)}
+              headerAccessory={
+                <TunePreviewTerrainSelect
+                  hillsPreset={hillsPreset}
+                  onHillsPresetChange={setHillsPreset}
+                  onHillHeightChange={setHillHeightMeters}
+                  onHillSpacingChange={setHillSpacingMeters}
+                />
+              }
               speedKmh={previewSpeedKmh}
               groundToBoardAngleDegrees={groundToBoardAngleDegrees}
             />
+            {expanded ? (
+              <TunePreviewScenarioControls
+                hillsPreset={hillsPreset}
+                hillHeightMeters={hillHeightMeters}
+                onHillHeightChange={setHillHeightMeters}
+                hillSpacingMeters={hillSpacingMeters}
+                onHillSpacingChange={setHillSpacingMeters}
+                pitchInputDegrees={pitchInputDegrees}
+                pitchInputActive={pitchInputActive}
+                speedKmh={previewSpeedKmh}
+                groundToBoardAngleDegrees={groundToBoardAngleDegrees}
+              />
+            ) : null}
           </View>
-        ) : null}
-        <View
-          style={[
-            styles.content,
-            { backgroundColor: neutral.bg },
-            previewEnabled && styles.contentWithPreview,
-          ]}
-        >
-          {previewEnabled ? (
-            <TunePreviewScenarioControls
-              hillsPreset={hillsPreset}
-              onHillsPresetChange={setHillsPreset}
-              hillHeightMeters={hillHeightMeters}
-              onHillHeightChange={setHillHeightMeters}
-              hillSpacingMeters={hillSpacingMeters}
-              onHillSpacingChange={setHillSpacingMeters}
-              pitchInputDegrees={pitchInputDegrees}
-              pitchInputActive={pitchInputActive}
-              speedKmh={previewSpeedKmh}
-              groundToBoardAngleDegrees={groundToBoardAngleDegrees}
-            />
-          ) : null}
-          {children}
         </View>
+        <View style={[styles.content, { backgroundColor: ui.background }]}>{children}</View>
       </ScrollView>
 
       <InfoModal
         visible={previewHelpVisible}
-        variant="warning"
-        title="Work in progress"
-        message={`Tune Editor is a work in progress and is the only place in this app that can change your board's settings.\n\nTune Preview is not a real-world simulation and will never perfectly represent how your board will behave while riding. It is only a comparison tool to help you understand tune behavior and differences between settings.`}
+        variant="info"
+        title="Tune Preview"
+        message="Tune Preview is not a real-world simulation and will never perfectly represent how your board will behave while riding. It is only a comparison tool to help you understand tune behavior and differences between settings."
         onDismiss={() => setPreviewHelpVisible(false)}
       />
     </View>
@@ -158,67 +99,14 @@ export function TunePreviewSection({ fields, active, visible, children }: TunePr
 const styles = StyleSheet.create({
   tuneView: { flex: 1 },
   formScroll: { flex: 1 },
-  previewToggleWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  previewToggleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    borderRadius: 10,
-    padding: 12,
-    backgroundColor: theme.neutral.surfaceDeep,
-  },
-  previewToggleTitleRow: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  previewToggleText: { flex: 1, minWidth: 0 },
-  previewToggleHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  previewToggleActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  previewToggleTitle: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  previewToggleDescription: {
-    color: theme.neutral.textSecondary,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  previewPinned: {
-    paddingTop: 0,
-    paddingBottom: 0,
-    gap: 5,
-    overflow: 'hidden',
-    zIndex: 1,
-  },
-  previewGradient: {
-    position: 'absolute',
-    inset: 0,
-  },
-  content: {
-    padding: 16,
+  pinned: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, zIndex: 1 },
+  content: { paddingHorizontal: 16, paddingTop: 8, gap: 16 },
+  previewCard: {
     gap: 16,
-  },
-  contentWithPreview: {
-    marginTop: -18,
-    paddingTop: 0,
-    zIndex: 2,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.ui.border,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.ui.card,
   },
 })

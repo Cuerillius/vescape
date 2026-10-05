@@ -120,14 +120,19 @@ produced by Aggressiveness. Editor precision does not depend on whether the curr
 happens to be an integer. ATR Threshold Angle Up and Down both use `0..5°` with fixed
 `0.5°` steps.
 
-Tune field editors open in ruler mode. The keyboard button switches to manual input, and the
-ruler button switches back without snapping the value. Only moving the ruler snaps to its step.
-Manual input validates the field's display precision, accepts a decimal comma or point,
-and disables Apply for invalid input. Values outside the ruler's usual range show a warning
-but remain unchanged and can be applied. Percentages are entered in display
-units and converted back to raw values on Apply. Cancel leaves the profile unchanged.
+Tune field editors are a bottom drawer that opens in ruler mode. A ruler and a keyboard
+button sit beside the title, the active one highlighted; the keyboard switches to manual input,
+and the ruler switches back without snapping the value. Only moving the ruler snaps to
+its step. Manual input validates the field's display precision and accepts a decimal comma or
+point; invalid input is discarded when the drawer closes. Values outside the ruler's usual range
+show a warning but are kept. Percentages are entered in display units and converted back to raw
+values on commit.
 
-Opening an editor and applying without changing anything preserves the saved values. Basic
+The drawer has no Apply or Cancel. Closing it, by any route, commits the value to the profile and
+saves it at once; there is no draft to confirm or discard. If the save fails, the change stays
+as an unsaved remainder, the bar under the editor offers Retry, and the error shows in the banner.
+
+Closing an editor without changing anything preserves the saved values. Basic
 controls show the actual linked values until the dial changes; changing the dial explicitly
 applies its formula. Editing only a linked field preserves the other fields, including unequal
 ATR uphill/downhill strengths.
@@ -354,6 +359,25 @@ advanced editors may allow up to `1.00 deg/A`.
 | `tiltback_variable_max` | Variable Tiltback Target | Maximum variable tiltback target.  |
 
 ## UI Behavior Notes
+
+### Choosing, creating and editing tunes
+
+The dashboard tuning card is where tunes are chosen and created; the Tune screen edits one tune.
+
+- Swiping the card selects a tune. Apply writes it to the board; the card shows Applied when the
+  board's values match the saved tune.
+- Opening a tune from the card shows its Tune screen: a detail page for that tune, with no switching
+  between tunes. The ⋮ button in the flat header opens a bottom drawer: History, Duplicate tune,
+  Edit name and icon, Copy to different board and Delete tune, plus Pull from board while the board differs
+  from the tune. The board is read automatically when the screen opens; there is no manual re-read. A duplicate is named "<name>
+  copy" and selected.
+- A tune is created from the board's current values, with no naming step, and is named "New tune"
+  (numbered when taken). The rider renames it from its detail page. The last page of the card
+  creates one. When the board runs values no saved tune matches, a leading "Not saved" page shows
+  those values and the same action reads Save as tune.
+- Creating reads the board fresh first, so the saved tune is what the board runs now. The card
+  decides "matches a saved tune" from the fresh snapshot when there is one, and from the board's
+  Last Known values until then.
 
 ### Retrieval and Persistence Model
 
@@ -702,16 +726,17 @@ compound controls, not as harmless aliases.
 
 ### Save Semantics
 
-Changing slider state should be treated separately from persisting to the board.
-A safe UX has three distinct phases:
+Saving the profile and writing it to the board are separate steps:
 
-- Read current config from the controller.
-- Apply edits to a local draft.
-- Explicitly write and save the final draft.
+- Edits save to the Tune Profile as they are made, with no draft to confirm. Each edit is one
+  history entry, so a rollback undoes a single edit.
+- Writing to the board is explicit: Apply on the dashboard card, or the "Tune has changed. Apply to
+  board" button under the editor, shown when the board's values differ from the tune. "Pull from board"
+  in the actions drawer, shown in the same case, takes the board's values into the profile and
+  saves them.
 
-The current app should keep read-only tune inspection separate from future write
-paths until mutation commands, save behavior, and failure recovery are designed
-and tested.
+The Tune screen shows the basic sliders by default. Advanced tuning, a checked option in the actions
+drawer, replaces them with every field in its group; it starts off each time a tune opens.
 
 ## Implementation Notes for This Repo
 
@@ -725,3 +750,16 @@ Before implementing writes, keep field IDs aligned with the serialized struct
 names returned by the board's `<SerOrder>`. Do not derive IDs from `cDefine`;
 those defaults are VESC Tool names and can differ from Refloat's wire-format
 field IDs, as with `atr_strength_up` / `atr_strength_down`.
+
+## Tune card art
+
+The dashboard tuning card draws each tune as smooth color gradients under fine per-pixel grain, so
+no area is a flat color (a Skia runtime shader, `TuneCardArt`; parameters in `tuneCardShader`).
+Each basic slider owns one visual channel so a rider can read the tune off the card: aggressiveness
+sets the color (green at the calm end, orange-red at the hot end), nose stiffness the width and edge
+crispness of the main ribbon, carve tilt its sweep angle, brake tilt a second white ribbon (hidden
+at zero), and ATR intensity the turbulence of the flow and the grain size. A hash of all five values
+seeds the noise and nudges the hue by a few degrees, so the same values always draw the same card
+and no factor is drowned out. Title and page dots take a dark ink derived from the card's hue.
+Pages with no tune (New tune, legal mode, an unavailable board) use the same shader in the state's
+color with a fixed calm flow and no brake ribbon (`statusCardShader`).

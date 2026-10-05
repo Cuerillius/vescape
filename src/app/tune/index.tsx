@@ -1,3 +1,3 @@
-import { TuneScreen } from '@/modules/tune/screens/TuneScreen'
+import { TuneListScreen } from '@/modules/tune/screens/TuneListScreen'
 
-export default TuneScreen
+export default TuneListScreen

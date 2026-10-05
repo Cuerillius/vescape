@@ -1,8 +1,12 @@
-import { Modal, Pressable, View, StyleSheet } from 'react-native'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
+import { Pressable, StyleSheet } from 'react-native'
+
 import { Text } from '@/components/base/Text'
-import { XIcon } from 'phosphor-react-native'
+import { OnewheelIcon } from '@/components/icons/OnewheelIcon'
+import { Drawer } from '@/components/ui/Drawer'
+import { interaction, theme } from '@/constants/theme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 import type { Board } from '@/modules/board/store/boardStore'
-import { theme } from '@/constants/theme'
 
 interface BoardPickerModalProps {
   visible: boolean
@@ -11,87 +15,62 @@ interface BoardPickerModalProps {
   onDismiss: () => void
 }
 
+/** Picks the board a tune is copied to, as a bottom drawer with one row per other board. */
 export function BoardPickerModal({ visible, boards, onSelect, onDismiss }: BoardPickerModalProps) {
+  const ui = useResolvedUiColors()
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={styles.modalBackdrop} onPress={onDismiss}>
-        <Pressable style={styles.promptModal} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.promptHeader}>
-            <Text style={styles.promptTitle}>Copy to board</Text>
-            <Pressable style={styles.promptCloseBtn} onPress={onDismiss}>
-              <XIcon size={14} color={theme.palette.slate.text} weight="bold" />
-            </Pressable>
-          </View>
-          {boards.length === 0 ? (
-            <Text style={styles.emptyText}>No other boards available.</Text>
-          ) : (
-            boards.map((board) => (
-              <Pressable
-                key={board.id}
-                style={styles.boardPickerItem}
-                onPress={() => onSelect(board)}
-              >
-                <Text style={styles.boardPickerText}>{board.name}</Text>
-              </Pressable>
-            ))
-          )}
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <Drawer
+      visible={visible}
+      title="Copy to different board"
+      description="Choose the board that should get a copy of this tune."
+      onClose={onDismiss}
+      testID="tune-board-picker"
+    >
+      {boards.length === 0 ? (
+        <Text style={styles.emptyText}>No other boards available.</Text>
+      ) : (
+        boards.map((board) => (
+          <Pressable
+            key={board.id}
+            accessibilityRole="button"
+            accessibilityLabel={board.name}
+            android_ripple={interaction.ripple}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            onPress={() => onSelect(board)}
+            testID={`tune-board-picker-${board.id}`}
+          >
+            <OnewheelIcon size={20} color={ui.mutedForeground} />
+            <Text style={styles.name} numberOfLines={1}>
+              {board.name}
+            </Text>
+            <IconChevronRight size={18} color={ui.faintForeground} />
+          </Pressable>
+        ))
+      )}
+    </Drawer>
   )
 }
 
 const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.alpha(theme.palette.mono.black, 0.6),
-    padding: 32,
-  },
-  promptModal: {
-    width: '100%',
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    padding: 16,
-    gap: 14,
-  },
-  promptHeader: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 14,
+    minHeight: 52,
+    paddingHorizontal: 20,
   },
-  promptTitle: {
-    color: theme.neutral.textPrimary,
+  pressed: {
+    backgroundColor: theme.ui.muted,
+  },
+  name: {
+    flex: 1,
+    color: theme.ui.foreground,
     fontSize: 16,
-    fontWeight: '900',
-  },
-  promptCloseBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.neutral.surfaceDeep,
-  },
-  boardPickerItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderTopWidth: 1,
-    borderTopColor: theme.neutral.surfaceDeep,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  boardPickerText: {
-    color: theme.neutral.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   emptyText: {
-    color: theme.neutral.textMuted,
-    fontSize: 13,
+    color: theme.ui.mutedForeground,
+    fontSize: 14,
     textAlign: 'center',
     paddingVertical: 16,
   },

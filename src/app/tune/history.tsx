@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FlatList, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
 import { useRouter } from 'expo-router'
-import { ArrowCounterClockwiseIcon } from 'phosphor-react-native'
+import IconArrowBackUp from '@tabler/icons-react-native/IconArrowBackUp'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import type { TuneHistoryEntry, TuneProfileFieldValue } from 'vescape-core'
 
+import { Text } from '@/components/base/Text'
 import { ConfirmModal } from '@/components/modals/ConfirmModal'
-import { Button } from '@/components/base/Button'
-import { APP_TUNE_FIELD_BY_ID, formatTuneValue } from '@/modules/tune/lib/fields'
-import { useTuneProfileStore } from '@/modules/tune/store/tuneProfileStore'
+import { Button } from '@/components/ui/Button'
 import { theme } from '@/constants/theme'
 import { DASH } from '@/helpers/format'
+import { APP_TUNE_FIELD_BY_ID, formatTuneValue } from '@/modules/tune/lib/fields'
+import { useTuneProfileStore } from '@/modules/tune/store/tuneProfileStore'
 
 interface HistoryFieldDiff {
   fieldId: string
@@ -86,6 +86,7 @@ export default function TuneHistoryScreen() {
           data={entries}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
+          ItemSeparatorComponent={Separator}
           renderItem={({ item, index }) => {
             const newer =
               index === 0 && currentFields ? { fields: currentFields } : entries[index - 1]
@@ -113,9 +114,8 @@ export default function TuneHistoryScreen() {
                 </View>
                 <Button
                   label="Restore"
-                  icon={ArrowCounterClockwiseIcon}
-                  variant="secondary"
-                  size="sm"
+                  icon={IconArrowBackUp}
+                  variant="outline"
                   onPress={() => handleRestore(item.id)}
                 />
               </View>
@@ -143,10 +143,14 @@ export default function TuneHistoryScreen() {
   )
 }
 
+function Separator() {
+  return <View style={styles.separator} />
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   error: {
     color: theme.status.error.text,
@@ -154,52 +158,48 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   empty: {
-    color: theme.neutral.textMuted,
-    fontSize: 13,
+    color: theme.ui.mutedForeground,
+    fontSize: 14,
     textAlign: 'center',
-    paddingVertical: 24,
+    paddingVertical: 32,
   },
   list: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 32,
   },
+  separator: { height: 1, backgroundColor: theme.ui.border },
   entry: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.neutral.surface,
-    gap: 10,
+    paddingVertical: 14,
+    gap: 12,
   },
   entryInfo: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
   entryDate: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  entryDetail: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  diffs: {
-    gap: 1,
-    marginTop: 2,
-  },
-  diffLine: {
-    color: theme.neutral.textSecondary,
-    fontSize: 11,
+    color: theme.ui.foreground,
+    fontSize: 15,
     fontWeight: '600',
   },
+  entryDetail: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+  },
+  diffs: {
+    gap: 2,
+  },
+  diffLine: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+  },
   diffOld: {
-    color: theme.status.error.text,
-    fontWeight: '700',
+    textDecorationLine: 'line-through',
   },
   diffNew: {
-    color: theme.palette.green.text,
-    fontWeight: '700',
+    color: theme.ui.foreground,
+    fontWeight: '600',
   },
 })

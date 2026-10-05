@@ -6,6 +6,8 @@ import {
   getTuneProfiles as nativeGetTuneProfiles,
   copyProfileToBoard as nativeCopyProfileToBoard,
   rollbackProfile as nativeRollbackProfile,
+  type TuneProfile,
+  type TuneProfileFieldValue,
 } from 'vescape-core'
 
 import { errorMessage } from '@/helpers/error'
@@ -18,6 +20,7 @@ import {
   createNativeProfileWithMetadata,
   isCompatibleProfile,
   renameNativeProfileWithMetadata,
+  uniqueTuneName,
   withDefaultMetadata,
 } from '@/modules/tune/store/tuneProfileHelpers'
 import {
@@ -26,6 +29,46 @@ import {
   type TuneProfileState,
   type TuneProfileStore,
 } from '@/modules/tune/store/tuneProfileStoreTypes'
+
+/** Saves `fields` as a new profile on the loaded board and makes it the selected one. */
+async function saveNewProfile(
+  get: () => TuneProfileStore,
+  set: StoreApi<TuneProfileStore>['setState'],
+  name: string,
+  icon: string,
+  color: string,
+  fields: Record<string, TuneProfileFieldValue>,
+): Promise<TuneProfile | null> {
+  const state = get()
+  if (!state.activeBoardId || !state.refloatBaseVersion) return null
+  set({ error: null })
+  try {
+    const profile = await createNativeProfileWithMetadata(
+      state.activeBoardId,
+      name,
+      icon || DEFAULT_TUNE_PROFILE_ICON,
+      color || DEFAULT_TUNE_PROFILE_COLOR,
+      fields,
+      state.refloatBaseVersion,
+    )
+    set((prevState) => {
+      const diff = boardDiff(profile, prevState.boardFields)
+      return {
+        profiles: [...prevState.profiles, profile],
+        activeProfile: profile,
+        draftFields: {},
+        hasDirtyFields: false,
+        boardDiff: diff,
+        hasBoardDiff: diff.length > 0,
+        error: null,
+      }
+    })
+    return profile
+  } catch (error) {
+    set({ error: errorMessage(error, 'Unable to create tune profile.') })
+    throw error
+  }
+}
 
 /** Ignores results of a load that a newer load has already superseded. */
 let profileLoadRequestId = 0
@@ -38,6 +81,7 @@ type TuneProfileLibrarySlice = TuneProfileState &
     | 'loadProfile'
     | 'setActiveProfile'
     | 'createProfile'
+    | 'duplicateProfile'
     | 'renameProfile'
     | 'deleteProfile'
     | 'loadHistory'
@@ -182,43 +226,25 @@ export const createTuneProfileLibrarySlice: SliceFactory = (set, get) => ({
     })
   },
 
-  async createProfile(name, icon, color, cloneFromProfileId) {
+  createProfile(name, icon, color) {
+    return saveNewProfile(get, set, name, icon, color, get().boardFields)
+  },
+
+  async duplicateProfile(profileId) {
     const state = get()
-    if (!state.activeBoardId || !state.refloatBaseVersion) return null
-    const sourceFields = cloneFromProfileId
-      ? (state.profiles.find(
-          (p) =>
-            p.id === cloneFromProfileId &&
-            isCompatibleProfile(p, state.activeBoardId, state.refloatBaseVersion),
-        )?.fields ?? {})
-      : state.boardFields
-    set({ error: null })
-    try {
-      const profile = await createNativeProfileWithMetadata(
-        state.activeBoardId,
-        name,
-        icon || DEFAULT_TUNE_PROFILE_ICON,
-        color || DEFAULT_TUNE_PROFILE_COLOR,
-        sourceFields,
-        state.refloatBaseVersion,
-      )
-      set((prevState) => {
-        const diff = boardDiff(profile, prevState.boardFields)
-        return {
-          profiles: [...prevState.profiles, profile],
-          activeProfile: profile,
-          draftFields: {},
-          hasDirtyFields: false,
-          boardDiff: diff,
-          hasBoardDiff: diff.length > 0,
-          error: null,
-        }
-      })
-      return profile
-    } catch (error) {
-      set({ error: errorMessage(error, 'Unable to create tune profile.') })
-      throw error
-    }
+    const source = state.profiles.find((profile) => profile.id === profileId)
+    if (!source) return null
+    return saveNewProfile(
+      get,
+      set,
+      uniqueTuneName(
+        `${source.name} copy`,
+        state.profiles.map((profile) => profile.name),
+      ),
+      source.icon,
+      source.color,
+      source.fields,
+    )
   },
 
   async renameProfile(profileId, name, icon, color) {

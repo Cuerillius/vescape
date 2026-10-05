@@ -58,6 +58,7 @@ export function TuneDial({
 }: TuneDialProps) {
   'use no memo'
   const resolvedColor = useResolvedColor(color)
+  const indicatorColor = useResolvedColor(theme.ui.foreground)
   const nativeScrollGesture = use(NativeScrollGestureContext)
   const layout = useMemo(() => computeTuneDialLayout(min, max, step), [min, max, step])
   const decimals = step < 1 ? Math.ceil(Math.abs(Math.log10(step))) : 0
@@ -115,7 +116,7 @@ export function TuneDial({
           </Animated.View>
         </GestureDetector>
         <View
-          style={[styles.indicatorTop, { backgroundColor: resolvedColor }]}
+          style={[styles.indicatorTop, { backgroundColor: indicatorColor }]}
           pointerEvents="none"
         />
         <View style={styles.valueBadgeAnchor} pointerEvents="none">
@@ -126,7 +127,7 @@ export function TuneDial({
                 y={BADGE_BASELINE}
                 text={badgeText}
                 font={badgeFont}
-                color={resolvedColor}
+                color={indicatorColor}
               />
             )}
           </Canvas>
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
     left: '50%',
     marginLeft: 7,
     bottom: 3,
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 9,
     fontWeight: '800',
     lineHeight: 10,

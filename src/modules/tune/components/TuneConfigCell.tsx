@@ -1,48 +1,20 @@
-import { forwardRef } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import { ArrowCounterClockwiseIcon, CheckIcon } from 'phosphor-react-native'
-import type { RefloatConfigField, TuneProfileFieldValue } from 'vescape-core'
+import type { RefloatConfigField } from 'vescape-core'
 
-import { isDisplayableFieldValue } from '@/modules/tune/lib/fieldValues'
-import { formatProfileValue } from '@/modules/tune/lib/sliderDefinitions'
-import { formatTuneValue, tuneDisplayValue } from '@/modules/tune/lib/fields'
+import { Text } from '@/components/base/Text'
+import { interaction, theme } from '@/constants/theme'
 import { TuneTileFill } from '@/modules/tune/components/TuneTileFill'
-import { theme, type ThemeColor } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { formatTuneValue, tuneDisplayValue } from '@/modules/tune/lib/fields'
 
 interface TuneConfigCellProps {
   field: RefloatConfigField
-  savedValue: TuneProfileFieldValue | undefined
-  boardValue: TuneProfileFieldValue | undefined
-  profileValue: TuneProfileFieldValue | undefined
-  dirty: boolean
-  boardChanged: boolean
-  color: ThemeColor
   onPress: () => void
-  onRevert: () => void
-  onAcceptBoard: () => void
 }
 
-export const TuneConfigCell = forwardRef<View, TuneConfigCellProps>(function TuneConfigCell(
-  {
-    field,
-    savedValue,
-    boardValue,
-    profileValue,
-    dirty,
-    boardChanged,
-    color,
-    onPress,
-    onRevert,
-    onAcceptBoard,
-  },
-  ref,
-) {
-  const neutral = useResolvedNeutralColors()
-  const canAcceptBoard = boardChanged && isDisplayableFieldValue(boardValue)
-  const hasActions = dirty || canAcceptBoard
-  const progressFraction =
+/** One raw field as a flat tile: its name, its value, and where that sits in the range. */
+export function TuneConfigCell({ field, onPress }: TuneConfigCellProps) {
+  const shownValue = formatTuneValue(tuneDisplayValue(field.id, field.value))
+  const fraction =
     typeof field.value === 'number' &&
     Number.isFinite(field.value) &&
     field.min != null &&
@@ -54,170 +26,49 @@ export const TuneConfigCell = forwardRef<View, TuneConfigCellProps>(function Tun
       : null
 
   return (
-    <View ref={ref} style={styles.cellWrapper}>
-      <Pressable
-        style={[
-          styles.cell,
-          { borderColor: neutral.border, backgroundColor: neutral.surfaceDeep },
-          dirty && styles.cellDirty,
-          boardChanged && styles.cellBoardChanged,
-        ]}
-        onPress={onPress}
-      >
-        <TuneTileFill fraction={progressFraction} color={color} />
-        {dirty ? (
-          <Pressable style={styles.cellRevertButton} onPress={onRevert}>
-            <ArrowCounterClockwiseIcon size={13} color={theme.palette.sky.text} weight="bold" />
-          </Pressable>
-        ) : null}
-        {canAcceptBoard ? (
-          <Pressable
-            style={[styles.cellAcceptButton, dirty && styles.cellAcceptButtonStacked]}
-            onPress={onAcceptBoard}
-          >
-            <CheckIcon size={13} color={theme.palette.green.text} weight="bold" />
-          </Pressable>
-        ) : null}
-        <View style={styles.cellHeaderRow}>
-          <Text
-            style={[
-              styles.cellLabel,
-              { color: neutral.textPrimary },
-              hasActions && styles.cellLabelWithAction,
-            ]}
-            numberOfLines={2}
-          >
-            {field.label}
-          </Text>
-        </View>
-        <Text
-          style={[styles.cellValue, { color: neutral.textPrimary }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          selectable
-        >
-          {formatTuneValue(tuneDisplayValue(field.id, field.value))}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${field.label}, ${shownValue}`}
+      onPress={onPress}
+      android_ripple={interaction.ripple}
+      style={({ pressed }) => [styles.cell, pressed ? styles.pressed : null]}
+    >
+      <View style={styles.header}>
+        <Text style={styles.label} numberOfLines={2}>
+          {field.label}
         </Text>
-        {dirty && isDisplayableFieldValue(savedValue) ? (
-          <Text style={[styles.cellOldValue, styles.cellTextWithActions]} numberOfLines={1}>
-            was {formatTuneValue(tuneDisplayValue(field.id, savedValue))}
-          </Text>
-        ) : null}
-        {boardChanged ? (
-          <Text
-            style={[styles.cellProfileValue, hasActions && styles.cellTextWithActions]}
-            numberOfLines={1}
-          >
-            profile{' '}
-            {formatProfileValue(
-              profileValue == null ? profileValue : tuneDisplayValue(field.id, profileValue),
-            )}
-          </Text>
-        ) : null}
-        {canAcceptBoard ? (
-          <Text style={[styles.cellBoardValue, styles.cellTextWithActions]} numberOfLines={1}>
-            board {formatTuneValue(tuneDisplayValue(field.id, boardValue))}
-          </Text>
-        ) : null}
-      </Pressable>
-    </View>
+      </View>
+      <View>
+        <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit selectable>
+          {shownValue}
+        </Text>
+      </View>
+      <TuneTileFill fraction={fraction} />
+    </Pressable>
   )
-})
+}
 
 const styles = StyleSheet.create({
-  cellWrapper: {
-    flex: 1,
-  },
   cell: {
-    minHeight: 82,
-    paddingTop: 7,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    flex: 1,
+    minHeight: 92,
+    justifyContent: 'space-between',
+    gap: 8,
+    padding: 12,
+    paddingBottom: 14,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
-    backgroundColor: theme.neutral.surfaceDeep,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
     overflow: 'hidden',
   },
-  cellDirty: {
-    borderColor: theme.palette.sky.border,
-  },
-  cellBoardChanged: {
-    borderColor: theme.palette.green.border,
-  },
-  cellRevertButton: {
-    position: 'absolute',
-    top: 7,
-    right: 8,
-    zIndex: 1,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.palette.sky.bg,
-  },
-  cellAcceptButton: {
-    position: 'absolute',
-    top: 7,
-    right: 8,
-    zIndex: 1,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.palette.green.bg,
-  },
-  cellAcceptButtonStacked: {
-    top: 39,
-  },
-  cellHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  cellValue: {
-    position: 'absolute',
-    right: 10,
-    bottom: 4,
-    color: theme.neutral.textPrimary,
+  pressed: { backgroundColor: theme.ui.muted },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  label: { flex: 1, color: theme.ui.mutedForeground, fontSize: 13, fontWeight: '600' },
+  value: {
+    color: theme.ui.foreground,
     fontSize: 22,
-    fontWeight: '500',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
-    maxWidth: '58%',
-    textAlign: 'right',
-  },
-  cellTextWithActions: {
-    paddingRight: 26,
-  },
-  cellOldValue: {
-    color: theme.palette.sky.text,
-    fontSize: 10,
-    fontWeight: '800',
-    marginTop: 1,
-  },
-  cellProfileValue: {
-    color: theme.neutral.textSecondary,
-    fontSize: 10,
-    fontWeight: '800',
-    marginTop: 1,
-  },
-  cellBoardValue: {
-    color: theme.palette.green.text,
-    fontSize: 10,
-    fontWeight: '900',
-    marginTop: 1,
-  },
-  cellLabel: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
-    flex: 1,
-    minWidth: 0,
-  },
-  cellLabelWithAction: {
-    paddingRight: 26,
   },
 })

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/immutability */
 import { useMemo } from 'react'
-import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native'
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   useAnimatedStyle,
@@ -8,6 +8,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated'
 
+import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
 import { MAX_PITCH_INPUT_DEGREES } from '@/modules/tune/lib/tunePreview'
 
@@ -16,8 +17,9 @@ interface PitchInputControlProps {
   active: SharedValue<boolean>
 }
 
-const THUMB_SIZE = 18
+const THUMB_SIZE = 20
 
+/** Hold and drag between Nose and Tail to add pitch rate; releasing lets the board recover. */
 export function PitchInputControl({ angleDegrees, active }: PitchInputControlProps) {
   const width = useSharedValue(0)
 
@@ -29,17 +31,26 @@ export function PitchInputControl({ angleDegrees, active }: PitchInputControlPro
       angleDegrees.value = ((thumbLeft / travel) * 2 - 1) * MAX_PITCH_INPUT_DEGREES
     }
 
+    const release = () => {
+      'worklet'
+      active.value = false
+      angleDegrees.value = 0
+    }
+
+    // Releasing anywhere recovers the board, even after the finger has left the track or the
+    // scroll view has taken the touch.
     return Gesture.Pan()
       .minDistance(0)
+      .shouldCancelWhenOutside(false)
       .onBegin((event) => {
         active.value = true
         updateFromX(event.x)
       })
       .onUpdate((event) => updateFromX(event.x))
-      .onFinalize(() => {
-        active.value = false
-        angleDegrees.value = 0
-      })
+      .onEnd(release)
+      .onTouchesUp(release)
+      .onTouchesCancelled(release)
+      .onFinalize(release)
   }, [active, angleDegrees, width])
 
   const thumbStyle = useAnimatedStyle(() => {
@@ -53,6 +64,7 @@ export function PitchInputControl({ angleDegrees, active }: PitchInputControlPro
 
   return (
     <View style={styles.container}>
+      <Text style={styles.edgeLabel}>Nose</Text>
       <GestureDetector gesture={gesture}>
         <View
           style={styles.trackTouch}
@@ -65,34 +77,22 @@ export function PitchInputControl({ angleDegrees, active }: PitchInputControlPro
           <Animated.View style={[styles.thumb, thumbStyle]} />
         </View>
       </GestureDetector>
-      <View style={styles.labels}>
-        <Text style={styles.edgeLabel}>Nose</Text>
-        <Text style={styles.hint}>Hold to add pitch rate · release to recover</Text>
-        <Text style={styles.edgeLabel}>Tail</Text>
-      </View>
+      <Text style={styles.edgeLabel}>Tail</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 5 },
-  labels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  edgeLabel: { color: theme.palette.slate.textMuted, fontSize: 10, fontWeight: '700' },
-  hint: {
-    flex: 1,
-    color: theme.palette.slate.textMuted,
-    fontSize: 9,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  trackTouch: { height: 30, justifyContent: 'center' },
-  track: { height: 3, borderRadius: 2, backgroundColor: theme.palette.slate.border },
+  container: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  edgeLabel: { color: theme.ui.mutedForeground, fontSize: 13 },
+  trackTouch: { flex: 1, height: 34, justifyContent: 'center' },
+  track: { height: 4, borderRadius: 2, backgroundColor: theme.ui.muted },
   centerMark: {
     position: 'absolute',
     left: '50%',
     width: 1,
-    height: 10,
-    backgroundColor: theme.palette.slate.textMuted,
+    height: 12,
+    backgroundColor: theme.ui.mutedForeground,
   },
   thumb: {
     position: 'absolute',
@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: theme.palette.sky.color,
-    borderWidth: 2,
-    borderColor: theme.palette.slate.textPrimary,
+    backgroundColor: theme.ui.foreground,
+    borderWidth: 3,
+    borderColor: theme.ui.card,
   },
 })

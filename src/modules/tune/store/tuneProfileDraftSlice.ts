@@ -27,12 +27,10 @@ import { omitKey } from '@/helpers/records'
 type TuneProfileDraftSlice = Pick<
   TuneProfileActions,
   | 'setDraftField'
+  | 'editFields'
   | 'setBoardSnapshot'
   | 'getDirtyFields'
-  | 'revertField'
-  | 'acceptBoardField'
   | 'acceptAllBoardValues'
-  | 'discardAllEdits'
   | 'saveActiveProfile'
   | 'syncToBoard'
 >
@@ -58,6 +56,11 @@ export const createTuneProfileDraftSlice: SliceFactory = (set, get) => ({
     })
   },
 
+  async editFields(values) {
+    for (const [fieldId, value] of Object.entries(values)) get().setDraftField(fieldId, value)
+    await get().saveActiveProfile()
+  },
+
   setBoardSnapshot(snapshot) {
     const boardFields = fieldsFromSnapshot(snapshot)
     set((state) => {
@@ -76,37 +79,6 @@ export const createTuneProfileDraftSlice: SliceFactory = (set, get) => ({
     return dirtyFields(state.activeProfile, state.draftFields)
   },
 
-  revertField(fieldId) {
-    set((state) => {
-      const draftFields = omitKey(state.draftFields, fieldId)
-      return {
-        draftFields,
-        hasDirtyFields: Object.keys(dirtyFields(state.activeProfile, draftFields)).length > 0,
-      }
-    })
-  },
-
-  acceptBoardField(fieldId) {
-    set((state) => {
-      if (
-        !state.activeProfile ||
-        !Object.prototype.hasOwnProperty.call(state.boardFields, fieldId)
-      ) {
-        return state
-      }
-      const draftFields = nextDraftWithField(
-        state.activeProfile,
-        state.draftFields,
-        fieldId,
-        state.boardFields[fieldId],
-      )
-      return {
-        draftFields,
-        hasDirtyFields: Object.keys(dirtyFields(state.activeProfile, draftFields)).length > 0,
-      }
-    })
-  },
-
   acceptAllBoardValues() {
     set((state) => {
       const profile = state.activeProfile
@@ -120,10 +92,6 @@ export const createTuneProfileDraftSlice: SliceFactory = (set, get) => ({
         hasDirtyFields: Object.keys(dirtyFields(state.activeProfile, draftFields)).length > 0,
       }
     })
-  },
-
-  discardAllEdits() {
-    set({ draftFields: {}, hasDirtyFields: false })
   },
 
   async saveActiveProfile() {

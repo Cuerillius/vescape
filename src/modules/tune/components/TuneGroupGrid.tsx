@@ -1,9 +1,9 @@
 import { Children, isValidElement, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
-import { CaretDownIcon } from 'phosphor-react-native'
 
 import { theme } from '@/constants/theme'
+import IconChevronDown from '@tabler/icons-react-native/IconChevronDown'
 
 interface TuneGroupGridProps {
   title: string
@@ -79,10 +79,10 @@ export function TuneGroupGrid({
     <View style={styles.groupHeader}>
       <Text style={styles.groupTitle}>{title}</Text>
       {collapsible ? (
-        <CaretDownIcon
+        <IconChevronDown
           size={14}
-          color={theme.neutral.textMuted}
-          weight="bold"
+          color={theme.ui.mutedForeground}
+          strokeWidth={2.5}
           style={{ transform: [{ rotate: collapsed ? '0deg' : '180deg' }] }}
         />
       ) : subtitle ? (
@@ -122,14 +122,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   groupTitle: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   groupCount: {
-    color: theme.neutral.textDim,
+    color: theme.ui.mutedForeground,
     fontSize: 11,
     fontWeight: '700',
   },

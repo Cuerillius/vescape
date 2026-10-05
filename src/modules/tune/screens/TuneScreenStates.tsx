@@ -1,16 +1,14 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import {
-  ArrowsClockwiseIcon,
-  BluetoothSlashIcon,
-  FadersIcon,
-  WarningCircleIcon,
-} from 'phosphor-react-native'
+import IconAdjustmentsHorizontal from '@tabler/icons-react-native/IconAdjustmentsHorizontal'
+import IconBluetoothOff from '@tabler/icons-react-native/IconBluetoothOff'
 
 import { Button } from '@/components/base/Button'
 import { Placeholder } from '@/components/base/Placeholder'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
 import type { useTuneScreenData } from '@/modules/tune/hooks/useTuneScreenData'
+import IconAlertCircle from '@tabler/icons-react-native/IconAlertCircle'
+import IconRefresh from '@tabler/icons-react-native/IconRefresh'
 
 type TuneScreenData = ReturnType<typeof useTuneScreenData>
 
@@ -20,29 +18,23 @@ export function TuneScreenStates({
   boardsLoaded,
   selectedBoardId,
   profileState,
-  boardSnapshot,
-  firmwareCommandsTrusted,
   firmwareCommandBlockReason,
   loadOnline,
   loadOffline,
-  onCreateFirstProfile,
 }: {
   hasTuneView: boolean
   boardsLoaded: TuneScreenData['boardsLoaded']
   selectedBoardId: TuneScreenData['selectedBoardId']
   profileState: TuneScreenData['profileState']
-  boardSnapshot: TuneScreenData['boardSnapshot']
-  firmwareCommandsTrusted: TuneScreenData['firmwareCommandsTrusted']
   firmwareCommandBlockReason: TuneScreenData['firmwareCommandBlockReason']
   loadOnline: TuneScreenData['loadOnline']
   loadOffline: TuneScreenData['loadOffline']
-  onCreateFirstProfile: () => void
 }) {
   return (
     <>
       {!selectedBoardId && boardsLoaded && !hasTuneView ? (
         <Placeholder
-          icon={BluetoothSlashIcon}
+          icon={IconBluetoothOff}
           title="No board selected"
           description="Select a board to edit its saved Tune Profile"
         />
@@ -58,23 +50,11 @@ export function TuneScreenStates({
       {profileState.phase === 'empty' ? (
         <View style={styles.mainState}>
           <Placeholder
-            icon={FadersIcon}
-            title="Create tune based on board config"
+            icon={IconAdjustmentsHorizontal}
+            title="No tunes yet"
             description={
               firmwareCommandBlockReason ??
-              'Connect to your board to read its current configuration and create your first Tune Profile'
-            }
-            action={
-              boardSnapshot?.refloatBaseVersion && firmwareCommandsTrusted ? (
-                <Button
-                  label="Create first profile"
-                  icon={FadersIcon}
-                  variant="tune"
-                  size="lg"
-                  style={styles.firstProfileAction}
-                  onPress={onCreateFirstProfile}
-                />
-              ) : null
+              'Connect to your board and create your first tune from the dashboard'
             }
           />
         </View>
@@ -82,13 +62,13 @@ export function TuneScreenStates({
 
       {profileState.phase === 'error' && !hasTuneView ? (
         <View style={styles.mainState}>
-          <WarningCircleIcon size={28} color={theme.status.error.text} />
+          <IconAlertCircle size={28} color={theme.status.error.text} />
           <Text selectable style={styles.errorText}>
             {profileState.error}
           </Text>
           <Button
             label="Retry"
-            icon={ArrowsClockwiseIcon}
+            icon={IconRefresh}
             onPress={() => {
               if (profileState.retry === 'online') {
                 void loadOnline()
@@ -112,15 +92,12 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   stateText: {
-    color: theme.palette.slate.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 15,
   },
   errorText: {
     color: theme.status.error.text,
     fontSize: 15,
     textAlign: 'center',
-  },
-  firstProfileAction: {
-    minWidth: 240,
   },
 })

@@ -31,12 +31,10 @@ export interface TuneProfileActions {
   loadProfiles: (boardId: string, refloatBaseVersion: string | null) => Promise<TuneProfile[]>
   loadProfile: (profileId: string) => Promise<TuneProfile | null>
   setActiveProfile: (profileId: string) => void
-  createProfile: (
-    name: string,
-    icon: string,
-    color: string,
-    cloneFromProfileId?: string,
-  ) => Promise<TuneProfile | null>
+  /** Saves the board's current values as a new profile. */
+  createProfile: (name: string, icon: string, color: string) => Promise<TuneProfile | null>
+  /** Saves a copy of a saved profile, named after it, and selects the copy. */
+  duplicateProfile: (profileId: string) => Promise<TuneProfile | null>
   renameProfile: (
     profileId: string,
     name: string,
@@ -52,12 +50,11 @@ export interface TuneProfileActions {
     newName: string,
   ) => Promise<TuneProfile | null>
   setDraftField: (fieldId: string, value: TuneProfileFieldValue) => void
+  /** Applies field edits to the active profile and saves them at once; there is no unsaved state to leave open. */
+  editFields: (values: Record<string, TuneProfileFieldValue>) => Promise<void>
   setBoardSnapshot: (snapshot: RefloatConfigSnapshot | null) => void
   getDirtyFields: () => Record<string, TuneProfileFieldValue>
-  revertField: (fieldId: string) => void
-  acceptBoardField: (fieldId: string) => void
   acceptAllBoardValues: () => void
-  discardAllEdits: () => void
   saveActiveProfile: () => Promise<TuneProfile | null>
   syncToBoard: () => Promise<void>
   clear: () => void

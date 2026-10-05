@@ -39,8 +39,9 @@ export function dirtyFields(
   )
 }
 
+/** Flat field map of any board-side field set: a fresh Tune Snapshot or a Last Known prefill. */
 export function fieldsFromSnapshot(
-  snapshot: RefloatConfigSnapshot | null,
+  snapshot: Pick<RefloatConfigSnapshot, 'groups'> | null,
 ): Record<string, TuneProfileFieldValue> {
   if (!snapshot) return {}
   return Object.fromEntries(
@@ -65,6 +66,24 @@ export function boardDiff(
         ? []
         : [{ fieldId, profileValue: profile.fields[fieldId], boardValue }],
     )
+}
+
+/** The board runs values that no saved profile matches. False while the board's values are unknown. */
+export function isUnsavedBoardTune(
+  profiles: TuneProfile[],
+  boardFields: Record<string, TuneProfileFieldValue> | null,
+): boolean {
+  return (
+    boardFields != null && profiles.every((profile) => boardDiff(profile, boardFields).length > 0)
+  )
+}
+
+/** `base`, or `base 2`, `base 3` ... when the name is taken, so a quick save never collides. */
+export function uniqueTuneName(base: string, takenNames: string[]): string {
+  const taken = new Set(takenNames.map((name) => name.trim().toLowerCase()))
+  let candidate = base
+  for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${base} ${n}`
+  return candidate
 }
 
 export function nextDraftWithField(

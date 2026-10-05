@@ -3,7 +3,6 @@ import { useFormat } from '@/hooks/useFormat'
 import { useCallback, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
-import { MountainsIcon, WaveSineIcon } from 'phosphor-react-native'
 import {
   Easing,
   cancelAnimation,
@@ -23,14 +22,13 @@ import {
   speedUnit,
 } from '@/helpers/units'
 import {
-  HILLS_PRESETS,
   MOVEMENT_RANGES,
   type HillsPresetId,
   type MovementPresetId,
 } from '@/modules/tune/lib/tunePreviewPresentation'
 import { useTunePreviewFormat } from '@/modules/tune/hooks/useTunePreviewFormat'
 export type { HillsPresetId } from '@/modules/tune/lib/tunePreviewPresentation'
-import { SelectCard } from '@/components/forms/SelectCard'
+import { SelectMenu } from '@/components/ui/SelectMenu'
 import { PitchInputControl } from '@/modules/tune/components/PitchInputControl'
 import { TuneDial } from '@/modules/tune/components/TuneDial'
 import { theme } from '@/constants/theme'
@@ -51,7 +49,6 @@ const AUTO_MOVEMENT_RELEASE_MS = 700
 
 interface TunePreviewScenarioControlsProps {
   hillsPreset: HillsPresetId
-  onHillsPresetChange: (preset: HillsPresetId) => void
   hillHeightMeters: number
   onHillHeightChange: (value: number) => void
   hillSpacingMeters: number
@@ -64,7 +61,6 @@ interface TunePreviewScenarioControlsProps {
 
 export function TunePreviewScenarioControls({
   hillsPreset,
-  onHillsPresetChange,
   hillHeightMeters,
   onHillHeightChange,
   hillSpacingMeters,
@@ -83,17 +79,6 @@ export function TunePreviewScenarioControls({
   const [customRateDegreesPerSecond, setCustomRateDegreesPerSecond] = useState(100)
   const movementDirectionRef = useRef<MovementDirection>('nose')
   const movementPresetRef = useRef<MovementPresetId>('manual')
-
-  const handlePresetChange = (preset: HillsPresetId) => {
-    onHillsPresetChange(preset)
-    if (preset !== 'custom' && preset !== 'flat') {
-      const values = HILLS_PRESETS[preset]
-      if (values) {
-        onHillHeightChange(values.heightMeters)
-        onHillSpacingChange(values.spacingMeters)
-      }
-    }
-  }
 
   const applyMovementSample = useCallback(
     (speed: number, groundAngleDegrees: number) => {
@@ -183,15 +168,13 @@ export function TunePreviewScenarioControls({
 
   return (
     <View style={styles.stack}>
-      <SelectCard
-        icon={WaveSineIcon}
-        iconColor={theme.palette.cyan.color}
-        title="Balance Input"
-        description="Simulates rider lean"
-        options={options.movement}
-        value={movementPreset}
-        onChange={handleMovementPresetChange}
-      >
+      <View style={styles.section}>
+        <SelectMenu
+          label="Balance input"
+          options={options.movement}
+          value={movementPreset}
+          onChange={handleMovementPresetChange}
+        />
         {movementPreset === 'custom' ? (
           <>
             <Text style={styles.description}>
@@ -243,17 +226,9 @@ export function TunePreviewScenarioControls({
         {movementPreset === 'manual' ? (
           <PitchInputControl angleDegrees={pitchInputDegrees} active={pitchInputActive} />
         ) : null}
-      </SelectCard>
+      </View>
 
-      <SelectCard
-        icon={MountainsIcon}
-        iconColor={theme.palette.green.color}
-        title="Terrain"
-        description="Simulates the slope"
-        options={options.hills}
-        value={hillsPreset}
-        onChange={handlePresetChange}
-      >
+      <View style={styles.section}>
         {hillsPreset === 'custom' ? (
           <>
             <Text style={styles.description}>
@@ -290,14 +265,13 @@ export function TunePreviewScenarioControls({
             />
           </>
         ) : null}
-      </SelectCard>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  stack: {
-    gap: 8,
-  },
-  description: { color: theme.neutral.textSecondary, fontSize: 10, fontWeight: '600' },
+  stack: { gap: 12 },
+  section: { gap: 4 },
+  description: { color: theme.ui.mutedForeground, fontSize: 12 },
 })

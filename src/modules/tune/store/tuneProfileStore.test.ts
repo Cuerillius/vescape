@@ -136,11 +136,32 @@ test('tracks draft field edits as an overlay on the saved Tune Profile', async (
   expect(useTuneProfileStore.getState().draftFields).toEqual({ kp: 23 })
   expect(useTuneProfileStore.getState().hasDirtyFields).toBe(true)
   expect(useTuneProfileStore.getState().getDirtyFields()).toEqual({ kp: 23 })
+})
 
-  useTuneProfileStore.getState().revertField('kp')
+test('editing fields saves them to the profile at once and leaves nothing dirty', async () => {
+  const { useTuneProfileStore } = await import('@/modules/tune/store/tuneProfileStore')
 
+  await useTuneProfileStore.getState().loadProfiles('board-1', '1.3.0')
+  await useTuneProfileStore.getState().editFields({ kp: 23, atr_strength_up: 1.4 })
+
+  expect(saveProfile).toHaveBeenCalledWith('profile-1', { kp: 23, atr_strength_up: 1.4 })
+  expect(useTuneProfileStore.getState().activeProfile?.fields.kp).toBe(23)
   expect(useTuneProfileStore.getState().draftFields).toEqual({})
   expect(useTuneProfileStore.getState().hasDirtyFields).toBe(false)
+})
+
+test('a failed save keeps the edit as the unsaved remainder and reports the error', async () => {
+  const { useTuneProfileStore } = await import('@/modules/tune/store/tuneProfileStore')
+  saveProfile.mockImplementationOnce(async () => {
+    throw new Error('disk full')
+  })
+
+  await useTuneProfileStore.getState().loadProfiles('board-1', '1.3.0')
+  await expect(useTuneProfileStore.getState().editFields({ kp: 23 })).rejects.toThrow('disk full')
+
+  expect(useTuneProfileStore.getState().activeProfile?.fields.kp).toBe(20)
+  expect(useTuneProfileStore.getState().hasDirtyFields).toBe(true)
+  expect(useTuneProfileStore.getState().error).toBe('disk full')
 })
 
 test('loads and creates profiles scoped to normalized Refloat base compatibility', async () => {
@@ -159,6 +180,27 @@ test('loads and creates profiles scoped to normalized Refloat base compatibility
     { kp: 24 },
     '1.3.0',
   )
+})
+
+test('duplicating saves the saved fields of the tune, not those of the board, and selects the copy', async () => {
+  const { useTuneProfileStore } = await import('@/modules/tune/store/tuneProfileStore')
+  const copy = { ...profile, id: 'profile-3', name: 'Main copy' }
+  createProfile.mockImplementation(async () => copy)
+
+  await useTuneProfileStore.getState().loadProfiles('board-1', '1.3.0')
+  useTuneProfileStore.getState().setBoardSnapshot(boardSnapshot)
+  await useTuneProfileStore.getState().duplicateProfile('profile-1')
+
+  expect(createProfile).toHaveBeenCalledWith(
+    'board-1',
+    'Main copy',
+    'sliders-horizontal',
+    'purple',
+    profile.fields,
+    '1.3.0',
+  )
+  expect(useTuneProfileStore.getState().activeProfile?.id).toBe('profile-3')
+  expect(useTuneProfileStore.getState().profiles).toHaveLength(2)
 })
 
 test('a successful profile retry clears the previous modal error', async () => {
@@ -376,7 +418,7 @@ test('does not keep rounded-equivalent draft values dirty', async () => {
   expect(useTuneProfileStore.getState().getDirtyFields()).toEqual({})
 })
 
-test('accepts board values into draft and saves through normal profile flow', async () => {
+test('saves a drafted field through the normal profile flow', async () => {
   const { useTuneProfileStore } = await import('@/modules/tune/store/tuneProfileStore')
 
   await useTuneProfileStore.getState().loadProfiles('board-1', '1.3.0')
@@ -407,7 +449,7 @@ test('accepts board values into draft and saves through normal profile flow', as
     ],
   })
 
-  useTuneProfileStore.getState().acceptBoardField('kp')
+  useTuneProfileStore.getState().setDraftField('kp', 22)
 
   expect(useTuneProfileStore.getState().draftFields).toEqual({ kp: 22 })
   expect(useTuneProfileStore.getState().hasDirtyFields).toBe(true)

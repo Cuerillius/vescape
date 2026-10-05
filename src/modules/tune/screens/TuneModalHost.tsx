@@ -2,16 +2,17 @@ import { ConfirmModal } from '@/components/modals/ConfirmModal'
 import { InfoModal } from '@/components/modals/InfoModal'
 import { TextPromptModal } from '@/components/modals/TextPromptModal'
 import { BoardPickerModal } from '@/modules/tune/components/BoardPickerModal'
-import { FieldEditorPopover } from '@/modules/tune/components/FieldEditorPopover'
-import { TuneProfileMetadataModal } from '@/modules/tune/components/TuneProfileMetadataModal'
+import { TuneEditorDrawer } from '@/modules/tune/components/TuneEditorDrawer'
+import { PromptDialog } from '@/components/ui/PromptDialog'
+import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { useTuneModals } from '@/modules/tune/hooks/useTuneModals'
 import { useTuneProfileStore } from '@/modules/tune/store/tuneProfileStore'
-import type { TuneProfileColorId, TuneProfileIconId } from '@/modules/tune/lib/profileMetadata'
 import { createTuneModalOperationRunner } from './tuneModalOperationRunner'
 
 /** Every modal the Tune screen can raise, driven by one `useTuneModals` state bag. */
 export function TuneModalHost({ modals }: { modals: ReturnType<typeof useTuneModals> }) {
+  const router = useRouter()
   const error = useTuneProfileStore((state) => state.error)
   const [pending, setPending] = useState(false)
   const runRef = useRef<ReturnType<typeof createTuneModalOperationRunner> | null>(null)
@@ -26,47 +27,25 @@ export function TuneModalHost({ modals }: { modals: ReturnType<typeof useTuneMod
         onDismiss={() => modals.setInfoModal(null)}
       />
 
-      <FieldEditorPopover
+      <TuneEditorDrawer
         target={modals.editor}
-        onCancel={modals.closeEditor}
-        onApply={modals.handleEditorApply}
+        onCommit={modals.handleEditorApply}
+        onClose={modals.closeEditor}
       />
 
-      <TuneProfileMetadataModal
-        visible={modals.createModalOpen}
-        title="New Profile"
-        confirmLabel="Create"
-        loading={pending}
-        error={error}
-        initialValue={{
-          name: '',
-          icon: modals.defaultTuneIcon as TuneProfileIconId,
-          color: modals.defaultTuneColor as TuneProfileColorId,
-        }}
-        onConfirm={({ name, icon, color }) => {
-          run(
-            () => modals.storeCreateProfile(name, icon, color, modals.createCloneFromId),
-            () => modals.setCreateModalOpen(false),
-          )
-        }}
-        onDismiss={() => modals.setCreateModalOpen(false)}
-      />
-
-      <TuneProfileMetadataModal
+      <PromptDialog
         visible={modals.metadataModalProfile != null}
-        title="Edit Profile"
+        title="Edit name"
         confirmLabel="Save"
+        placeholder="Tune name"
         loading={pending}
         error={error}
-        initialValue={{
-          name: modals.metadataModalProfile?.name ?? '',
-          icon: modals.metadataModalProfile?.icon as TuneProfileIconId | undefined,
-          color: modals.metadataModalProfile?.color as TuneProfileColorId | undefined,
-        }}
-        onConfirm={({ name, icon, color }) => {
-          if (modals.metadataModalProfile) {
+        initialValue={modals.metadataModalProfile?.name ?? ''}
+        onConfirm={(name) => {
+          const profile = modals.metadataModalProfile
+          if (profile) {
             run(
-              () => modals.storeRenameProfile(modals.metadataModalProfile!.id, name, icon, color),
+              () => modals.storeRenameProfile(profile.id, name, profile.icon, profile.color),
               () => modals.setMetadataModalProfile(null),
             )
           }
@@ -108,7 +87,11 @@ export function TuneModalHost({ modals }: { modals: ReturnType<typeof useTuneMod
           if (modals.deleteConfirmProfile) {
             run(
               () => modals.storeDeleteProfile(modals.deleteConfirmProfile!.id),
-              () => modals.setDeleteConfirmProfile(null),
+              () => {
+                modals.setDeleteConfirmProfile(null)
+                // This screen is that tune's detail page; with the tune gone there is nothing to show.
+                router.back()
+              },
             )
           }
         }}
