@@ -1,26 +1,18 @@
 import { useFormat } from '@/hooks/useFormat'
 import { useUnitSystem } from '@/hooks/useUnitSystem'
 import { speedFromKmh, speedUnit } from '@/helpers/units'
-import { type ReactNode, useEffect, useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
-import {
-  PencilSimpleIcon,
-  SlidersHorizontalIcon,
-  SpeakerHighIcon,
-  StopIcon,
-  TrashIcon,
-  CheckIcon,
-} from 'phosphor-react-native'
+import IconAdjustmentsHorizontal from '@tabler/icons-react-native/IconAdjustmentsHorizontal'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
+import IconPencil from '@tabler/icons-react-native/IconPencil'
+import IconPlayerStop from '@tabler/icons-react-native/IconPlayerStop'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
+import IconVolume from '@tabler/icons-react-native/IconVolume'
 import type { AlertTestRule } from 'vescape-core'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  type SharedValue,
-} from 'react-native-reanimated'
+import { useSharedValue, type SharedValue } from 'react-native-reanimated'
 
-import { IconButton } from '@/components/base/IconButton'
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
 import { Text } from '@/components/base/Text'
 import type { DualGaugeAlert } from '@/components/charts/gaugeAlert'
 import { SingleGauge } from '@/modules/board/components/SingleGauge'
@@ -36,15 +28,14 @@ import {
   configRelativeBase,
   type BoardConfigBases,
 } from '@/modules/alerts/lib/configRelativeFields'
-import { theme, type ThemeColor } from '@/constants/theme'
-import { useResolvedAccentColors, useResolvedNeutralColors } from '@/hooks/useTheme'
+import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { useAlertTest } from '@/modules/alerts/hooks/useAlertTest'
 
 /** Controlled preset selection and gauge. The caller supplies one resolved rule snapshot for
  * markers, descriptions and the sound preview; saved Boards never regenerate rules here. */
 
 interface PresetGaugeDescriptor {
-  color: ThemeColor
   /** Readout unit shown under the live value. */
   unit: string
   decimals: number
@@ -61,7 +52,6 @@ const round = (value: number) => Math.round(value)
 // Battery is percent-scaled here (its thresholds are SoC %), unlike the voltage telemetry metric.
 const PRESET_GAUGE: Record<AlertPresetMetric, PresetGaugeDescriptor> = {
   battery: {
-    color: telemetry.battVoltage.color,
     unit: '%',
     decimals: 0,
     min: 0,
@@ -69,7 +59,6 @@ const PRESET_GAUGE: Record<AlertPresetMetric, PresetGaugeDescriptor> = {
     formatMarker: (v) => `${round(v)}%`,
   },
   speed: {
-    color: telemetry.speed.color,
     unit: 'km/h',
     decimals: 0,
     min: 0,
@@ -77,7 +66,6 @@ const PRESET_GAUGE: Record<AlertPresetMetric, PresetGaugeDescriptor> = {
     formatMarker: (v) => `${round(v)} km/h`,
   },
   duty: {
-    color: telemetry.duty.color,
     unit: '%',
     decimals: 0,
     min: 0,
@@ -85,7 +73,6 @@ const PRESET_GAUGE: Record<AlertPresetMetric, PresetGaugeDescriptor> = {
     formatMarker: (v) => `${round(v)}%`,
   },
   'motor-temp': {
-    color: telemetry.motorTemp.color,
     unit: '°C',
     decimals: 0,
     min: 0,
@@ -93,7 +80,6 @@ const PRESET_GAUGE: Record<AlertPresetMetric, PresetGaugeDescriptor> = {
     formatMarker: (v) => `${round(v)}°`,
   },
   'controller-temp': {
-    color: telemetry.controllerTemp.color,
     unit: '°C',
     decimals: 0,
     min: 0,
@@ -188,8 +174,8 @@ export function AlertPresetControl({
     [ruleSnapshot, gauge],
   )
 
-  // A stable null placeholder so the gauge always has a SharedValue; the needle is hidden offline.
-  const placeholder = useSharedValue<number | null>(null)
+  // Without a live value the gauge rests at zero, so the readout is always there.
+  const placeholder = useSharedValue<number | null>(0)
 
   const isCustom = level === 'custom'
   const editAction = isCustom ? onDiscardCustom : onCustomize
@@ -218,12 +204,10 @@ export function AlertPresetControl({
         value={gaugeValue ?? placeholder}
         min={gauge.min}
         max={max}
-        color={gauge.color}
         unit={gauge.unit}
         decimals={gauge.decimals}
         alerts={alerts}
         hotRange={hotRange}
-        showValue={gaugeValue != null}
         containerStyle={styles.gauge}
       />
       {/* The test drives the alerts, so it sits with the Alerts heading rather than the gauge. */}
@@ -231,9 +215,8 @@ export function AlertPresetControl({
         {controlsHeader}
         <Button
           label={alertTest.running ? 'Stop' : 'Preview'}
-          icon={alertTest.running ? StopIcon : SpeakerHighIcon}
-          variant="caution"
-          size="sm"
+          icon={alertTest.running ? IconPlayerStop : IconVolume}
+          variant="outline"
           disabled={disabled || !alertTest.canRun}
           onPress={alertTest.running ? alertTest.stop : alertTest.start}
           testID={`alert-test-${metric}`}
@@ -256,9 +239,10 @@ export function AlertPresetControl({
           <LevelSlider metric={metric} value={level} onChange={onLevelChange} disabled={disabled} />
         )}
         {editAction && !disabled ? (
-          <IconButton
-            icon={isCustom ? TrashIcon : PencilSimpleIcon}
-            destructive={isCustom}
+          <Button
+            icon={isCustom ? IconTrash : IconPencil}
+            variant="outline"
+            color={isCustom ? theme.status.error.text : undefined}
             accessibilityLabel={isCustom ? 'Discard custom alerts' : 'Edit alerts'}
             onPress={editAction}
           />
@@ -302,6 +286,7 @@ function BoardConfigMatchControl({
     fieldId == null
       ? { status: 'missing' as const }
       : configRelativeBase(fieldId, configBases ?? {})
+  const checkColor = useResolvedColor(theme.ui.primaryForeground)
   const subject = MATCH_SUBJECT[metric] ?? 'configuration'
   const format = PRESET_GAUGE[metric].formatMarker
   const available = base.status === 'resolved'
@@ -328,9 +313,7 @@ function BoardConfigMatchControl({
         onPress={() => onChange?.(!checked)}
       >
         <View style={[styles.checkbox, checked && available && styles.checkboxChecked]}>
-          {checked && available ? (
-            <CheckIcon size={13} color={theme.palette.slate.text} weight="bold" />
-          ) : null}
+          {checked && available ? <IconCheck size={13} color={checkColor} strokeWidth={3} /> : null}
         </View>
         <Text style={styles.matchLabel}>Match VESC board configuration</Text>
       </Pressable>
@@ -345,33 +328,21 @@ function BoardConfigMatchControl({
  * reads as a button the rider then taps to no effect.
  */
 function CustomLabel() {
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
   return (
     <View style={styles.customLabel}>
-      <SlidersHorizontalIcon size={14} color={theme.neutral.textMuted} weight="bold" />
+      <IconAdjustmentsHorizontal size={14} color={mutedColor} strokeWidth={2.5} />
       <Text style={styles.customLabelText}>Custom alerts</Text>
     </View>
   )
 }
 
-interface LevelTone {
-  bg: string
-  border: ThemeColor
-  color: ThemeColor
-}
-
 const LEVEL_OPTIONS: { id: AlertPresetLevel; label: string }[] = [
   { id: 'off', label: 'Off' },
-  // Rising cautiousness left to right, so the row reads as one ramp out of `off`: risky (yellow)
-  // → balanced (green) → careful (blue). Green marks the recommended default; orange and red stay
-  // reserved for real alerts, so `minimal` must not borrow either — it is a choice, never a fault.
   { id: 'minimal', label: 'Minimal' },
   { id: 'normal', label: 'Normal' },
   { id: 'safe', label: 'Safe' },
 ]
-
-/** The row's own order — the preset levels themselves have no ranking. */
-const ALL_LEVELS: AlertPresetLevel[] = LEVEL_OPTIONS.map((option) => option.id)
-const SLIDER_ANIMATION = { duration: 180 } as const
 
 interface LevelSliderProps {
   metric: AlertPresetMetric
@@ -380,51 +351,17 @@ interface LevelSliderProps {
   disabled?: boolean
 }
 
+/** Text segmented control: the active level inverts to the primary pair, like the kit's icon one. */
 function LevelSlider({ metric, value, onChange, disabled }: LevelSliderProps) {
-  const neutral = useResolvedNeutralColors()
-  const accents = useResolvedAccentColors()
-  const tones: Record<AlertPresetLevel, LevelTone> = {
-    off: { bg: neutral.surface, border: neutral.border, color: neutral.textSecondary },
-    safe: accents.blue,
-    normal: accents.green,
-    minimal: accents.yellow,
-    custom: { bg: neutral.surface, border: neutral.border, color: neutral.textMuted },
-  }
-  const activeIndex = Math.max(0, ALL_LEVELS.indexOf(value))
-  const tone = tones[value]
-  const progress = useSharedValue(activeIndex)
-
-  useEffect(() => {
-    progress.value = withTiming(activeIndex, SLIDER_ANIMATION)
-  }, [activeIndex, progress])
-
-  const highlightPositionStyle = useAnimatedStyle(
-    () => ({
-      left: `${(progress.value / LEVEL_OPTIONS.length) * 100}%`,
-    }),
-    [],
-  )
-  const highlightColorStyle = useAnimatedStyle(
-    () => ({
-      backgroundColor: tone.bg,
-      borderColor: tone.border,
-    }),
-    [tone.bg, tone.border],
-  )
-
   return (
     <View style={[styles.slider, disabled && styles.sliderDisabled]}>
-      <Animated.View style={[styles.sliderHighlightSlot, highlightPositionStyle]}>
-        <Animated.View style={[styles.sliderHighlight, highlightColorStyle]} />
-      </Animated.View>
       {LEVEL_OPTIONS.map((option) => {
         const active = option.id === value
-        const optionTone = tones[option.id]
         return (
           <Pressable
             key={option.id}
             testID={`alert-level-${metric}-${option.id}`}
-            style={styles.sliderSegment}
+            style={[styles.sliderSegment, active && styles.sliderSegmentActive]}
             accessibilityRole="button"
             accessibilityState={{ selected: active, disabled }}
             accessibilityLabel={active ? `${option.label}, selected` : option.label}
@@ -432,10 +369,7 @@ function LevelSlider({ metric, value, onChange, disabled }: LevelSliderProps) {
             onPress={() => onChange(option.id)}
           >
             <Text
-              style={[
-                styles.sliderLabel,
-                { color: active ? optionTone.color : theme.neutral.textMuted },
-              ]}
+              style={[styles.sliderLabel, active && styles.sliderLabelActive]}
               numberOfLines={1}
             >
               {option.label}
@@ -462,9 +396,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   description: {
-    color: theme.palette.slate.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
   },
   levelRow: {
     flexDirection: 'row',
@@ -478,19 +412,17 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: theme.palette.slate.border,
+    borderColor: theme.ui.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.palette.blue.bg,
-    borderColor: theme.palette.blue.border,
+    backgroundColor: theme.ui.primary,
+    borderColor: theme.ui.primary,
   },
-  matchLabel: { color: theme.palette.slate.text, fontSize: 14, fontWeight: '600' },
-  matchNote: { color: theme.palette.slate.textMuted, fontSize: 12, lineHeight: 17, marginLeft: 28 },
+  matchLabel: { color: theme.ui.foreground, fontSize: 14, fontWeight: '500' },
+  matchNote: { color: theme.ui.mutedForeground, fontSize: 12, lineHeight: 17, marginLeft: 28 },
   testButton: {
-    height: 28,
-    paddingHorizontal: 10,
     flexShrink: 0,
   },
   customLabel: {
@@ -498,46 +430,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 38,
+    height: 36,
   },
   customLabelText: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '500',
   },
   slider: {
     flex: 1,
     flexDirection: 'row',
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.85),
+    padding: 3,
+    gap: 2,
+    borderRadius: theme.radius.md + 3,
     borderWidth: 1,
-    borderColor: theme.alpha(theme.palette.slate.light, 0.3),
-    position: 'relative',
-    overflow: 'hidden',
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
   },
   sliderDisabled: {
     opacity: 0.45,
   },
-  sliderHighlightSlot: {
-    position: 'absolute',
-    top: 2,
-    bottom: 2,
-    width: `${100 / LEVEL_OPTIONS.length}%`,
-  },
-  sliderHighlight: {
-    flex: 1,
-    marginHorizontal: 1,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
   sliderSegment: {
     flex: 1,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: theme.radius.md,
+  },
+  sliderSegmentActive: {
+    backgroundColor: theme.ui.primary,
   },
   sliderLabel: {
+    color: theme.ui.mutedForeground,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
+  },
+  sliderLabelActive: {
+    color: theme.ui.primaryForeground,
   },
 })

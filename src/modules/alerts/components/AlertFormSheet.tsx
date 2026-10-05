@@ -2,25 +2,16 @@ import { useUnitSystem } from '@/hooks/useUnitSystem'
 import { speedFromKmh, speedInputToKmh, speedUnit } from '@/helpers/units'
 import { useCallback, useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import {
-  ChatTextIcon,
-  CheckIcon,
-  PlusIcon,
-  RadioactiveIcon,
-  WaveformIcon,
-} from 'phosphor-react-native'
 import { ALERT_BEEP_COUNT_DEFAULT, ALERT_BEEP_COUNT_RANGE, type AlertSoundType } from 'vescape-core'
 
-import { Button } from '@/components/base/Button'
 import { Text } from '@/components/base/Text'
-import { SoundPicker } from '@/components/forms/SoundPicker'
-import { Stepper } from '@/components/forms/Stepper'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { EdgeDrawer } from '@/components/overlays/EdgeDrawer'
+import { Button } from '@/components/ui/Button'
+import { Drawer } from '@/components/ui/Drawer'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { Stepper } from '@/components/ui/Stepper'
 import { theme } from '@/constants/theme'
 import { AlertMessageField } from '@/modules/alerts/components/AlertMessageField'
-import { AlertTypeTabs } from '@/modules/alerts/components/AlertTypeTabs'
-import { RepeatField } from '@/modules/alerts/components/AlertFormFields'
+import { AlertField, RepeatField, SoundField } from '@/modules/alerts/components/AlertFormFields'
 import {
   getAlertDialConfig,
   getDefaultMessageTemplate,
@@ -33,10 +24,14 @@ import type { DraftAlertRule } from '@/modules/alerts/lib/customAlertRules'
 import type { DerivedBatteryConfig } from '@/modules/battery/lib/types'
 import type { TelemetryAlertTab as AlertTab } from '@/modules/board/constants/telemetryThresholds'
 import { TuneDial } from '@/modules/tune/components/TuneDial'
+import IconActivity from '@tabler/icons-react-native/IconActivity'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
+import IconMessage from '@tabler/icons-react-native/IconMessage'
+import IconPlus from '@tabler/icons-react-native/IconPlus'
+import IconRadioactive from '@tabler/icons-react-native/IconRadioactive'
 
 interface AlertFormSheetProps {
   visible: boolean
-  triggerRef: React.RefObject<View | null>
   controlId: string
   unit: string
   editRule: DraftAlertRule | null
@@ -49,7 +44,6 @@ interface AlertFormSheetProps {
 /** Writes one alert rule: its threshold, how it sounds, and how often it repeats. */
 export function AlertFormSheet({
   visible,
-  triggerRef,
   controlId,
   unit,
   editRule,
@@ -149,18 +143,16 @@ export function AlertFormSheet({
   ])
 
   return (
-    <EdgeDrawer
+    <Drawer
       visible={visible}
-      triggerRef={triggerRef}
-      title={isEditing ? 'Edit Alert' : 'Add Alert'}
-      icon={tab === 'geiger' ? RadioactiveIcon : tab === 'message' ? ChatTextIcon : WaveformIcon}
+      title={isEditing ? 'Edit alert' : 'Add alert'}
+      headerRight={
+        <SegmentedControl activeKey={tab} options={TYPE_OPTIONS} onSelect={handleTabSwitch} />
+      }
       onClose={onClose}
     >
-      <AlertTypeTabs tab={tab} onSelect={handleTabSwitch} />
-
-      <SettingsCard separatorInset={0}>
-        <View style={styles.cardField}>
-          <Text style={styles.fieldLabel}>THRESHOLD</Text>
+      <View style={styles.body}>
+        <AlertField label={tab === 'geiger' ? 'Threshold min' : 'Threshold'}>
           <TuneDial
             key={units}
             value={toDisplay(threshold)}
@@ -171,6 +163,7 @@ export function AlertFormSheet({
             unit={isSpeed ? speedUnit(units) : dialConfig.unit}
             displayDecimals={isSpeed ? 1 : undefined}
             indicatorGlow={tab === 'geiger' ? 'right' : undefined}
+            color={theme.ui.foreground}
             valueChangeMode="commit"
             onValueChange={(next) =>
               setThreshold(
@@ -180,11 +173,10 @@ export function AlertFormSheet({
               )
             }
           />
-        </View>
+        </AlertField>
 
         {tab === 'geiger' && (
-          <View style={styles.cardField}>
-            <Text style={styles.fieldLabel}>THRESHOLD MAX</Text>
+          <AlertField label="Threshold max">
             <TuneDial
               key={units}
               value={toDisplay(thresholdMax)}
@@ -197,6 +189,7 @@ export function AlertFormSheet({
               unit={isSpeed ? speedUnit(units) : dialConfig.unit}
               displayDecimals={isSpeed ? 1 : undefined}
               indicatorGlow="left"
+              color={theme.ui.foreground}
               valueChangeMode="commit"
               onValueChange={(next) =>
                 setThresholdMax(
@@ -206,94 +199,74 @@ export function AlertFormSheet({
                 )
               }
             />
-          </View>
+          </AlertField>
         )}
 
         {tab !== 'geiger' && (
-          <View style={styles.cardField}>
-            <RepeatField value={repeatEverySeconds} onChange={setRepeatEverySeconds} />
-          </View>
+          <RepeatField value={repeatEverySeconds} onChange={setRepeatEverySeconds} />
         )}
 
         {tab === 'single' && (
-          <View style={styles.cardField}>
-            <Text style={styles.fieldLabel}>BEEPS</Text>
-            <Stepper
-              value={beepCount}
-              min={ALERT_BEEP_COUNT_RANGE.min}
-              max={ALERT_BEEP_COUNT_RANGE.max}
-              onChange={setBeepCount}
-              style={styles.beepStepper}
-            />
-          </View>
+          <AlertField label="Beeps">
+            <View style={styles.stepper}>
+              <Stepper
+                value={beepCount}
+                min={ALERT_BEEP_COUNT_RANGE.min}
+                max={ALERT_BEEP_COUNT_RANGE.max}
+                step={1}
+                label="beeps"
+                onChange={setBeepCount}
+              />
+            </View>
+          </AlertField>
         )}
 
         {tab === 'message' ? (
-          <View style={styles.cardField}>
-            <AlertMessageField
-              controlId={controlId}
-              unit={unit}
-              threshold={threshold}
-              dialConfig={dialConfig}
-              batteryConfig={batteryConfig}
-              messageTemplate={messageTemplate}
-              onChangeTemplate={setMessageTemplate}
-            />
-          </View>
+          <AlertMessageField
+            controlId={controlId}
+            unit={unit}
+            threshold={threshold}
+            dialConfig={dialConfig}
+            batteryConfig={batteryConfig}
+            messageTemplate={messageTemplate}
+            onChangeTemplate={setMessageTemplate}
+          />
         ) : (
-          <View style={styles.cardField}>
-            <SoundPicker
-              presets={tab === 'single' ? singlePresets : geigerPresets}
-              selected={soundType}
-              onSelect={setSoundType}
-            />
-          </View>
+          <SoundField
+            presets={tab === 'single' ? singlePresets : geigerPresets}
+            selected={soundType}
+            onSelect={setSoundType}
+          />
         )}
-      </SettingsCard>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <View style={styles.actions}>
-        <Button label="Cancel" variant="secondary" onPress={onClose} style={styles.actionButton} />
-        <Button
-          label={isEditing ? 'Save' : 'Add alert'}
-          icon={isEditing ? CheckIcon : PlusIcon}
-          variant="accent"
-          onPress={handleSave}
-          loading={saving}
-          style={styles.actionButton}
-        />
+        <View style={styles.actions}>
+          <Button label="Cancel" variant="outline" onPress={onClose} style={styles.actionButton} />
+          <Button
+            label={isEditing ? 'Save' : 'Add alert'}
+            icon={isEditing ? IconCheck : IconPlus}
+            variant="primary"
+            onPress={handleSave}
+            loading={saving}
+            style={styles.actionButton}
+          />
+        </View>
       </View>
-    </EdgeDrawer>
+    </Drawer>
   )
 }
 
+const TYPE_OPTIONS = [
+  { key: 'single', label: 'Alert', icon: IconActivity },
+  { key: 'geiger', label: 'Geiger', icon: IconRadioactive },
+  { key: 'message', label: 'Message', icon: IconMessage },
+] as const
+
 const styles = StyleSheet.create({
-  cardField: {
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  fieldLabel: {
-    color: theme.neutral.textMuted,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  beepStepper: {
-    alignSelf: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  actionButton: {
-    minWidth: 128,
-  },
-  error: {
-    color: theme.status.error.text,
-    fontSize: 12,
-  },
+  body: { gap: 20, paddingHorizontal: 16, paddingBottom: 8 },
+  stepper: { alignItems: 'flex-start' },
+  actions: { flexDirection: 'row', gap: 8 },
+  actionButton: { flex: 1 },
+  error: { color: theme.status.error.text, fontSize: 13 },
 })

@@ -244,9 +244,10 @@ generated until the rider touches setup:
 
 The same setup (Board Top Speed + all five sliders, `AlertPresetSetup`) is reached two ways:
 
-- **Add-board wizard** — a `presets` step shown for every new Board (each Board gets its own guided
-  setup). The step edits a draft; on save the draft is persisted onto the new Board and its preset rules
-  are generated. Completing sets that Board's `alertPresetsOnboarded`.
+- **Add-board wizard** — optional: the confirm step lists the five preset metrics as a collapsed
+  accordion (each row's closed state shows its level), and opening a row edits that metric's draft. Top
+  speed is set earlier, in the setup step. Either way the draft is persisted onto the new Board on save
+  and its preset rules are generated, and that Board's `alertPresetsOnboarded` is set.
 - **Settings › Alerts** — the durable home for the active Board, always available.
 
 ## JS side

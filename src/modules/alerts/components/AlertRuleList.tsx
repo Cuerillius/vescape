@@ -1,20 +1,19 @@
 import { useFormat } from '@/hooks/useFormat'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
-import {
-  ChatTextIcon,
-  PlusIcon,
-  RadioactiveIcon,
-  SpeakerHighIcon,
-  SpeakerSlashIcon,
-  TrashIcon,
-  WaveformIcon,
-} from 'phosphor-react-native'
+import IconMessage from '@tabler/icons-react-native/IconMessage'
+import IconPlus from '@tabler/icons-react-native/IconPlus'
+import IconRadioactive from '@tabler/icons-react-native/IconRadioactive'
+import IconTrash from '@tabler/icons-react-native/IconTrash'
+import IconVolume from '@tabler/icons-react-native/IconVolume'
+import IconVolumeOff from '@tabler/icons-react-native/IconVolumeOff'
+import IconWaveSine from '@tabler/icons-react-native/IconWaveSine'
 
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
 import { Text } from '@/components/base/Text'
 import { ConfirmModal } from '@/components/modals/ConfirmModal'
 import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import type { DerivedBatteryConfig } from '@/modules/battery/lib/types'
 import { AlertFormSheet } from '@/modules/alerts/components/AlertFormSheet'
 import type { DraftAlertRule } from '@/modules/alerts/lib/customAlertRules'
@@ -39,7 +38,6 @@ export function AlertRuleList({
   const [formVisible, setFormVisible] = useState(false)
   const [editRule, setEditRule] = useState<DraftAlertRule | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DraftAlertRule | null>(null)
-  const addButtonRef = useRef<View>(null)
 
   const closeForm = () => {
     setFormVisible(false)
@@ -80,12 +78,11 @@ export function AlertRuleList({
 
       {controller.error ? <Text style={styles.errorText}>{controller.error}</Text> : null}
 
-      <View style={styles.addButtonRow} ref={addButtonRef} collapsable={false}>
+      <View style={styles.addButtonRow}>
         <Button
           label="Add alert"
-          icon={PlusIcon}
-          variant="secondary"
-          size="sm"
+          icon={IconPlus}
+          variant="outline"
           onPress={() => {
             setEditRule(null)
             setFormVisible(true)
@@ -95,7 +92,6 @@ export function AlertRuleList({
 
       <AlertFormSheet
         visible={formVisible}
-        triggerRef={addButtonRef}
         controlId={controller.controlId}
         unit={unit}
         editRule={editRule}
@@ -121,7 +117,7 @@ export function AlertRuleList({
   )
 }
 
-function AlertRuleRow({
+export function AlertRuleRow({
   rule,
   unit,
   batteryConfig,
@@ -137,13 +133,16 @@ function AlertRuleRow({
   onDelete: () => void
 }) {
   const { formatSpeedWithUnit } = useFormat()
+  const foreground = useResolvedColor(theme.ui.foreground)
+  const muted = useResolvedColor(theme.ui.mutedForeground)
+  const faint = useResolvedColor(theme.ui.faintForeground)
   const format = (value: number) =>
     rule.controlId === 'speed'
       ? formatSpeedWithUnit(value, 1)
       : formatAlertValue(value, batteryConfig, unit)
   const isGeiger = rule.thresholdMax != null
   const isTts = rule.soundType.startsWith('tts:')
-  const TypeIcon = isGeiger ? RadioactiveIcon : isTts ? ChatTextIcon : WaveformIcon
+  const TypeIcon = isGeiger ? IconRadioactive : isTts ? IconMessage : IconWaveSine
   const detail = [
     rule.repeatEverySeconds == null ? null : `every ${rule.repeatEverySeconds}s`,
     isGeiger || isTts ? null : `${rule.beepCount}×`,
@@ -154,11 +153,7 @@ function AlertRuleRow({
   return (
     <TouchableOpacity style={styles.ruleRow} onPress={onEdit} activeOpacity={0.7}>
       <View style={styles.ruleTypeIcon}>
-        <TypeIcon
-          size={18}
-          color={rule.enabled ? theme.palette.orange.color : theme.neutral.textDim}
-          weight="duotone"
-        />
+        <TypeIcon size={18} color={rule.enabled ? foreground : faint} strokeWidth={2} />
       </View>
 
       <View style={styles.ruleContent}>
@@ -191,9 +186,9 @@ function AlertRuleRow({
         style={styles.ruleAction}
       >
         {rule.enabled ? (
-          <SpeakerHighIcon size={16} color={theme.palette.orange.color} />
+          <IconVolume size={16} color={foreground} strokeWidth={2} />
         ) : (
-          <SpeakerSlashIcon size={16} color={theme.neutral.textDim} />
+          <IconVolumeOff size={16} color={faint} strokeWidth={2} />
         )}
       </TouchableOpacity>
 
@@ -205,7 +200,7 @@ function AlertRuleRow({
         hitSlop={8}
         style={styles.ruleAction}
       >
-        <TrashIcon size={15} color={theme.status.error.color} />
+        <IconTrash size={16} color={muted} strokeWidth={2} />
       </TouchableOpacity>
     </TouchableOpacity>
   )
@@ -220,54 +215,55 @@ const styles = StyleSheet.create({
   ruleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
   },
   ruleTypeIcon: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.neutral.surface,
+    backgroundColor: theme.ui.muted,
   },
   ruleContent: {
     flex: 1,
   },
   ruleThreshold: {
-    color: theme.neutral.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
+    color: theme.ui.foreground,
+    fontSize: 15,
+    fontWeight: '600',
   },
   ruleTtsTemplate: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
-    fontWeight: '500',
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
     marginTop: 1,
   },
   ruleDetail: {
-    color: theme.palette.slate.textDim,
-    fontSize: 11,
-    fontWeight: '500',
+    color: theme.ui.mutedForeground,
+    fontSize: 12,
     marginTop: 1,
   },
   ruleTextDisabled: {
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
   },
   ruleAction: {
     padding: 6,
   },
   addButtonRow: {
-    alignItems: 'center',
-    marginTop: 2,
+    alignItems: 'flex-start',
   },
   emptyHintText: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
-    fontWeight: '500',
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
   },
   errorText: {
-    color: theme.status.error.color,
+    color: theme.status.error.text,
     fontSize: 12,
     fontWeight: '500',
   },

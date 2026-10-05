@@ -1,6 +1,5 @@
-import { type ReactNode, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import type { SharedValue } from 'react-native-reanimated'
 
 import { Text } from '@/components/base/Text'
 import { ConfirmModal } from '@/components/modals/ConfirmModal'
@@ -12,37 +11,20 @@ import { AlertRuleList } from '@/modules/alerts/components/AlertRuleList'
 import type { MetricAlertsController } from '@/modules/alerts/hooks/useMetricAlerts'
 import { useBoardStore } from '@/modules/board/store/boardStore'
 
-/** Structural mirror of the gauge hot-range span; keeps this module clear of the history module. */
-interface MetricAlertsHotRange {
-  start: number
-  end: number
-}
-
 interface MetricAlertsProps {
   controller: MetricAlertsController | null
   unit: string
-  /** Live telemetry value driving the gauge needle; absent renders the offline preview. */
-  liveValue?: SharedValue<number | null>
-  hotRange?: MetricAlertsHotRange | null
-  /** Detail-screen Alerts heading, placed directly below the gauge. */
-  controlsHeader?: ReactNode
 }
 
 /**
  * A control's whole alert setup: preset levels with their gauge, or — once the rider hits edit —
- * their own rules. One block, one source of truth per metric, used by `/control` details and by
+ * their own rules. One block, one source of truth per metric, used by the Alerts screen and by
  * the add-board wizard through their respective {@link MetricAlertsController}s.
  *
  * A `null` controller means no Board: Alert Rules are board-owned (#254), so instead of controls
  * that would silently write nowhere, the block explains that and offers the way forward.
  */
-export function MetricAlerts({
-  controller,
-  unit,
-  liveValue,
-  hotRange,
-  controlsHeader,
-}: MetricAlertsProps) {
+export function MetricAlerts({ controller, unit }: MetricAlertsProps) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false)
 
   const batteryConfig = useBatteryConfig(controller?.controlId)
@@ -61,15 +43,12 @@ export function MetricAlerts({
           metric={metric}
           level={level}
           onLevelChange={controller.setLevel}
-          liveValue={liveValue}
           boardTopSpeedKmh={controller.topSpeedKmh}
           matchBoardConfig={controller.matchBoardConfig}
           onMatchBoardConfigChange={controller.setMatchBoardConfig}
           configBases={controller.configBases}
-          hotRange={hotRange}
           disabled={batteryBlocked}
           ruleSnapshot={controller.ruleSnapshot}
-          controlsHeader={controlsHeader}
           onCustomize={controller.customize}
           onDiscardCustom={() => setConfirmingDiscard(true)}
         />
@@ -134,14 +113,13 @@ const styles = StyleSheet.create({
   container: {
     gap: 10,
   },
-  error: { color: theme.status.error.color, fontSize: 12 },
+  error: { color: theme.status.error.text, fontSize: 12 },
   rules: {
     gap: 8,
   },
   note: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 16,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
   },
 })

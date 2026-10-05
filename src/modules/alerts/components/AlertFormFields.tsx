@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { type AlertSound, previewAlertSound } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
-import { PillChoiceRow } from '@/components/forms/PillChoiceRow'
+import { CardDescription } from '@/components/ui/Card'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
 import { theme } from '@/constants/theme'
 
 /**
@@ -10,6 +13,30 @@ import { theme } from '@/constants/theme'
  * and native floors the value regardless.
  */
 const REPEAT_INTERVAL_CHOICES = [5, 10, 30, 60] as const
+
+const REPEAT_OPTIONS = [
+  { key: 'off', label: 'Off' },
+  ...REPEAT_INTERVAL_CHOICES.map((seconds) => ({ key: String(seconds), label: `${seconds}s` })),
+]
+
+/** A caption above one control of the alert form, with an optional hint below it. */
+export function AlertField({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <View style={styles.field}>
+      <CardDescription>{label}</CardDescription>
+      {children}
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    </View>
+  )
+}
 
 /** Repeat cadence for a single-threshold rule; `Off` is the one-shot choice. */
 export function RepeatField({
@@ -20,39 +47,53 @@ export function RepeatField({
   onChange: (next: number | null) => void
 }) {
   return (
-    <View style={styles.dialField}>
-      <Text style={styles.fieldLabel}>REPEAT</Text>
-      <PillChoiceRow
-        options={[
-          { value: null, label: 'Off' },
-          ...REPEAT_INTERVAL_CHOICES.map((seconds) => ({ value: seconds, label: `${seconds}s` })),
-        ]}
-        value={value}
-        onChange={onChange}
-        accent={theme.palette.green}
-      />
-      <Text style={styles.fieldHint}>
-        {value == null
+    <AlertField
+      label="Repeat"
+      hint={
+        value == null
           ? 'Announces once, then again only after it drops back down'
-          : `Keeps announcing every ${value}s while past the threshold`}
-      </Text>
-    </View>
+          : `Keeps announcing every ${value}s while past the threshold`
+      }
+    >
+      <View style={styles.toggle}>
+        <ToggleGroup
+          activeKey={value == null ? 'off' : String(value)}
+          options={REPEAT_OPTIONS}
+          onSelect={(key) => onChange(key === 'off' ? null : Number(key))}
+        />
+      </View>
+    </AlertField>
+  )
+}
+
+/** Picks one preset sound and plays it as a preview. */
+export function SoundField({
+  presets,
+  selected,
+  onSelect,
+}: {
+  presets: AlertSound[]
+  selected: string
+  onSelect: (uri: string) => void
+}) {
+  return (
+    <AlertField label="Sound">
+      <View style={styles.toggle}>
+        <ToggleGroup
+          activeKey={selected}
+          options={presets.map((preset) => ({ key: preset.uri, label: preset.name }))}
+          onSelect={(uri) => {
+            onSelect(uri)
+            previewAlertSound(uri)
+          }}
+        />
+      </View>
+    </AlertField>
   )
 }
 
 const styles = StyleSheet.create({
-  dialField: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: theme.neutral.textMuted,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  fieldHint: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  field: { gap: 8 },
+  toggle: { flexDirection: 'row' },
+  hint: { color: theme.ui.mutedForeground, fontSize: 12, fontWeight: '500' },
 })

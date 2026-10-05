@@ -1,11 +1,10 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
-import { SpeakerHighIcon } from 'phosphor-react-native'
+import { StyleSheet, View } from 'react-native'
 import { previewAlertSound } from 'vescape-core'
+import IconVolume from '@tabler/icons-react-native/IconVolume'
 
-import { Text } from '@/components/base/Text'
-import { IconButton } from '@/components/base/IconButton'
-import { Input } from '@/components/forms/Input'
-import { theme } from '@/constants/theme'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { AlertField } from '@/modules/alerts/components/AlertFormFields'
 import type { DerivedBatteryConfig } from '@/modules/battery/lib/types'
 import type { getAlertDialConfig } from '@/modules/alerts/lib/alertFormDefaults'
 import { getMessagePlaceholders } from '@/modules/alerts/lib/alertFormDefaults'
@@ -31,29 +30,26 @@ export function AlertMessageField({
 }) {
   const formatMessage = useAlertMessageFormat()
   return (
-    <View style={styles.messageField}>
-      <Text style={styles.fieldLabel}>TEMPLATE</Text>
+    <AlertField label="Template">
       <Input
         value={messageTemplate}
         onChangeText={onChangeTemplate}
         multiline
         placeholder="e.g. Speed {value} {unit}"
-        placeholderTextColor={theme.neutral.textDim}
         style={styles.templateInput}
       />
       <View style={styles.placeholderRow}>
-        {getMessagePlaceholders(controlId, batteryConfig).map((ph) => (
-          <TouchableOpacity
-            key={ph}
-            style={styles.placeholderChip}
-            onPress={() => onChangeTemplate((t) => t + ph)}
-          >
-            <Text style={styles.placeholderChipText}>{ph}</Text>
-          </TouchableOpacity>
+        {getMessagePlaceholders(controlId, batteryConfig).map((placeholder) => (
+          <Button
+            key={placeholder}
+            label={placeholder}
+            variant="secondary"
+            onPress={() => onChangeTemplate((current) => current + placeholder)}
+          />
         ))}
-        <IconButton
-          icon={SpeakerHighIcon}
-          size="sm"
+        <Button
+          icon={IconVolume}
+          variant="outline"
           accessibilityLabel="Preview the spoken message"
           onPress={() =>
             previewAlertSound(
@@ -63,44 +59,24 @@ export function AlertMessageField({
           style={styles.previewButton}
         />
       </View>
-    </View>
+    </AlertField>
   )
 }
 
 const styles = StyleSheet.create({
-  messageField: {
-    gap: 8,
-  },
-  fieldLabel: {
-    color: theme.neutral.textMuted,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
   templateInput: {
+    height: undefined,
     minHeight: 72,
+    paddingVertical: 10,
     textAlignVertical: 'top',
   },
   placeholderRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   previewButton: {
     marginLeft: 'auto',
-  },
-  placeholderChip: {
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.85),
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  placeholderChipText: {
-    color: theme.neutral.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
   },
 })

@@ -1,12 +1,12 @@
-import { useUnitSystem } from '@/hooks/useUnitSystem'
-import { speedFromKmh, speedInputToKmh, speedUnit } from '@/helpers/units'
-import { stepDelta } from '@/helpers/numberStep'
-import { SpeedometerIcon } from 'phosphor-react-native'
+import { StyleSheet, View } from 'react-native'
 
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { Stepper } from '@/components/forms/Stepper'
+import { Text } from '@/components/base/Text'
+import { CardTitle } from '@/components/ui/Card'
+import { Stepper } from '@/components/ui/Stepper'
 import { theme } from '@/constants/theme'
+import { stepDelta } from '@/helpers/numberStep'
+import { speedFromKmh, speedInputToKmh, speedUnit } from '@/helpers/units'
+import { useUnitSystem } from '@/hooks/useUnitSystem'
 
 const BOARD_TOP_SPEED_MIN = 5
 const BOARD_TOP_SPEED_MAX = 150
@@ -31,24 +31,30 @@ export function BoardTopSpeedCard({
   }
 
   return (
-    <SettingsCard>
-      <SettingsRow
-        icon={SpeedometerIcon}
-        iconColor={theme.palette.orange.color}
-        label="Board top speed"
-        hint="Fastest you consider yourself capable of riding this board. Scales speed gauges and alerts"
-        right={
-          <Stepper
-            value={speedFromKmh(value, units)}
-            formatValue={(v) => Number(v.toFixed(1)).toString()}
-            unit={speedUnit(units)}
-            min={speedFromKmh(BOARD_TOP_SPEED_MIN, units)}
-            max={speedFromKmh(BOARD_TOP_SPEED_MAX, units)}
-            step={(v, direction) => stepDelta(v, direction, 5)}
-            onChange={setTopSpeed}
-          />
-        }
-      />
-    </SettingsCard>
+    <View style={styles.container}>
+      <View style={styles.row}>
+        <CardTitle style={styles.title}>Board top speed</CardTitle>
+        <Stepper
+          value={speedFromKmh(value, units)}
+          formatValue={(v) => Number(v.toFixed(1)).toString()}
+          unit={` ${speedUnit(units)}`}
+          min={speedFromKmh(BOARD_TOP_SPEED_MIN, units)}
+          max={speedFromKmh(BOARD_TOP_SPEED_MAX, units)}
+          step={(v, direction) => stepDelta(v, direction, 5)}
+          label="board top speed"
+          onChange={setTopSpeed}
+        />
+      </View>
+      <Text style={styles.hint}>
+        Fastest you consider yourself capable of riding this board. Scales speed gauges and alerts.
+      </Text>
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: { gap: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  title: { flex: 1 },
+  hint: { color: theme.ui.mutedForeground, fontSize: 13, lineHeight: 18 },
+})
