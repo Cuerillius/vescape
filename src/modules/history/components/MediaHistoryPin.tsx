@@ -1,11 +1,11 @@
 import { MarkerView } from '@rnmapbox/maps'
 import { Image } from 'expo-image'
-import { PlayIcon } from 'phosphor-react-native'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
 
 import { theme } from '@/constants/theme'
 import type { MediaHistoryCluster } from '@/modules/history/lib/mediaHistory'
+import IconPlayerPlayFilled from '@tabler/icons-react-native/IconPlayerPlayFilled'
 
 export function MediaHistoryPin({
   cluster,
@@ -37,7 +37,7 @@ export function MediaHistoryPin({
             <Image source={first.uri} contentFit="cover" style={styles.thumbnail} />
             {first.mediaType === 'video' ? (
               <View style={styles.videoBadge}>
-                <PlayIcon size={8} color={theme.palette.purple.text} weight="fill" />
+                <IconPlayerPlayFilled size={8} color={theme.palette.purple.text} />
               </View>
             ) : null}
           </>
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: theme.palette.purple.color,
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   cluster: {
     alignItems: 'center',
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   count: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 11,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
@@ -83,6 +83,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.6),
+    backgroundColor: theme.alpha(theme.ui.muted, 0.6),
   },
 })

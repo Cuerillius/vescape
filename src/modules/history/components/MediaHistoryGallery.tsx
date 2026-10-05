@@ -1,16 +1,18 @@
 import { Image } from 'expo-image'
-import { ImagesSquareIcon, PlayIcon, PlusIcon } from 'phosphor-react-native'
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native'
 
-import { Button } from '@/components/base/Button'
 import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
 import { theme } from '@/constants/theme'
 import type { MediaAssetInput, MediaHistoryAsset } from '@/modules/history/lib/mediaHistory'
+import IconPhoto from '@tabler/icons-react-native/IconPhoto'
+import IconPlayerPlayFilled from '@tabler/icons-react-native/IconPlayerPlayFilled'
+import IconPlus from '@tabler/icons-react-native/IconPlus'
 
 const GRID_COLUMNS = 4
 const GRID_GAP = 6
-// EdgeDrawer body horizontal padding — tiles fill the remaining drawer width.
-const DRAWER_HORIZONTAL_PADDING = 12
+// Drawer body horizontal padding — tiles fill the remaining drawer width.
+const DRAWER_HORIZONTAL_PADDING = 16
 
 function MediaGrid({
   assets,
@@ -38,7 +40,7 @@ function MediaGrid({
           <Image source={asset.uri} contentFit="cover" style={styles.thumbnail} />
           {asset.mediaType === 'video' ? (
             <View style={styles.videoBadge}>
-              <PlayIcon size={10} color={theme.palette.purple.text} weight="fill" />
+              <IconPlayerPlayFilled size={10} color={theme.palette.purple.text} />
             </View>
           ) : null}
         </Pressable>
@@ -75,7 +77,7 @@ export function MediaHistoryGallery({
     <View style={styles.container}>
       {assets.length === 0 && unmatched.length === 0 ? (
         <View style={styles.empty}>
-          <ImagesSquareIcon size={28} color={theme.neutral.textMuted} weight="duotone" />
+          <IconPhoto size={28} color={theme.ui.mutedForeground} />
           <Text style={styles.emptyText}>
             Add photos and videos captured during this Favorite to see them on the map.
           </Text>
@@ -95,7 +97,7 @@ export function MediaHistoryGallery({
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button
         label="Add Photos & Videos"
-        icon={PlusIcon}
+        icon={IconPlus}
         variant="secondary"
         loading={loading}
         onPress={onAdd}
@@ -107,6 +109,7 @@ export function MediaHistoryGallery({
 const styles = StyleSheet.create({
   container: {
     gap: 12,
+    paddingHorizontal: DRAWER_HORIZONTAL_PADDING,
     paddingBottom: 4,
   },
   empty: {
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   emptyText: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
@@ -129,7 +132,7 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   tilePressed: {
     opacity: 0.55,
@@ -147,16 +150,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.6),
+    backgroundColor: theme.alpha(theme.ui.muted, 0.6),
   },
   sectionTitle: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
     fontWeight: '800',
     marginTop: 4,
   },
   note: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',

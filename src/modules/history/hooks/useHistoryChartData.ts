@@ -6,7 +6,7 @@ import type { ChartSpec } from '@/components/charts/line/ChartStack'
 import { buildTimeline, type ChartTimeline } from '@/components/charts/line/timeline'
 import type { ChartBand, ChartColorRamp, ChartSeriesData } from '@/components/charts/line/types'
 import { accentColors, resolveAdaptiveColor, theme } from '@/constants/theme'
-import { useResolvedAccentColors, useResolvedNeutralColors, useThemeStore } from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedUiColors, useThemeStore } from '@/hooks/useTheme'
 import { telemetry } from '@/modules/board/constants/telemetry'
 import {
   EXTRA_CHART_METRICS,
@@ -252,7 +252,7 @@ export function useMetricRamps(): HistoryRamps {
 export function useChartExclusionBands() {
   const sessionExclusions = useHistoryStore((s) => s.sessionExclusions)
   const accents = useResolvedAccentColors()
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   return useMemo(() => {
     const bands = {} as Record<HistoryMetricKey, ChartBand[] | undefined>
     for (const def of HISTORY_CHART_DEFS) {
@@ -260,13 +260,13 @@ export function useChartExclusionBands() {
         ? toExcludedRanges(sessionExclusions, def.statKeys).map((range) => ({
             startMs: range.startMs,
             endMs: range.endMs,
-            color: range.reason === 'free_spin' ? accents.yellow.color : neutral.textSecondary,
+            color: range.reason === 'free_spin' ? accents.yellow.color : ui.mutedForeground,
             row: EXCLUSION_ROW,
           }))
         : undefined
     }
     return bands
-  }, [accents.yellow.color, neutral.textSecondary, sessionExclusions])
+  }, [accents.yellow.color, ui.mutedForeground, sessionExclusions])
 }
 
 /**

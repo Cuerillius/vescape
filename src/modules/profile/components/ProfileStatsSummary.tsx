@@ -1,19 +1,21 @@
 import { useState, type ReactNode } from 'react'
-import { StyleSheet, View } from 'react-native'
-import { ChartLineUpIcon, WarningCircleIcon } from 'phosphor-react-native'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import IconAlertCircle from '@tabler/icons-react-native/IconAlertCircle'
+import IconChartLine from '@tabler/icons-react-native/IconChartLine'
 
-import { Placeholder } from '@/components/base/Placeholder'
-import { SegmentedToggle } from '@/components/controls/SegmentedToggle'
-import { useResolvedSecondaryWidgetSurface } from '@/components/widgets/widgetSurface'
-import { useProfileStatItems } from '@/modules/profile/hooks/useProfileStatItems'
+import { ToggleGroup } from '@/components/ui/ToggleGroup'
+import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { ProfileStatsGrid } from '@/modules/profile/components/ProfileStatsGrid'
+import { MessageCard } from '@/components/ui/MessageCard'
+import { useProfileStatItems } from '@/modules/profile/hooks/useProfileStatItems'
 import { useProfileStats } from '@/modules/profile/hooks/useProfileStats'
-import { formatMonthLabel } from '@/modules/profile/lib/profileStats'
+import { formatMonthLabel, isCurrentMonth } from '@/modules/profile/lib/profileStats'
 
 type Scope = 'total' | 'month'
 
 interface ProfileStatsSummaryProps {
-  /** Load and refresh while the containing drawer or screen is visible. */
+  /** Load and refresh while the containing view is visible. */
   active?: boolean
   /** Action pinned opposite the scope switch, e.g. a link into the full stats screen. */
   action?: ReactNode
@@ -25,66 +27,65 @@ interface ProfileStatsSummaryProps {
  */
 export function ProfileStatsSummary({ active = true, action }: ProfileStatsSummaryProps) {
   const { total, monthly, selectedMonth, loading, error, empty } = useProfileStats(active)
-  const surface = useResolvedSecondaryWidgetSurface()
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
   const [scope, setScope] = useState<Scope>('total')
-  const stats = scope === 'total' ? total : monthly
-  const items = useProfileStatItems(stats, ['distance', 'rides', 'topSpeed', 'longestRide'])
+  const items = useProfileStatItems(scope === 'total' ? total : monthly, [
+    'distance',
+    'rides',
+    'topSpeed',
+    'longestRide',
+  ])
 
   return (
-    <View
-      style={[surface, styles.card]}
-      testID="profile-stats-summary"
-      accessibilityState={{ busy: loading }}
-    >
+    <View style={styles.root} testID="profile-stats-summary" accessibilityState={{ busy: loading }}>
       <View style={styles.head}>
-        <SegmentedToggle<Scope>
+        <ToggleGroup<Scope>
           options={[
-            { value: 'total', label: 'All time' },
-            { value: 'month', label: formatMonthLabel(selectedMonth) },
+            { key: 'total', label: 'All time' },
+            {
+              key: 'month',
+              // The hook falls back to the latest month with rides when this one has none.
+              label: isCurrentMonth(selectedMonth) ? 'This month' : formatMonthLabel(selectedMonth),
+            },
           ]}
-          value={scope}
-          onChange={setScope}
-          variant="secondary"
+          activeKey={scope}
+          onSelect={setScope}
         />
         {action}
       </View>
-      <View style={styles.body}>
-        {!loading && error ? (
-          <Placeholder
-            icon={WarningCircleIcon}
-            description="Could not load riding totals. Restart the app to try again"
-            style={styles.empty}
-          />
-        ) : !loading && empty ? (
-          <Placeholder
-            icon={ChartLineUpIcon}
-            description="Record a ride and your totals appear here"
-            style={styles.empty}
-          />
-        ) : (
-          <ProfileStatsGrid items={items} emphasis />
-        )}
-      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color={mutedColor} style={styles.loading} />
+      ) : error ? (
+        <MessageCard
+          icon={IconAlertCircle}
+          tone="error"
+          title="Could not load riding totals"
+          description="Restart the app to try again"
+        />
+      ) : empty ? (
+        <MessageCard
+          icon={IconChartLine}
+          title="No riding stats yet"
+          description="Record a ride and your totals appear here"
+        />
+      ) : (
+        <ProfileStatsGrid items={items} />
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
-    padding: 14,
-    gap: 12,
-  },
   head: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
   },
-  empty: {
-    paddingVertical: 12,
+  root: {
+    gap: 10,
   },
-  body: {
-    minHeight: 134,
-    justifyContent: 'center',
+  loading: {
+    paddingVertical: 48,
   },
 })

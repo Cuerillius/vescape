@@ -4,7 +4,7 @@ import { processColor } from 'react-native'
 
 import { theme } from '@/constants/theme'
 import { makeCircleFeature } from '@/helpers/mapGeometry'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 import { usePrivacyZoneStore } from '@/modules/history/store/privacyZoneStore'
 
 /** Dash pattern is in multiples of the line width, so keep the width fixed to keep the dots even. */
@@ -12,7 +12,7 @@ const ZONE_LINE_WIDTH = 1.5
 const ZONE_DASH: [number, number] = [3, 3]
 
 export function PrivacyZonesMapLayer() {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const zones = usePrivacyZoneStore((s) => s.zones)
   const loaded = usePrivacyZoneStore((s) => s.loaded)
   const load = usePrivacyZoneStore((s) => s.load)
@@ -47,7 +47,7 @@ export function PrivacyZonesMapLayer() {
       <LineLayer
         id="privacy-zone-outline"
         style={{
-          lineColor: theme.alpha(neutral.textSecondary, 0.7),
+          lineColor: theme.alpha(ui.mutedForeground, 0.7),
           lineWidth: ZONE_LINE_WIDTH,
           lineDasharray: ZONE_DASH,
         }}

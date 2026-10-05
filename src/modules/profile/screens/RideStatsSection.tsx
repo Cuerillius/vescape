@@ -1,17 +1,20 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import { ChartLineUpIcon } from 'phosphor-react-native'
+import IconAlertCircle from '@tabler/icons-react-native/IconAlertCircle'
+import IconChartLine from '@tabler/icons-react-native/IconChartLine'
 
-import { Placeholder } from '@/components/base/Placeholder'
+import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { ProfileStatsGrid } from '@/modules/profile/components/ProfileStatsGrid'
+import { MessageCard } from '@/components/ui/MessageCard'
+import { StatsPeriodPicker } from '@/modules/profile/components/StatsPeriodPicker'
 import { useProfileStatItems } from '@/modules/profile/hooks/useProfileStatItems'
 import { useProfileStats } from '@/modules/profile/hooks/useProfileStats'
 import { formatMonthLabel, getAdjacentMonths } from '@/modules/profile/lib/profileStats'
-import { PrevNextSelector } from '@/components/controls/PrevNextSelector'
-import { Select, type SelectOption } from '@/components/forms/Select'
-import { theme } from '@/constants/theme'
 
+const ALL_TIME = 'all'
+
+/** The riding totals for one period: all time, or a single month picked from the rides recorded. */
 export function RideStatsSection() {
   const {
     total,
@@ -24,87 +27,77 @@ export function RideStatsSection() {
     empty,
     selectMonth,
   } = useProfileStats()
-  const totalItems = useProfileStatItems(total)
-  const monthItems = useProfileStatItems(monthly)
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
+  const [allTime, setAllTime] = useState(true)
+  const items = useProfileStatItems(allTime ? total : monthly)
   const adjacent = useMemo(() => getAdjacentMonths(months, selectedMonth), [months, selectedMonth])
 
-  const monthOptions: SelectOption[] = useMemo(
-    () =>
-      (months.length ? months : [selectedMonth]).map((m) => ({
-        label: formatMonthLabel(m),
+  const options = useMemo(
+    () => [
+      { value: ALL_TIME, label: 'All time' },
+      ...(months.length ? months : [selectedMonth]).map((m) => ({
         value: `${m.year}-${m.month}`,
+        label: formatMonthLabel(m),
       })),
+    ],
     [months, selectedMonth],
   )
 
-  const selectedMonthValue = `${selectedMonth.year}-${selectedMonth.month}`
-
-  const handleMonthSelect = useCallback(
-    (val: string) => {
-      const [year, month] = val.split('-').map(Number)
-      const found = months.find((m) => m.year === year && m.month === month)
-      if (found) void selectMonth(found)
+  const showMonth = useCallback(
+    (month: typeof selectedMonth) => {
+      setAllTime(false)
+      void selectMonth(month)
     },
-    [months, selectMonth],
+    [selectMonth],
   )
+
+  const handleChange = useCallback(
+    (value: string) => {
+      if (value === ALL_TIME) {
+        setAllTime(true)
+        return
+      }
+      const [year, month] = value.split('-').map(Number)
+      const found = months.find((m) => m.year === year && m.month === month)
+      if (found) showMonth(found)
+    },
+    [months, showMonth],
+  )
+
+  if (loading) {
+    return <ActivityIndicator size="small" color={mutedColor} style={styles.loading} />
+  }
 
   return (
     <View testID="profile-stats-section" style={styles.section}>
-      {error && !loading ? (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Could not load profile stats</Text>
-          <Text style={styles.errorText}>Restart the app to try again</Text>
-        </View>
-      ) : empty && !loading ? (
-        <Placeholder
-          icon={ChartLineUpIcon}
+      {error ? (
+        <MessageCard
+          icon={IconAlertCircle}
+          tone="error"
+          title="Could not load profile stats"
+          description="Restart the app to try again"
+        />
+      ) : empty ? (
+        <MessageCard
+          icon={IconChartLine}
           title="No riding stats yet"
           description="Record a ride and your totals appear here"
-          style={styles.empty}
         />
       ) : (
         <>
-          <Text style={styles.sectionTitle}>All time</Text>
-          <ProfileStatsGrid items={totalItems} />
-
-          <View style={styles.monthHeader}>
-            <Text style={styles.sectionTitle}>Monthly</Text>
-            {monthLoading ? (
-              <ActivityIndicator
-                testID="profile-month-loading"
-                size="small"
-                color={theme.palette.sky.color}
-              />
-            ) : null}
-          </View>
-          <PrevNextSelector
-            label={formatMonthLabel(selectedMonth)}
-            previousDisabled={!adjacent.previous}
-            nextDisabled={!adjacent.next}
-            onPrevious={() => adjacent.previous && void selectMonth(adjacent.previous)}
-            onNext={() => adjacent.next && void selectMonth(adjacent.next)}
-            accessibilityLabel="Select profile month"
-            style={styles.monthNav}
-            selectControl={
-              <Select
-                options={monthOptions}
-                value={selectedMonthValue}
-                onChange={handleMonthSelect}
-                placeholder="Select month"
-                testID="profile-month-select"
-                style={styles.monthSelect}
-              />
-            }
+          <StatsPeriodPicker
+            options={options}
+            value={allTime ? ALL_TIME : `${selectedMonth.year}-${selectedMonth.month}`}
+            onChange={handleChange}
+            onPrevious={!allTime && adjacent.previous ? () => showMonth(adjacent.previous!) : null}
+            onNext={!allTime && adjacent.next ? () => showMonth(adjacent.next!) : null}
+            testID="profile-period-select"
           />
-          <ProfileStatsGrid items={monthItems} />
+          <View style={monthLoading && styles.dimmed}>
+            <ProfileStatsGrid items={items} />
+          </View>
         </>
       )}
-
-      {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="small" color={theme.palette.sky.color} />
-        </View>
-      ) : null}
     </View>
   )
 }
@@ -113,75 +106,10 @@ const styles = StyleSheet.create({
   section: {
     gap: 12,
   },
-  sectionTitle: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginLeft: 4,
-    marginTop: 4,
+  loading: {
+    paddingVertical: 48,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  cell: {
-    width: '50%',
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-  },
-  cellValue: {
-    color: theme.neutral.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  cellLabel: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  empty: {
-    minHeight: 260,
-    paddingVertical: 32,
-  },
-  monthHeader: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  monthNav: {
-    maxWidth: '100%',
-    width: '100%',
-  },
-  monthSelect: {
-    flex: 1,
-    height: 54,
-    borderWidth: 0,
-    borderRadius: 0,
-    backgroundColor: theme.alpha(theme.palette.mono.black, 0),
-  },
-  loadingWrap: {
-    padding: 18,
-    alignItems: 'center',
-  },
-  errorCard: {
-    backgroundColor: theme.status.error.bg,
-    borderColor: theme.status.error.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    gap: 4,
-  },
-  errorTitle: {
-    color: theme.status.error.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  errorText: {
-    color: theme.status.error.color,
-    fontSize: 12,
+  dimmed: {
+    opacity: 0.5,
   },
 })

@@ -1,14 +1,4 @@
 import { formatLengthMeters, type UnitSystem } from '@/helpers/units'
-import {
-  ClockCountdownIcon,
-  LinkBreakIcon,
-  PauseIcon,
-  PlugsConnectedIcon,
-  StopIcon,
-  WarningCircleIcon,
-  type Icon,
-} from 'phosphor-react-native'
-
 import { theme, type ThemeColor } from '@/constants/theme'
 import type { HistoryGpsSample, HistoryMarker } from '@/modules/history/store/historyStore'
 
@@ -25,16 +15,6 @@ export const HISTORY_MARKER_LABELS: Record<HistoryMarker['type'], string> = {
   disconnected: 'Board disconnected',
   error: 'Error',
   gap: 'History gap',
-}
-
-export const HISTORY_MARKER_ICONS: Record<HistoryMarker['type'], Icon> = {
-  app_stop: StopIcon,
-  auto_pause: PauseIcon,
-  connected: PlugsConnectedIcon,
-  connection_lost: LinkBreakIcon,
-  disconnected: LinkBreakIcon,
-  error: WarningCircleIcon,
-  gap: ClockCountdownIcon,
 }
 
 export const HISTORY_MARKER_COLORS: Record<HistoryMarker['type'], ThemeColor> = {

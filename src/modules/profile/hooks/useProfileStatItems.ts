@@ -1,21 +1,18 @@
 import { useMemo } from 'react'
-import { useFormat } from '@/hooks/useFormat'
-import { useUnitSystem } from '@/hooks/useUnitSystem'
-import {
-  BatteryChargingVerticalIcon,
-  BatteryPlusVerticalIcon,
-  ClockCountdownIcon,
-  GaugeIcon,
-  PathIcon,
-  RepeatIcon,
-  RoadHorizonIcon,
-  TrophyIcon,
-} from 'phosphor-react-native'
-import type { Icon } from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
+import IconActivity from '@tabler/icons-react-native/IconActivity'
+import IconBatteryCharging from '@tabler/icons-react-native/IconBatteryCharging'
+import IconBolt from '@tabler/icons-react-native/IconBolt'
+import IconClock from '@tabler/icons-react-native/IconClock'
+import IconGauge from '@tabler/icons-react-native/IconGauge'
+import IconRoad from '@tabler/icons-react-native/IconRoad'
+import IconRoute from '@tabler/icons-react-native/IconRoute'
+import IconTrophy from '@tabler/icons-react-native/IconTrophy'
 import type { ProfileStats } from 'vescape-core'
 
+import { useFormat } from '@/hooks/useFormat'
+import { useUnitSystem } from '@/hooks/useUnitSystem'
 import { formatDistance, formatDuration, formatEnergy } from '@/modules/profile/lib/profileStats'
-import { theme, type ThemeColor } from '@/constants/theme'
 
 export type ProfileStatKey =
   | 'distance'
@@ -32,10 +29,9 @@ export interface ProfileStatItem {
   label: string
   value: string
   icon: Icon
-  accent: ThemeColor
 }
 
-/** Every riding total as a labelled, formatted, tinted figure — one definition for every surface
+/** Every riding total as a labelled, formatted figure — one definition for every surface
  *  that shows profile stats, so a number never carries two different labels. */
 export function useProfileStatItems(
   stats: ProfileStats,
@@ -49,57 +45,44 @@ export function useProfileStatItems(
         key: 'distance',
         label: 'Distance',
         value: formatDistance(stats.distanceM, units),
-        icon: RoadHorizonIcon,
-        accent: theme.palette.sky.color,
+        icon: IconRoad,
       },
-      {
-        key: 'rides',
-        label: 'Rides',
-        value: String(stats.rideCount),
-        icon: PathIcon,
-        accent: theme.palette.cyan.color,
-      },
+      { key: 'rides', label: 'Rides', value: String(stats.rideCount), icon: IconRoute },
       {
         key: 'rideTime',
         label: 'Ride time',
         value: formatDuration(stats.rideTimeMs),
-        icon: ClockCountdownIcon,
-        accent: theme.palette.purple.color,
+        icon: IconClock,
       },
       {
         key: 'topSpeed',
         label: 'Top speed',
         value: formatSpeedWithUnit(stats.topSpeedKmh),
-        icon: GaugeIcon,
-        accent: theme.status.warning.color,
+        icon: IconGauge,
       },
       {
         key: 'avgSpeed',
         label: 'Avg speed',
         value: formatSpeedWithUnit(stats.avgSpeedKmh),
-        icon: RepeatIcon,
-        accent: theme.palette.cyan.color,
+        icon: IconActivity,
       },
       {
         key: 'longestRide',
         label: 'Longest ride',
         value: formatDistance(stats.longestRideM, units),
-        icon: TrophyIcon,
-        accent: theme.palette.yellow.color,
+        icon: IconTrophy,
       },
       {
         key: 'used',
         label: 'Battery used',
         value: formatEnergy(stats.batteryUsedWh),
-        icon: BatteryChargingVerticalIcon,
-        accent: theme.palette.sky.color,
+        icon: IconBolt,
       },
       {
         key: 'regen',
         label: 'Regen',
         value: formatEnergy(stats.batteryRegenWh),
-        icon: BatteryPlusVerticalIcon,
-        accent: theme.palette.green.text,
+        icon: IconBatteryCharging,
       },
     ],
     [stats, units, formatSpeedWithUnit],

@@ -8,7 +8,7 @@ export function HistoryMetricLegend() {
   return (
     <View style={styles.metricLegend}>
       <View style={styles.metricLegendItem}>
-        <View style={[styles.metricLegendLine, { backgroundColor: theme.neutral.textSecondary }]} />
+        <View style={[styles.metricLegendLine, { backgroundColor: theme.ui.mutedForeground }]} />
         <Text style={styles.metricLegendText} numberOfLines={1}>
           Low speed
         </Text>
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: 0.5,
   },
   metricLegendText: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 8,
     fontWeight: '600',
   },

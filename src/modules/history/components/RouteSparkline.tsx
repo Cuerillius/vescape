@@ -78,6 +78,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 2,
     borderRadius: 1,
-    backgroundColor: theme.palette.slate.border,
+    backgroundColor: theme.ui.border,
   },
 })

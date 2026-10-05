@@ -1,15 +1,13 @@
-import { useRouter } from 'expo-router'
-import { ArrowLeftIcon } from 'phosphor-react-native'
 import { useCallback, useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { IconButton } from '@/components/base/IconButton'
 import { Text } from '@/components/base/Text'
 import { ChartStack } from '@/components/charts/line/ChartStack'
 import { stackChromeHeight } from '@/components/charts/line/chartLayout'
 import { theme } from '@/constants/theme'
-import { HistoryMetricTabs } from '@/modules/history/components/HistoryMetricTabs'
+import { HistoryChartsHeader } from '@/modules/history/components/HistoryChartsHeader'
+import { HistoryMetricChips } from '@/modules/history/components/HistoryMetricChips'
 import {
   ALL_CHART_METRICS,
   toggleOptionalChartMetric,
@@ -34,8 +32,6 @@ import { useFavoriteStore } from '@/modules/history/store/favoriteStore'
 import { useHistoryStore } from '@/modules/history/store/historyStore'
 import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 
-/** Tabs per row: the fourteen metrics wrap into two even rows. */
-const TAB_COLUMNS = 7
 /**
  * Floor under a plot, below which a line is a smear rather than a reading.
  *
@@ -44,6 +40,8 @@ const TAB_COLUMNS = 7
  * floor would push the last charts off the bottom instead.
  */
 const MIN_METRIC_HEIGHT = 24
+/** Buttons per row: the fourteen metrics wrap into two even rows. */
+const TAB_COLUMNS = 7
 
 /**
  * A ride's charts with the map out of the way.
@@ -58,7 +56,6 @@ const MIN_METRIC_HEIGHT = 24
  */
 export function HistoryChartsScreen() {
   useRenderRateWarning('HistoryChartsScreen')
-  const router = useRouter()
   const insets = useSafeAreaInsets()
   const session = useHistoryStore((s) => s.selectedSession)
   const samples = useHistoryStore((s) => s.sessionSamples)
@@ -120,90 +117,73 @@ export function HistoryChartsScreen() {
   const hasChartData = visibleSamples.length >= 2
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}>
-      <View style={styles.header}>
-        <IconButton
-          icon={ArrowLeftIcon}
-          onPress={() => router.back()}
-          size="sm"
-          testID="history-charts-close"
-          accessibilityLabel="Back"
-        />
-        <View style={styles.headerText}>
-          {session ? (
-            <>
-              <Text style={styles.title} numberOfLines={1}>
-                {formatRideTime(session.startAtMs, session.endAtMs)}
-              </Text>
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {formatRideMeta(session.startAtMs, session.endAtMs, session.boardName)}
-              </Text>
-            </>
-          ) : null}
-        </View>
-        {/* Mirrors the back button's width so the title centers on the screen, not the gap. */}
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <View
-        style={styles.stack}
-        onLayout={(e) => setStackHeight(e.nativeEvent.layout.height)}
-        testID="history-charts-stack"
-      >
-        {hasChartData && stackHeight > 0 ? (
-          <ChartStack
-            charts={charts}
-            bands={favoriteBands}
-            timeline={timeline}
-            dataKey={`${session?.startAtMs ?? 0}`}
-            timeMode="clock"
-            initialZoomMs={initialZoom}
-            showHead
-          />
-        ) : (
-          <View style={styles.empty}>
-            <Text style={styles.subtitle}>No telemetry for this ride.</Text>
-          </View>
-        )}
-      </View>
-
-      <HistoryMetricTabs
-        activeCharts={activeCharts}
-        onToggle={handleToggleMetric}
-        metrics={ALL_CHART_METRICS}
-        columns={TAB_COLUMNS}
+    <View style={styles.root}>
+      <HistoryChartsHeader
+        title={session ? formatRideTime(session.startAtMs, session.endAtMs) : undefined}
+        subtitle={
+          session
+            ? formatRideMeta(session.startAtMs, session.endAtMs, session.boardName)
+            : undefined
+        }
       />
+      <View style={styles.screen}>
+        <View
+          style={styles.stack}
+          onLayout={(e) => setStackHeight(e.nativeEvent.layout.height)}
+          testID="history-charts-stack"
+        >
+          {hasChartData && stackHeight > 0 ? (
+            <ChartStack
+              charts={charts}
+              bands={favoriteBands}
+              timeline={timeline}
+              dataKey={`${session?.startAtMs ?? 0}`}
+              timeMode="clock"
+              initialZoomMs={initialZoom}
+              showHead
+            />
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.subtitle}>No telemetry for this ride.</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.toggles, { paddingBottom: Math.max(insets.bottom, 8) + 4 }]}>
+          <HistoryMetricChips
+            activeCharts={activeCharts}
+            onToggle={handleToggleMetric}
+            metrics={ALL_CHART_METRICS}
+            columns={TAB_COLUMNS}
+          />
+        </View>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.ui.background,
+  },
+  // The charts run edge to edge; only the toggle panel keeps a gutter.
   screen: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
-    paddingHorizontal: 8,
-    gap: 8,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerText: {
-    flex: 1,
-    minWidth: 0,
-    alignItems: 'center',
-  },
-  headerSpacer: {
-    width: 38,
-  },
-  title: {
-    color: theme.neutral.textPrimary,
-    fontSize: 14,
-    fontWeight: '700',
+  // A bottom panel like the ride screen's: rounded top edge on the app surface.
+  toggles: {
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    borderTopLeftRadius: theme.radius.lg + 4,
+    borderTopRightRadius: theme.radius.lg + 4,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.background,
   },
   subtitle: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 11,
   },
   stack: {

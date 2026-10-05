@@ -1,19 +1,25 @@
 import { useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import { PackageIcon, RecordIcon, TrashIcon } from 'phosphor-react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
+import IconPackage from '@tabler/icons-react-native/IconPackage'
+import IconPlayerRecord from '@tabler/icons-react-native/IconPlayerRecord'
 
-import { Button } from '@/components/base/Button'
-import { Switch } from '@/components/controls/Switch'
-import { ConfirmModal } from '@/components/modals/ConfirmModal'
-import { IconHero } from '@/components/settings/IconHero'
-import { SettingsCard } from '@/components/settings/SettingsCard'
-import { SettingsRow } from '@/components/settings/SettingsRow'
-import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
+import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Separator } from '@/components/ui/Separator'
+import { Switch } from '@/components/ui/Switch'
 import { theme } from '@/constants/theme'
 import { formatBytes } from '@/helpers/format'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { useDebugRecordings } from '@/modules/history/hooks/useDebugRecordings'
+import {
+  SettingsDescription,
+  SettingsGroup,
+  SettingsLink,
+} from '@/modules/settings/components/SettingsGroup'
 
 function formatCreatedAt(createdAt: number): string {
   return new Date(createdAt).toLocaleString()
@@ -22,6 +28,7 @@ function formatCreatedAt(createdAt: number): string {
 export function DebugRecordingsScreen() {
   const debug = useDebugRecordings()
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const spinnerColor = useResolvedColor(theme.ui.mutedForeground)
 
   const busy =
     debug.replayingName != null || debug.exportingName != null || debug.deletingName != null
@@ -41,7 +48,6 @@ export function DebugRecordingsScreen() {
   const replayButton = (name: string) => (
     <Button
       label={debug.replayingName === name ? 'Starting...' : 'Replay'}
-      size="sm"
       variant="secondary"
       loading={debug.replayingName === name}
       disabled={busy}
@@ -50,146 +56,152 @@ export function DebugRecordingsScreen() {
   )
 
   return (
-    <>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={RecordIcon}
-          description="Capture raw BLE packets, connection states, and location for diagnosis."
-        />
+        <SettingsDescription>
+          Capture raw BLE packets, connection states, and location for diagnosis.
+        </SettingsDescription>
 
-        <SettingsSectionTitle>Capture</SettingsSectionTitle>
-        <SettingsCard>
-          <SettingsRow
-            icon={RecordIcon}
-            iconWeight="fill"
-            iconColor={theme.status.warning.color}
+        <SettingsGroup title="Capture">
+          <SettingsLink
+            icon={IconPlayerRecord}
             label="Record future sessions"
             hint="Applies to every new board session until disabled"
-            right={<Switch value={debug.enabled} onValueChange={debug.setEnabled} />}
+            right={
+              <Switch
+                accessibilityLabel="Record future sessions"
+                value={debug.enabled}
+                onValueChange={debug.setEnabled}
+              />
+            }
           />
-        </SettingsCard>
+        </SettingsGroup>
 
-        <View style={styles.recordingsHeading}>
-          <SettingsSectionTitle>Recordings</SettingsSectionTitle>
-          <Pressable onPress={() => void debug.refresh()} disabled={debug.loading}>
-            <Text style={styles.refreshText}>{debug.loading ? 'Loading...' : 'Refresh'}</Text>
-          </Pressable>
+        <View style={styles.group}>
+          <View style={styles.heading}>
+            <Text style={styles.title}>Recordings</Text>
+            <Button
+              label={debug.loading ? 'Loading...' : 'Refresh'}
+              variant="ghost"
+              disabled={debug.loading}
+              onPress={() => void debug.refresh()}
+            />
+          </View>
+          {debug.error ? (
+            <Text style={styles.errorText} selectable>
+              {debug.error}
+            </Text>
+          ) : null}
+          {debug.loading ? (
+            <ActivityIndicator color={spinnerColor} />
+          ) : debug.recordings.length === 0 ? (
+            <Text style={styles.emptyText}>No debug recordings yet.</Text>
+          ) : (
+            <Card>
+              {debug.recordings.map((recording, index) => (
+                <View key={recording.name}>
+                  {index > 0 ? <Separator /> : null}
+                  <View style={styles.recording}>
+                    <View style={styles.recordingText}>
+                      <CardTitle>{recording.name}</CardTitle>
+                      <CardDescription>
+                        {`device · ${formatCreatedAt(recording.createdAt)} · ${formatBytes(recording.sizeBytes)}`}
+                      </CardDescription>
+                    </View>
+                    <View style={styles.actions}>
+                      {replayButton(recording.name)}
+                      <Button
+                        label={debug.exportingName === recording.name ? 'Exporting...' : 'Export'}
+                        variant="secondary"
+                        loading={debug.exportingName === recording.name}
+                        disabled={busy}
+                        onPress={() => void debug.exportRecording(recording)}
+                      />
+                      <Button
+                        label="Delete"
+                        color={theme.status.error.color}
+                        loading={debug.deletingName === recording.name}
+                        disabled={busy}
+                        onPress={() => setPendingDelete(recording.name)}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </Card>
+          )}
         </View>
 
-        {debug.error ? (
-          <Text style={styles.errorText} selectable>
-            {debug.error}
-          </Text>
-        ) : null}
-        {debug.loading ? (
-          <ActivityIndicator color={theme.palette.sky.color} />
-        ) : debug.recordings.length === 0 ? (
-          <Text style={styles.emptyText}>No debug recordings yet.</Text>
-        ) : (
-          <SettingsCard>
-            {debug.recordings.map((recording) => (
-              <SettingsRow
-                key={recording.name}
-                icon={RecordIcon}
-                iconColor={theme.palette.sky.color}
-                label={recording.name}
-                hint={`device · ${formatCreatedAt(recording.createdAt)} · ${formatBytes(recording.sizeBytes)}`}
-                right={
-                  <View style={styles.rowActions}>
-                    {replayButton(recording.name)}
-                    <Button
-                      label={debug.exportingName === recording.name ? 'Exporting...' : 'Export'}
-                      size="sm"
-                      variant="secondary"
-                      loading={debug.exportingName === recording.name}
-                      disabled={busy}
-                      onPress={() => void debug.exportRecording(recording)}
-                    />
-                    <Pressable
-                      hitSlop={8}
-                      disabled={busy}
-                      onPress={() => setPendingDelete(recording.name)}
-                      style={styles.deleteButton}
-                    >
-                      {debug.deletingName === recording.name ? (
-                        <ActivityIndicator size="small" color={theme.status.error.color} />
-                      ) : (
-                        <TrashIcon size={20} color={theme.status.error.color} />
-                      )}
-                    </Pressable>
-                  </View>
-                }
+        {debug.fixtures.length > 0 && (
+          <SettingsGroup title="Bundled fixtures">
+            {debug.fixtures.map((fixture) => (
+              <SettingsLink
+                key={fixture.name}
+                icon={IconPackage}
+                label={fixture.name}
+                hint={`bundled · ${formatBytes(fixture.sizeBytes)}`}
+                right={replayButton(fixture.name)}
               />
             ))}
-          </SettingsCard>
-        )}
-
-        {debug.fixtures.length > 0 && (
-          <>
-            <SettingsSectionTitle>Bundled fixtures</SettingsSectionTitle>
-            <SettingsCard>
-              {debug.fixtures.map((fixture) => (
-                <SettingsRow
-                  key={fixture.name}
-                  icon={PackageIcon}
-                  iconColor={theme.neutral.textSecondary}
-                  label={fixture.name}
-                  hint={`bundled · ${formatBytes(fixture.sizeBytes)}`}
-                  right={replayButton(fixture.name)}
-                />
-              ))}
-            </SettingsCard>
-          </>
+          </SettingsGroup>
         )}
       </ScrollView>
-      <ConfirmModal
+      <ConfirmDialog
         visible={pendingDelete != null}
         title="Delete recording?"
         message={`Permanently delete "${pendingDelete ?? ''}". This cannot be undone.`}
         confirmLabel="Delete"
+        cancelLabel="Cancel"
         destructive
         loading={debug.deletingName != null}
         onConfirm={() => void confirmDelete()}
-        onCancel={() => setPendingDelete(null)}
+        onDismiss={() => setPendingDelete(null)}
       />
-    </>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.ui.background,
+  },
   content: {
-    flexGrow: 1,
     padding: 16,
+    paddingBottom: 32,
+    gap: 24,
+  },
+  group: {
     gap: 8,
-    backgroundColor: theme.neutral.bg,
   },
-  rowActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  deleteButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recordingsHeading: {
+  heading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  refreshText: {
-    color: theme.palette.sky.color,
+  title: {
+    color: theme.ui.mutedForeground,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  recording: {
+    padding: 16,
+    gap: 12,
+  },
+  recordingText: {
+    gap: 2,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
   },
   errorText: {
     color: theme.status.error.color,
     fontSize: 12,
   },
   emptyText: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
     textAlign: 'center',
     paddingVertical: 20,

@@ -13,26 +13,17 @@ interface HistoryMetricTabsProps {
   onToggle: (metric: ChartToggleMetric) => void
   /** Which metrics to offer. Defaults to the map-colourable ones the ride panel shows. */
   metrics?: readonly ChartTabMetricDef[]
-  /** Tabs per row; the rest wrap onto the next one. Defaults to a single row. */
-  columns?: number
 }
 
 export function HistoryMetricTabs({
   activeCharts,
   onToggle,
   metrics = OPTIONAL_CHART_METRICS,
-  columns,
 }: HistoryMetricTabsProps) {
-  const perRow = columns ?? metrics.length
-  // A single row reads as a pill; once tabs wrap, that radius cuts into the corner labels, so a
-  // multi-row group is a card instead.
-  const wrapped = perRow < metrics.length
   return (
-    <View style={[styles.metricTabs, wrapped && styles.metricTabsWrapped]}>
+    <View style={styles.metricTabs}>
       {metrics.map((metric, index) => {
         const active = activeCharts.has(metric.key)
-        const lastInRow = index % perRow === perRow - 1
-        const firstRow = index < perRow
         return (
           <Pressable
             key={metric.key}
@@ -41,9 +32,8 @@ export function HistoryMetricTabs({
             accessibilityState={{ selected: active }}
             style={[
               styles.metricTab,
-              wrapped ? { width: `${100 / perRow}%` } : styles.metricTabFlex,
-              !lastInRow && index < metrics.length - 1 && styles.metricTabDivider,
-              !firstRow && styles.metricTabRowDivider,
+              styles.metricTabFlex,
+              index < metrics.length - 1 && styles.metricTabDivider,
               active && styles.metricTabActive,
             ]}
             onPress={() => onToggle(metric.key)}
@@ -51,7 +41,7 @@ export function HistoryMetricTabs({
             <View
               style={[
                 styles.metricTabLine,
-                { backgroundColor: active ? metric.color : theme.control.textMuted },
+                { backgroundColor: active ? metric.color : theme.ui.faintForeground },
               ]}
             />
             {metric.tabLabel ? (
@@ -98,19 +88,13 @@ export function HistoryMetricTabs({
 const styles = StyleSheet.create({
   metricTabs: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderRadius: 999,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.control.border,
-    backgroundColor: theme.control.background,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
     overflow: 'hidden',
   },
-  metricTabsWrapped: {
-    borderRadius: 14,
-  },
   metricTabFlex: {
-    // A single row splits by flex, not by percentage: percentage widths round up per tab and the
-    // rounding error pushes the last tab onto a second line.
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: 0,
@@ -119,21 +103,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.control.background,
+    backgroundColor: theme.ui.card,
     paddingHorizontal: 8,
     paddingTop: 10,
     paddingBottom: 10,
   },
   metricTabDivider: {
     borderRightWidth: 1,
-    borderRightColor: theme.control.divider,
-  },
-  metricTabRowDivider: {
-    borderTopWidth: 1,
-    borderTopColor: theme.control.divider,
+    borderRightColor: theme.ui.border,
   },
   metricTabActive: {
-    backgroundColor: theme.neutral.surface,
+    backgroundColor: theme.ui.muted,
   },
   metricTabLine: {
     width: '60%',
@@ -148,7 +128,7 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   metricTabText: {
-    color: theme.control.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 10,
     fontWeight: '700',
     width: '100%',
@@ -156,6 +136,6 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   metricTabTextActive: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
   },
 })

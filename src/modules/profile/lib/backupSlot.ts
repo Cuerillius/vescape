@@ -14,9 +14,3 @@ export type BackupSlot =
   | { kind: 'idle'; lastUploadAtMs: number | null }
   /** A drain is running. `total` is the backlog it started with. */
   | { kind: 'syncing'; current: number; total: number }
-
-/** Drain progress as a 0–1 fraction, or null when nothing is running (or the total is unknown). */
-export function backupProgressFraction(slot: BackupSlot): number | null {
-  if (slot.kind !== 'syncing' || slot.total <= 0) return null
-  return Math.min(1, Math.max(0, slot.current / slot.total))
-}

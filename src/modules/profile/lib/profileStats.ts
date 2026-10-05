@@ -12,6 +12,10 @@ function currentProfileMonth(date = new Date()): ProfileMonth {
   return { year: date.getFullYear(), month: date.getMonth() + 1 }
 }
 
+export function isCurrentMonth(month: ProfileMonth, now = new Date()): boolean {
+  return sameMonth(month, currentProfileMonth(now))
+}
+
 export function formatMonthLabel(month: ProfileMonth, locale?: string): string {
   return new Date(month.year, month.month - 1, 1).toLocaleDateString(locale, {
     month: 'long',

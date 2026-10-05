@@ -1,55 +1,28 @@
-import { StyleSheet, useWindowDimensions, View } from 'react-native'
-import { Canvas, Group, RadialGradient, Rect, vec } from '@shopify/react-native-skia'
-import { ClockCounterClockwiseIcon, StarIcon } from 'phosphor-react-native'
+import { StyleSheet, View } from 'react-native'
+import IconRoute from '@tabler/icons-react-native/IconRoute'
+import IconStar from '@tabler/icons-react-native/IconStar'
 
-import { Placeholder } from '@/components/base/Placeholder'
-import { theme } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
-
-const DIM_POSITIONS = [0, 0.4, 0.7, 1]
-
-/** Soft center dim so the placeholder stays readable over map labels — no box, blends into the edge vignette. */
-function CenterDim() {
-  const neutral = useResolvedNeutralColors()
-  const { width, height } = useWindowDimensions()
-  const radius = width * 0.75
-  const scaleY = (height * 0.4) / radius
-
-  return (
-    <Canvas style={StyleSheet.absoluteFill}>
-      <Group origin={vec(width / 2, height / 2)} transform={[{ scaleY }]}>
-        <Rect x={0} y={height / 2 - radius} width={width} height={radius * 2}>
-          <RadialGradient
-            c={vec(width / 2, height / 2)}
-            r={radius}
-            colors={([0.8, 0.6, 0.3, 0] as const).map((level) =>
-              theme.alpha(neutral.surfaceDeep, level),
-            )}
-            positions={DIM_POSITIONS}
-          />
-        </Rect>
-      </Group>
-    </Canvas>
-  )
-}
+import { MessageCard } from '@/components/ui/MessageCard'
 
 interface HistoryEmptyStateProps {
   favoriteMode?: boolean
 }
 
+/** Over the map when there is no ride to replay: nothing recorded yet, or nothing starred. */
 export function HistoryEmptyState({ favoriteMode = false }: HistoryEmptyStateProps) {
   return (
     <View pointerEvents="none" style={styles.wrap}>
-      <CenterDim />
-      <Placeholder
-        icon={favoriteMode ? StarIcon : ClockCounterClockwiseIcon}
-        title={favoriteMode ? 'No favorites yet' : 'No rides yet'}
-        description={
-          favoriteMode
-            ? 'Star a stretch of a ride in History to keep it here'
-            : 'Record a ride and it shows up here'
-        }
-      />
+      <View style={styles.card}>
+        <MessageCard
+          icon={favoriteMode ? IconStar : IconRoute}
+          title={favoriteMode ? 'No favorites yet' : 'No rides yet'}
+          description={
+            favoriteMode
+              ? 'Star a stretch of a ride in History to keep it here'
+              : 'Record a ride and it shows up here'
+          }
+        />
+      </View>
     </View>
   )
 }
@@ -58,5 +31,12 @@ const styles = StyleSheet.create({
   wrap: {
     ...StyleSheet.absoluteFill,
     zIndex: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
   },
 })

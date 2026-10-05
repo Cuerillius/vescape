@@ -1,18 +1,15 @@
-import {
-  CaretDownIcon,
-  ChartLineIcon,
-  CloudArrowUpIcon,
-  ImagesSquareIcon,
-  StarIcon,
-} from 'phosphor-react-native'
-import type { RefObject } from 'react'
+import type { ReactNode } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
+import IconChevronDown from '@tabler/icons-react-native/IconChevronDown'
+import IconPencil from '@tabler/icons-react-native/IconPencil'
+import IconStar from '@tabler/icons-react-native/IconStar'
+import IconStarFilled from '@tabler/icons-react-native/IconStarFilled'
 
-import { IconButton } from '@/components/base/IconButton'
 import { Text } from '@/components/base/Text'
-import { PrevNextSelector } from '@/components/controls/PrevNextSelector'
+import { Button } from '@/components/ui/Button'
+import { StepBar } from '@/components/ui/StepBar'
 import { interaction, theme } from '@/constants/theme'
-import { HistoryRideLabel } from '@/modules/history/components/HistoryRideLabel'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { formatRideMeta, formatRideTime } from '@/modules/history/lib/rideFormat'
 
 interface HistoryPanelNavProps {
@@ -26,20 +23,21 @@ interface HistoryPanelNavProps {
   favoriteMode: boolean
   favorited: boolean
   actionDisabled: boolean
-  mediaCount: number
-  mediaLoading: boolean
-  mediaButtonRef: RefObject<View | null>
-  listButtonRef: RefObject<View | null>
+  /** Before the switcher, e.g. back. */
+  leading?: ReactNode
+  /** After the Favorite button, e.g. the actions menu. */
+  trailing?: ReactNode
   onPrevious: () => void
   onNext: () => void
   onOpenList: () => void
-  onOpenMediaDrawer: () => void
-  onToggleFavorite: () => void
-  onOpenShareInfo: () => void
-  /** Ride mode only: the full-screen charts page. A Favorite is about its route and media. */
-  onOpenCharts: () => void
+  /** Stars (or edits) the Favorite: a ride's star, an open Favorite's pencil. */
+  onFavoriteAction: () => void
 }
 
+/**
+ * The ride (or Favorite) being replayed between step arrows, where tapping its name opens the
+ * list, with a Favorite button after it: the star on a ride, the pencil on a Favorite.
+ */
 export function HistoryPanelNav({
   titleStartMs,
   titleEndMs,
@@ -51,100 +49,72 @@ export function HistoryPanelNav({
   favoriteMode,
   favorited,
   actionDisabled,
-  mediaCount,
-  mediaLoading,
-  mediaButtonRef,
-  listButtonRef,
+  leading,
+  trailing,
   onPrevious,
   onNext,
   onOpenList,
-  onOpenMediaDrawer,
-  onToggleFavorite,
-  onOpenShareInfo,
-  onOpenCharts,
+  onFavoriteAction,
 }: HistoryPanelNavProps) {
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
   const primaryLabel = title ?? formatRideTime(titleStartMs, titleEndMs)
   const secondaryLabel = subtitle ?? formatRideMeta(titleStartMs, titleEndMs, boardName)
 
   return (
     <View style={styles.navControls}>
-      <View ref={mediaButtonRef} style={styles.navSide}>
-        {favoriteMode ? (
-          <>
-            <IconButton
-              icon={ImagesSquareIcon}
-              onPress={onOpenMediaDrawer}
-              loading={mediaLoading}
-              size="lg"
-              style={mediaCount > 0 ? styles.mediaEnabled : undefined}
-              accessibilityLabel="Favorite media"
-            />
-            {mediaCount > 0 ? (
-              <View style={styles.mediaCountBadge} pointerEvents="none">
-                <Text style={styles.mediaCountText}>{mediaCount > 99 ? '99+' : mediaCount}</Text>
-              </View>
-            ) : null}
-          </>
-        ) : (
-          <IconButton
-            icon={ChartLineIcon}
-            onPress={onOpenCharts}
-            size="lg"
-            testID="history-open-charts"
-            accessibilityLabel="Full screen charts"
-          />
-        )}
-      </View>
-      <PrevNextSelector
-        label={primaryLabel}
-        previousDisabled={!canPrevious}
-        nextDisabled={!canNext}
-        onPrevious={onPrevious}
-        onNext={onNext}
-        previousTestID="history-previous-ride"
-        nextTestID="history-next-ride"
-        style={styles.navSelector}
-        selectControl={
+      {leading}
+      <View style={styles.selector}>
+        <StepBar
+          onPrevious={canPrevious ? onPrevious : null}
+          onNext={canNext ? onNext : null}
+          previousLabel="Previous ride"
+          nextLabel="Next ride"
+          previousTestID="history-previous-ride"
+          nextTestID="history-next-ride"
+        >
           <Pressable
-            ref={listButtonRef}
-            collapsable={false}
             testID="history-ride-list-button"
-            style={({ pressed }) => [styles.titleButton, pressed && styles.titleButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`${primaryLabel}, show all`}
+            style={({ pressed }) => [styles.titleButton, pressed && styles.titlePressed]}
             android_ripple={interaction.ripple}
             onPress={onOpenList}
           >
-            <HistoryRideLabel
-              title={primaryLabel}
-              subtitle={secondaryLabel}
-              compact
-              tone="control"
-            />
-            <CaretDownIcon size={12} color={theme.control.textMuted} weight="bold" />
+            <View style={styles.titleText}>
+              <Text style={styles.title} numberOfLines={1}>
+                {primaryLabel}
+              </Text>
+              <Text style={styles.subtitle} numberOfLines={1}>
+                {secondaryLabel}
+              </Text>
+            </View>
+            <IconChevronDown size={14} color={mutedColor} />
           </Pressable>
-        }
-      />
-      <View style={styles.navSide}>
-        {favoriteMode ? (
-          <IconButton
-            icon={CloudArrowUpIcon}
-            onPress={onOpenShareInfo}
-            size="lg"
-            testID="history-share-favorite"
-            disabled={actionDisabled}
-            accessibilityLabel="Share Favorite"
-          />
-        ) : (
-          <IconButton
-            icon={StarIcon}
-            onPress={onToggleFavorite}
-            size="lg"
-            testID="history-favorite-ride"
-            accent={favorited ? theme.palette.amber.color : undefined}
-            disabled={actionDisabled}
-            accessibilityLabel={favorited ? 'Edit Favorite' : 'Create Favorite'}
-          />
-        )}
+        </StepBar>
       </View>
+      {favoriteMode ? (
+        <Button
+          icon={IconPencil}
+          variant="floating"
+          size="lg"
+          onPress={onFavoriteAction}
+          disabled={actionDisabled}
+          testID="favorite-edit"
+          accessibilityLabel="Edit Favorite"
+        />
+      ) : (
+        <Button
+          icon={favorited ? IconStarFilled : IconStar}
+          variant="floating"
+          size="lg"
+          onPress={onFavoriteAction}
+          testID="history-favorite-ride"
+          color={favorited ? theme.palette.amber.color : undefined}
+          disabled={actionDisabled}
+          accessibilityLabel={favorited ? 'Edit Favorite' : 'Create Favorite'}
+        />
+      )}
+      {trailing}
     </View>
   )
 }
@@ -153,54 +123,38 @@ const styles = StyleSheet.create({
   navControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     alignSelf: 'center',
     width: '100%',
     gap: 8,
   },
-  navSide: {
-    width: 54,
-    height: 54,
-  },
-  navSelector: {
+  selector: {
     flex: 1,
     minWidth: 0,
-  },
-  mediaEnabled: {
-    borderColor: theme.palette.purple.border,
-    backgroundColor: theme.palette.purple.bg,
-  },
-  mediaCountBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: theme.palette.purple.border,
-    backgroundColor: theme.palette.purple.bg,
-  },
-  mediaCountText: {
-    color: theme.palette.purple.text,
-    fontSize: 9,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  titleButtonPressed: {
-    opacity: 0.72,
   },
   titleButton: {
     flex: 1,
     minWidth: 0,
-    height: 54,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  },
+  titlePressed: {
+    backgroundColor: theme.ui.muted,
+  },
+  titleText: {
+    flexShrink: 1,
+    alignItems: 'center',
+  },
+  title: {
+    color: theme.ui.foreground,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  subtitle: {
+    color: theme.ui.mutedForeground,
+    fontSize: 11,
+    fontWeight: '500',
   },
 })

@@ -3,11 +3,7 @@ import { expect, test } from 'bun:test'
 test('legacy marker accuracy keeps fixed feet, missing accuracy stays absent', () => {
   // Isolate icon mocks from other files in Bun's shared test process.
   const script = `
-    import { expect, mock } from 'bun:test'
-    mock.module('phosphor-react-native', () => ({
-      ClockCountdownIcon: () => null, LinkBreakIcon: () => null, PauseIcon: () => null,
-      PlugsConnectedIcon: () => null, StopIcon: () => null, WarningCircleIcon: () => null,
-    }))
+    import { expect } from 'bun:test'
     const { buildHistoryMarkerMessage } = await import('./src/modules/history/lib/historyMapMarkerInfo')
   const selection = {
     marker: { id: 1, occurredAtMs: 1000, type: 'gap', boardId: null, message: null, gapMs: 5000 },

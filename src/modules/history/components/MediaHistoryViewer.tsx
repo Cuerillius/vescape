@@ -1,15 +1,7 @@
 import { useEventListener } from 'expo'
 import { Image } from 'expo-image'
 import { VideoView, useVideoPlayer } from 'expo-video'
-import {
-  BatteryMediumIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
-  GaugeIcon,
-  LightningIcon,
-  XIcon,
-  type Icon,
-} from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
 import { useMemo, useState } from 'react'
 import { Modal, StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
@@ -22,6 +14,12 @@ import { telemetry } from '@/modules/board/constants/telemetry'
 import { dutyPercent } from '@/helpers/format'
 import { findVideoTelemetrySample, type MediaAssetInput } from '@/modules/history/lib/mediaHistory'
 import { theme, type ThemeColor } from '@/constants/theme'
+import IconBattery2 from '@tabler/icons-react-native/IconBattery2'
+import IconBolt from '@tabler/icons-react-native/IconBolt'
+import IconChevronLeft from '@tabler/icons-react-native/IconChevronLeft'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
+import IconGauge from '@tabler/icons-react-native/IconGauge'
+import IconX from '@tabler/icons-react-native/IconX'
 
 function VideoAsset({
   asset,
@@ -62,19 +60,19 @@ function VideoAsset({
           <VideoTelemetryStat
             label="Speed"
             value={formatSpeedWithUnit(Math.abs(sample.speedKmh))}
-            icon={GaugeIcon}
+            icon={IconGauge}
             accent={telemetry.speed.color}
           />
           <VideoTelemetryStat
             label="Duty"
             value={telemetry.duty.formatWithUnit(dutyPercent(sample.dutyCycle, false))}
-            icon={LightningIcon}
+            icon={IconBolt}
             accent={telemetry.duty.color}
           />
           <VideoTelemetryStat
             label="Battery"
             value={telemetry.battVoltage.formatWithUnit(sample.batteryVoltage)}
-            icon={BatteryMediumIcon}
+            icon={IconBattery2}
             accent={telemetry.battVoltage.color}
           />
         </View>
@@ -98,7 +96,7 @@ function VideoTelemetryStat({
     <View style={styles.telemetryStat}>
       <Text style={styles.telemetryLabel}>{label}</Text>
       <View style={styles.telemetryValueRow}>
-        <IconComponent size={18} color={accent} weight="duotone" />
+        <IconComponent size={18} color={accent} />
         <Text style={styles.telemetryValue}>{value}</Text>
       </View>
     </View>
@@ -164,17 +162,17 @@ export function MediaHistoryViewer({
         ) : (
           <PhotoAsset key={asset.id} asset={asset} />
         )}
-        <IconButton icon={XIcon} onPress={onClose} style={[styles.close, { top: headerTop }]} />
+        <IconButton icon={IconX} onPress={onClose} style={[styles.close, { top: headerTop }]} />
         {orderedAssets.length > 1 ? (
           <>
             <IconButton
-              icon={CaretLeftIcon}
+              icon={IconChevronLeft}
               onPress={() => setIndex((current) => Math.max(0, current - 1))}
               disabled={index === 0}
               style={styles.previous}
             />
             <IconButton
-              icon={CaretRightIcon}
+              icon={IconChevronRight}
               onPress={() => setIndex((current) => Math.min(orderedAssets.length - 1, current + 1))}
               disabled={index === orderedAssets.length - 1}
               style={styles.next}
@@ -194,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.neutral.surfaceDeep,
+    backgroundColor: theme.ui.muted,
   },
   media: {
     ...StyleSheet.absoluteFill,
@@ -215,7 +213,7 @@ const styles = StyleSheet.create({
   },
   position: {
     position: 'absolute',
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 12,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
@@ -239,10 +237,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: theme.alpha(theme.palette.slate.light, 0.3),
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.6),
+    backgroundColor: theme.alpha(theme.ui.muted, 0.6),
   },
   telemetryLabel: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 9,
     fontWeight: '700',
   },
@@ -252,7 +250,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   telemetryValue: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
@@ -261,7 +259,7 @@ const styles = StyleSheet.create({
     color: theme.status.error.text,
     fontSize: 13,
     fontWeight: '800',
-    backgroundColor: theme.alpha(theme.neutral.surfaceDeep, 0.85),
+    backgroundColor: theme.alpha(theme.ui.muted, 0.85),
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,

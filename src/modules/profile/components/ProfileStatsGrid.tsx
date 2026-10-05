@@ -1,28 +1,39 @@
 import { StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
+import { Card } from '@/components/ui/Card'
 import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import type { ProfileStatItem } from '@/modules/profile/hooks/useProfileStatItems'
 
 interface ProfileStatsGridProps {
   items: ProfileStatItem[]
-  /** Larger figures for the two-column summary in the History drawer. */
-  emphasis?: boolean
   testID?: string
 }
 
-/** Riding totals laid out two per row: icon, figure, label. */
-export function ProfileStatsGrid({ items, emphasis = false, testID }: ProfileStatsGridProps) {
+/** Riding totals as small cards, two per row: a caption with its glyph over the figure. */
+export function ProfileStatsGrid({ items, testID }: ProfileStatsGridProps) {
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
   return (
     <View style={styles.grid} testID={testID}>
       {items.map((item) => {
         const ItemIcon = item.icon
         return (
-          <View key={item.key} style={[styles.cell, emphasis && styles.cellEmphasis]}>
-            <ItemIcon size={emphasis ? 16 : 18} color={item.accent} weight="duotone" />
-            <Text style={[styles.value, emphasis && styles.valueEmphasis]}>{item.value}</Text>
-            <Text style={styles.label}>{item.label}</Text>
-          </View>
+          <Card
+            key={item.key}
+            style={styles.tile}
+            accessibilityLabel={`${item.label}, ${item.value}`}
+          >
+            <View style={styles.caption}>
+              <ItemIcon size={15} color={mutedColor} />
+              <Text style={styles.label} numberOfLines={1}>
+                {item.label}
+              </Text>
+            </View>
+            <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+              {item.value}
+            </Text>
+          </Card>
         )
       })}
     </View>
@@ -33,28 +44,30 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 8,
   },
-  cell: {
-    width: '50%',
-    paddingVertical: 10,
-    paddingHorizontal: 6,
+  // Two per row: half the width less half the gap.
+  tile: {
+    width: '48.5%',
+    flexGrow: 1,
+    padding: 14,
+    gap: 8,
   },
-  cellEmphasis: {
-    paddingVertical: 6,
-  },
-  value: {
-    color: theme.palette.slate.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  valueEmphasis: {
-    fontSize: 20,
-    marginTop: 2,
+  caption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   label: {
-    color: theme.palette.slate.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
+    flexShrink: 1,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  value: {
+    color: theme.ui.foreground,
+    fontFamily: theme.mono('700'),
+    fontSize: 24,
+    letterSpacing: -0.4,
   },
 })

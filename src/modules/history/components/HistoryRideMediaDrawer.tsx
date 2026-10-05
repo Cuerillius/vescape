@@ -1,14 +1,9 @@
-import { ImagesSquareIcon } from 'phosphor-react-native'
-import type { RefObject } from 'react'
-import type { View } from 'react-native'
-
-import { EdgeDrawer } from '@/components/overlays/EdgeDrawer'
+import { Drawer } from '@/components/ui/Drawer'
 import { MediaHistoryGallery } from '@/modules/history/components/MediaHistoryGallery'
 import type { MediaAssetInput, MediaHistoryAsset } from '@/modules/history/lib/mediaHistory'
 
 interface HistoryRideMediaDrawerProps {
   visible: boolean
-  triggerRef: RefObject<View | null>
   assets: MediaHistoryAsset[]
   unmatched: MediaAssetInput[]
   loading: boolean
@@ -20,7 +15,6 @@ interface HistoryRideMediaDrawerProps {
 
 export function HistoryRideMediaDrawer({
   visible,
-  triggerRef,
   assets,
   unmatched,
   loading,
@@ -30,13 +24,7 @@ export function HistoryRideMediaDrawer({
   onOpenMedia,
 }: HistoryRideMediaDrawerProps) {
   return (
-    <EdgeDrawer
-      visible={visible}
-      triggerRef={triggerRef}
-      onClose={onClose}
-      title="Favorite Media"
-      icon={ImagesSquareIcon}
-    >
+    <Drawer visible={visible} title="Favorite Media" onClose={onClose}>
       <MediaHistoryGallery
         assets={assets}
         unmatched={unmatched}
@@ -48,6 +36,6 @@ export function HistoryRideMediaDrawer({
           onOpenMedia(asset)
         }}
       />
-    </EdgeDrawer>
+    </Drawer>
   )
 }

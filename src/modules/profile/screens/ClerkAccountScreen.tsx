@@ -3,13 +3,14 @@ import { useNetworkState } from 'expo-network'
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { UserCircleIcon, WifiSlashIcon } from 'phosphor-react-native'
 
 import { Button } from '@/components/base/Button'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
 import { routes } from '@/navigation/routes'
 import { revokeDeviceCredential } from 'vescape-core'
+import IconUserCircle from '@tabler/icons-react-native/IconUserCircle'
+import IconWifiOff from '@tabler/icons-react-native/IconWifiOff'
 
 export function ClerkAccountScreen() {
   const router = useRouter()
@@ -48,9 +49,9 @@ export function ClerkAccountScreen() {
   return (
     <View style={styles.container}>
       {networkState.isInternetReachable === false ? (
-        <WifiSlashIcon size={40} color={theme.neutral.textMuted} weight="duotone" />
+        <IconWifiOff size={40} color={theme.ui.mutedForeground} />
       ) : (
-        <UserCircleIcon size={48} color={theme.neutral.textMuted} weight="duotone" />
+        <IconUserCircle size={48} color={theme.ui.mutedForeground} />
       )}
       <Text style={styles.title}>{user?.fullName ?? 'Vescape account'}</Text>
       <Text style={styles.detail}>{user?.primaryEmailAddress?.emailAddress ?? 'Signed in'}</Text>
@@ -81,19 +82,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     padding: 32,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   title: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 18,
     fontWeight: '700',
   },
   detail: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
   },
   message: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'center',
