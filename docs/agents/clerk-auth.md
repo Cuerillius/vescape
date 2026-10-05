@@ -54,13 +54,14 @@ require a fresh native sync/build through `bun run android`.
 
 Clerk's native views are themed by the checked-in `clerk-theme.json` at the repo root, wired through
 the `@clerk/expo` config plugin's `theme` option in `app.config.ts`. The file mirrors the Vescape
-palette from `src/constants/theme.ts` (slate surfaces, cyan brand accent, semantic status colors,
-12dp corners) and sets `colors` and `darkColors` to the same values so the views are always dark.
+`theme.ui` zinc tokens from `src/constants/theme.ts` (monochrome surfaces, near-black/near-white
+primary button, semantic status colors, 8dp controls). `colors` is the light appearance and
+`darkColors` the dark one, so the views follow the system appearance like the rest of the app.
 
 - The plugin consumes the JSON during prebuild — Android gets `assets/clerk_theme.json`, iOS gets a
   `ClerkTheme` Info.plist entry. Theme changes require a regenerated native build via
   `bun run android`; Metro reload alone is not enough.
-- Clerk's native views use the system font. Do not patch generated native code to force Raleway.
+- Clerk's native views use the system font. Do not patch generated native code to force Geist.
 - Both Clerk routes hide the Expo header (`src/app/_layout.tsx`); the Clerk views render their own
   single back/dismiss control (`isDismissible`) and route dismissal back into Expo Router.
 
@@ -72,8 +73,8 @@ and offers **Return to app**. Its dashboard configuration should stay aligned wi
 - Application name: `Vescape`
 - Logo: `assets/images/splashIcon.png`
 - Appearance: `Dark`
-- Dark primary color: `#06B6D4`
-- Dark background color: `#111827`
+- Dark primary color: `#FAFAFA`
+- Dark background color: `#09090B`
 
 The Account Portal dashboard currently exposes only appearance plus primary and background colors
 for each color mode. It does not expose completion-page-specific copy, typography, or layout. The

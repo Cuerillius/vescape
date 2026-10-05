@@ -8,7 +8,7 @@ Visual design principles for the Vescape app. Follow these when building or modi
 
 > **No large solid bright fills — anywhere in the app.**
 > Bright accent colours (`theme.*.color`) are for **thin borders, icons, and text**, not for filling large areas. Avoid `weight="fill"` glyphs, bright filled discs/badges/blocks, and bright-coloured backgrounds behind content. State and emphasis come from thin borders + coloured icons/text on the dark surface.
-> Permitted fills: neutral surfaces (`theme.neutral.surface`/`surfaceDeep`), tinted pill backgrounds (`theme.*.bg`), and the primary `Button`. Small bright accents (a thin underline, a dot, a 1–2px border) are fine; large bright planes are not.
+> Permitted fills: neutral surfaces (`theme.ui.card`/`muted`), tinted pill backgrounds (`theme.*.bg`), and the primary `Button`. Small bright accents (a thin underline, a dot, a 1–2px border) are fine; large bright planes are not.
 
 ## Theme
 
@@ -21,49 +21,57 @@ The app has adaptive light and dark appearances. The durable `themeMode` setting
 
 App theme and map style are independent preferences. Selecting a map never changes `themeMode`. The Streets option renders One Dark in dark appearance and Outdoors in light appearance, including System and Sunrise & sunset transitions. Existing saved `onedark` and `outdoors` selections both represent Streets; theme changes do not rewrite the saved map choice. Satellite and Mapy.cz remain selected across appearance changes.
 
-Neutral UI colors come from `theme.neutral`, while accent UI colors come from `theme.palette.<hue>`. Both are backed by iOS dynamic colors and Android day/night resources, so values captured by `StyleSheet.create` still update when the active appearance changes. `theme.palette.slate` remains a raw dark swatch for fixed dark map styles; do not use it for app surfaces or text.
+Surface, text, and border colors come from `theme.ui` (the shadcn zinc tokens), while accent UI colors come from `theme.palette.<hue>`. Both are backed by iOS dynamic colors and Android day/night resources, so values captured by `StyleSheet.create` still update when the active appearance changes. On Android, `plugins/withThemeRecreate.ts` drops `uiMode` from the main activity's `configChanges`: already-mounted views resolve a color resource once, so a theme switch recreates the activity (the JS runtime, navigation, stores and BLE survive) instead of leaving old colors on screen. `theme.palette.slate` remains a raw dark swatch for fixed dark map styles; do not use it for app surfaces or text.
 
-The light appearance uses a pure-white canvas. Read-only content sits directly on that canvas and is separated with spacing, typography, or thin neutral rules rather than raised cards. Interactive controls use the dark navy `theme.control` family in both appearances — the same `#0f172a` base in light and dark — making affordances obvious without shadows and keeping the accent-colored actions legible. Dark-contrasted chrome must use the adaptive `theme.control.*` family (or `theme.neutral.*` for content surfaces) — never the fixed `theme.palette.slate.*` raw swatches, which stay near-black in both appearances and are reserved for on-map/chart graphics.
+The light appearance uses a pure-white canvas. Read-only content sits directly on that canvas and is separated with spacing, typography, or thin `theme.ui.border` rules rather than raised cards. Interactive controls use `theme.ui.muted` with a `theme.ui.border` outline in both appearances, making affordances obvious without shadows. Never use the fixed `theme.palette.slate.*` raw swatches for app chrome; they stay near-black in both appearances and are reserved for on-map/chart graphics.
 
-Segmented controls that use the `lightTabs` variant flip their contrast in light mode: the track stays navy and the active segment becomes a white pill with an accent border and accent text/icon; inactive segments are transparent with muted control text. Colored actions — `Button` accent/tune/success/destructive/groupRide, `IconButton` destructive/accent, tonal `CircleButton`s, the map-sheet primary `Ride it` / `Navigate` and `Cancel`, and map-sheet delete/save/vote buttons — carry their identity in the accent: on dark the accent tints the surface beneath (`coloredAction.darkTint`, dev's tinted pill); on light the accent washes over the navy control surface (`coloredAction.tint`) so a colored action keeps the weight of a filled control without a new palette color. They always use colored text and border, never white-on-navy or a bright translucent fill alone.
+Colored actions — `Button` accent/tune/success/destructive/groupRide, `IconButton` destructive/accent, the map-sheet primary `Ride it` / `Navigate` and `Cancel`, and map-sheet delete/save/vote buttons — carry their identity in the accent: the accent tints the surface beneath at `coloredAction.tint`, with accent-coloured text and border in the active appearance. They never use white-on-accent or a bright translucent fill alone.
 
 Telemetry colors are appearance-specific. The light variants are darker than their dark-appearance counterparts so gauges, charts, routes, and small labels retain contrast against white. Use `theme.telemetry` for React Native styles and `useResolvedTelemetryColors()` for renderers.
 
-Non-React-Native renderers and worklets use the plain-string palettes from `useResolvedNeutralColors()` and `useResolvedAccentColors()`; native adaptive color objects must not cross into Mapbox, Skia, Reanimated worklets, or string-valued state.
+Non-React-Native renderers and worklets use the plain-string palettes from `useResolvedUiColors()` and `useResolvedAccentColors()`; native adaptive color objects must not cross into Mapbox, Skia, Reanimated worklets, or string-valued state.
 
 Android native `Switch` color props also receive resolved string colors. Its native color converter does not reliably resolve the adaptive resource-path value used by the rest of the React Native style system.
 
 Satellite follows the effective app appearance with a navy backdrop in dark mode and a light backdrop in light mode. Home and Explore retain independent imagery-opacity preferences.
 
-| Role           | Token                         |
-| -------------- | ----------------------------- |
-| Background     | `theme.neutral.bg`            |
-| Card / surface | `theme.neutral.surface`       |
-| Deep surface   | `theme.neutral.surfaceDeep`   |
-| Border         | `theme.neutral.border`        |
-| Primary text   | `theme.neutral.textPrimary`   |
-| Secondary text | `theme.neutral.textSecondary` |
-| Muted text     | `theme.neutral.textMuted`     |
-| Dim text       | `theme.neutral.textDim`       |
+| Role                | Token                      |
+| ------------------- | -------------------------- |
+| Background          | `theme.ui.background`      |
+| Card / surface      | `theme.ui.card`            |
+| Control / inset     | `theme.ui.muted`           |
+| Border / divider    | `theme.ui.border`          |
+| Primary text / icon | `theme.ui.foreground`      |
+| Secondary text      | `theme.ui.mutedForeground` |
+| Dim text            | `theme.ui.faintForeground` |
 
-Interactive surfaces use a separate semantic family:
+## shadcn UI Kit
 
-| Role                | Token                              |
-| ------------------- | ---------------------------------- |
-| Control background  | `theme.control.background`         |
-| Pressed background  | `theme.control.backgroundPressed`  |
-| Disabled background | `theme.control.backgroundDisabled` |
-| Control border      | `theme.control.border`             |
-| Control divider     | `theme.control.divider`            |
-| Control text/icon   | `theme.control.text` / `.icon`     |
-| Muted control text  | `theme.control.textMuted`          |
+The whole app is built in a shadcn/ui style on `theme.ui`; the old `neutral`/`control` token sets are gone.
+
+- Tokens: `theme.ui` (zinc `background`, `foreground`, `card`, `muted`, `mutedForeground`, `border`,
+  `primary`, `primaryForeground`) and `theme.radius` (`md` 8 for controls, `lg` 12 for cards, `full`
+  for pills).
+- Primitives live in `src/components/ui/`: `Card` (+ `CardTitle`, `CardDescription`), `Button`
+  (`primary` / `secondary` / `outline` / `ghost` / `floating`, square when icon-only), `Badge`,
+  `Progress`, `Accordion`, `Drawer`, `Separator`, `Switch`, `SegmentedControl` (and `SegmentedMenu`, which
+  folds into one). Previews are under Settings → Components, which also covers the tokens,
+  the navbar, the map, and the dashboard and metric components.
+- `/control/<metric>` detail screens use `MetricDetailScreen`: a live hero with headroom to the
+  configured limit, and under it one `Accordion` (one row open at a time, the chart open first) with
+  the live window ("Last 5 min"), Alerts and Limits. Closed rows carry a one-line summary. The rest
+  is flat, with spacing and hairlines doing the grouping.
+- The kit is monochrome. Hierarchy comes from a 1px `ui.border`, the `card` step over `background`,
+  and `mutedForeground` captions. Accent hues appear only as state: a status dot, a destructive
+  tint, or the hot duty arc.
+- Captions sit above values in sentence case (`CardDescription`), not as uppercase eyebrows.
 
 ## Layout Principles
 
 - **No decorative boxes or elevation.** Cards wrap only interactive groups (rows with inputs, switches, buttons). Do not wrap static info or labels in bordered containers, and do not use shadows to make hierarchy.
 - **Flat rows.** Settings-style rows are icon + label + control, no background box around the icon.
 - **Breathing room.** Use padding and gap, not borders, to separate content sections.
-- **Section titles** are uppercase, small (`12–13px`), muted (`theme.neutral.textMuted`), with letter-spacing.
+- **Section titles** are uppercase, small (`12–13px`), muted (`theme.ui.mutedForeground`), with letter-spacing.
 
 ## Semantic Colors
 
@@ -144,17 +152,17 @@ Every translucent value (overlays, backdrops, zone tints, glow gradients, vignet
 type AlphaLevel = 0 | 0.12 | 0.3 | 0.4 | 0.6 | 0.7 | 0.8 | 0.85 | 1
 ```
 
-Neutral row icons use `theme.neutral.textSecondary`.
+Neutral row icons use `theme.ui.mutedForeground`.
 
 ## Icons
 
-Use `phosphor-react-native` with `weight="duotone"` as default weight. Each icon gets a distinct accent color from `theme` — do not reuse the same color for adjacent icons.
+Use Tabler icons (`@tabler/icons-react-native`), outline by default. Each icon gets a distinct accent color from `theme` — do not reuse the same color for adjacent icons.
 
 Board Warnings use `EngineIcon` everywhere. VESC faults use `WarningDiamondIcon` with
 `theme.status.caution`, the yellow status palette. The Edit Board battery entry uses
 `theme.settingsIcon.battery`, green. Yellow in these controls is reserved for warnings and alerts.
 Empty-state placeholders, including "No faults" and "No warnings", use the default gray
-`theme.neutral.textMuted` icon, not the feature's warning accent.
+`theme.ui.mutedForeground` icon, not the feature's warning accent.
 
 Icon sizing:
 
@@ -166,17 +174,17 @@ Icon sizing:
 
 A specific application of the no-bright-fills rule. Status and selection states (checklist steps, radios, progress milestones) use **thin-bordered outline circles**:
 
-- Wrap the indicator in a generous circle (`40–44px`, `borderWidth: 1.5`, transparent background). State is carried by the **thin border colour + the icon colour**, both from `theme.*` — done in `gps`, active in `wheel`, error in `error`, idle in `theme.neutral.border`/`textMuted`.
+- Wrap the indicator in a generous circle (`40–44px`, `borderWidth: 1.5`, transparent background). State is carried by the **thin border colour + the icon colour**, both from `theme.*` — done in `gps`, active in `wheel`, error in `error`, idle in `theme.ui.border`/`textMuted`.
 - Never a `weight="fill"` disc or filled dot — a bright filled glyph reads as a heavy blob on the dark surface.
 - **Bigger is calmer.** Prefer large outline circles with breathing room over small dense glyphs.
 
 ## Cards
 
-Use cards (`backgroundColor: theme.neutral.surface`, `borderRadius: 12`, `borderColor: theme.neutral.border`) only for grouping interactive elements (switches, steppers, pressable rows). A card groups related controls — not labels or read-only info.
+Use cards (`backgroundColor: theme.ui.card`, `borderRadius: 12`, `borderColor: theme.ui.border`) only for grouping interactive elements (switches, steppers, pressable rows). A card groups related controls — not labels or read-only info.
 
-Inside cards, separate rows with a thin `theme.neutral.border` line indented past the icon (`marginLeft: 58`).
+Inside cards, separate rows with a thin `theme.ui.border` line indented past the icon (`marginLeft: 58`).
 
-**Corner sheets (EdgeDrawer) in light theme use a translucent white body** — free-floating fields on that surface read as unfinished. Group a sheet's interactive content in the same card boxes used on the settings screens (`SettingsCard`), with the sheet's mode switch (e.g. tab pills) and primary action sitting outside the card.
+**Corner sheets (Drawer) in light theme use a translucent white body** — free-floating fields on that surface read as unfinished. Group a sheet's interactive content in the same card boxes used on the settings screens (`Card` from `src/components/ui/`), with the sheet's mode switch (e.g. tab pills) and primary action sitting outside the card.
 
 ## Info Headers
 
@@ -188,35 +196,35 @@ For screen headers showing metadata (version, OS, DB size), use centered text wi
 
 ## Typography
 
-The app's UI font is **Raleway**, shipped as official static per-weight files (`assets/fonts/Raleway-300.ttf` … `Raleway-900.ttf`) and loaded in `src/app/_layout.tsx` via `expo-font`'s `useFonts` before the `Stack` mounts. The splash stays visible until the fonts are ready on cold start. Static files with correct embedded family, style, and PostScript names are required: Android does not move a custom variable font's `wght` axis, while iOS relies on the embedded names to distinguish registered faces. Raleway defaults to old-style figures, so the shared `Text` wrapper enforces the OpenType `lining-nums` variant.
+The app has **one typeface: Geist**, shipped as official static per-weight files (`assets/fonts/Geist-300.ttf` … `Geist-900.ttf`, OFL, see `Geist-OFL.txt`) and loaded in `src/app/_layout.tsx` via `expo-font`'s `useFonts` before the `Stack` mounts. The splash stays visible until the fonts are ready on cold start. Static files with correct embedded family, style, and PostScript names are required: Android does not move a custom variable font's `wght` axis, while iOS relies on the embedded names to distinguish registered faces.
 
-Every `Text` instance renders through the wrapper at `src/components/base/Text.tsx`, which reads `fontWeight` from the style and resolves it to the matching family via `theme.font(weight)` (default `'500'` — Raleway 400 reads too thin on the dark surface). Import `Text` from `@/components/base/Text` — never import `Text` from `react-native` directly for UI text.
+Every `Text` instance renders through the wrapper at `src/components/base/Text.tsx`, which reads `fontWeight` from the style and resolves it to the matching family via `theme.font(weight)` (default `'400'`). Import `Text` from `@/components/base/Text` — never import `Text` from `react-native` directly for UI text.
 
-- `theme.font(weight)` in `src/constants/theme.ts` is the single source of truth for per-file aliases (`'Raleway-500'` etc.). Components keep writing plain `fontWeight: '600'` and rely on the wrapper; never inline `'Raleway…'` in a component or style.
-- Numeric readouts **opt out** of Raleway and use **JetBrains Mono** (`assets/fonts/JetBrainsMono-500.ttf` … `-800.ttf`, weights 500/600/700/800), via `theme.mono(weight)`. The platform `fontFamily: 'monospace'` alias is still used for developer-facing text (event log, raw settings) where the exact face does not matter; anything a rider reads at speed uses the bundled family so digit advance is identical on both platforms.
+- `theme.font(weight)` in `src/constants/theme.ts` is the single source of truth for per-file aliases (`'Geist-500'` etc.). Components keep writing plain `fontWeight: '600'` and rely on the wrapper; never inline `'Geist…'` in a component or style.
+- Numeric readouts use **Geist Tabular** via `theme.mono(weight)` (`assets/fonts/GeistTabular-500.ttf` … `-800.ttf`). It is Geist with its own tabular (`tnum`) digits remapped as the default digits, generated from the matching Geist weight with fontTools (cmap for `0`–`9` pointed at the `tnum` substitutes, family renamed). Geist's default digits are proportional, and Skia cannot apply OpenType features to plain text, so this is what keeps live values from shifting width as they tick. Rebuild these files from a new Geist release the same way. The platform `fontFamily: 'monospace'` alias is still used for developer-facing code and log text (event log, raw settings).
 - Live values (anything driven by a shared value rather than a React render) go through `MonoValue` / `TickText` in `src/components/base/`, which draw on Skia. Never render a live value into a non-editable `TextInput` through `animatedProps` — a test in `src/components/base/liveReadouts.test.ts` fails if that pattern comes back.
 - Every canvas is a separate native surface, so do not mount one per readout. When the parent already draws on Skia, put a **`MonoText`** node in that canvas instead of a `MonoValue` — that is how the gauges draw their value and unit, and how `BmsCellVoltages` fits every cell row onto one canvas. `MonoValue` is `MonoText` plus a canvas, for readouts that sit on plain views.
 - Bars and indicators driven by live values belong on the same canvas as the numbers. An animated percentage `width` is a layout prop: it runs a Yoga pass per frame per row, which is what the cell rows used to do.
 - A Skia canvas does **not** grow to fit its text the way a `Text`/`TextInput` box does. Give `MonoValue` a `width`, or a parent with a definite width plus `alignSelf: 'stretch'`, or the readout collapses or clips. Canvases drawn at a measured size use `useCanvasSize` on a host view (`onLayout` is unsupported on a Fabric canvas).
 - Stack header titles (and any style fed to a native component that bypasses the wrapper) must set `fontFamily: theme.font('600')` explicitly — see `src/app/_layout.tsx` `headerTitleStyle` — and must not set `fontWeight`.
-- `fontVariant: ['tabular-nums']` still aligns numeric columns on Raleway.
+- `fontVariant: ['tabular-nums']` aligns numeric columns in regular `Text`.
 
-Watch companions use the same bundled families: Raleway for labels and JetBrains Mono for numeric readouts. Their native typography helpers keep watch-specific sizes; system symbols and the watchOS system clock keep the platform font. Watch targets reuse `assets/fonts/` rather than maintaining separate font files.
+Watch companions still use Raleway for labels and JetBrains Mono for numeric readouts: Wear OS copies `Raleway-500/600` and `JetBrainsMono-500/600` from `assets/fonts/` (`plugins/withWearMirror.ts`) and watchOS bundles its own copies. They move to Geist when the watch UI is rebuilt. Their native typography helpers keep watch-specific sizes; system symbols and the watchOS system clock keep the platform font.
 
 Typography roles:
 
-| Role          | Size  | Weight | Token                         |
-| ------------- | ----- | ------ | ----------------------------- |
-| Screen title  | 20    | 700    | `theme.neutral.textPrimary`   |
-| Row label     | 15    | 600    | `theme.neutral.textPrimary`   |
-| Row hint      | 12    | 500    | `theme.neutral.textMuted`     |
-| Section title | 12–13 | 700    | `theme.neutral.textMuted`     |
-| Metadata      | 12    | 500    | `theme.neutral.textSecondary` |
-| Stepper value | 15    | 700    | `theme.neutral.textPrimary`   |
+| Role          | Size  | Weight | Token                      |
+| ------------- | ----- | ------ | -------------------------- |
+| Screen title  | 20    | 700    | `theme.ui.foreground`      |
+| Row label     | 15    | 600    | `theme.ui.foreground`      |
+| Row hint      | 12    | 500    | `theme.ui.mutedForeground` |
+| Section title | 12–13 | 700    | `theme.ui.mutedForeground` |
+| Metadata      | 12    | 500    | `theme.ui.mutedForeground` |
+| Stepper value | 15    | 700    | `theme.ui.foreground`      |
 
-Preview every role live under **Settings → Components → Typography** (`src/app/settings/components/typography.tsx`).
+Roles are defined in `src/components/base/Text.tsx`.
 
-> Raleway reads thinner than the platform default font, so the design system starts body text at `500` (Medium). Any `Text` without an explicit `fontWeight` resolves to `500` — see the wrapper at `src/components/base/Text.tsx`. Use `'400'` only when a deliberately thin label is intended (e.g. quiet chart axis ticks). Screens that need older behavior can pass `fontWeight: '400'` explicitly.
+> Any `Text` without an explicit `fontWeight` resolves to Geist `400` (Regular) — see the wrapper at `src/components/base/Text.tsx`.
 
 ## Avoid
 

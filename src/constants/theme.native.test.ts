@@ -7,7 +7,7 @@ import { resolveAdaptiveColor, theme } from '@/constants/theme'
 test('native tokens cannot cross string-only rendering boundaries without resolution', () => {
   expectTypeOf(theme.palette.sky.color).toExtend<ColorValue>()
   expectTypeOf(theme.palette.sky.color).not.toExtend<string>()
-  expectTypeOf(theme.neutral.bg).not.toExtend<PathProps['color']>()
+  expectTypeOf(theme.ui.background).not.toExtend<PathProps['color']>()
   expectTypeOf(theme.telemetry.speed).not.toExtend<string>()
   expectTypeOf(theme.alpha(theme.palette.sky.color, 0.3)).not.toExtend<string>()
   expectTypeOf(resolveAdaptiveColor(theme.palette.sky.color, 'light')).toEqualTypeOf<string>()

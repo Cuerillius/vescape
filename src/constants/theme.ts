@@ -2,7 +2,8 @@
  * Semantic color tokens for Vescape.
  *
  * New structure:
- *   - palette: named hue swatches + mono + slate (surface/text scale + map buildings)
+ *   - ui: shadcn/ui zinc tokens for surfaces, text and borders
+ *   - palette: named hue swatches + mono + slate (raw map/chart swatches)
  *   - telemetry: single-color token per metric
  *   - map: user/target/building colors
  *   - status: semantic UI-state tokens (info/success/warning/error/favorite)
@@ -117,15 +118,6 @@ function alpha(color: ThemeColor, level: AlphaLevel): ThemeColor {
   }
 
   throw new Error(`Unsupported color format for alpha(): ${color}`)
-}
-
-/** Blend `over` on top of `base` at `level` (0–1). Both must be `#rrggbb` hex. */
-export function blend(base: string, over: string, level: number): string {
-  const parse = (hex: string) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16))
-  const [br, bg, bb] = parse(base)
-  const [or, og, ob] = parse(over)
-  const mix = (a: number, b: number) => Math.round(a + (b - a) * level)
-  return `rgb(${mix(br, or)},${mix(bg, og)},${mix(bb, ob)})`
 }
 
 interface Hue<Color = string> {
@@ -257,136 +249,70 @@ export const palette = {
   beige: adaptiveHue('beige'),
 } as const
 
-/** Appearance-aware neutral UI colors. Raw slate swatches stay in `palette.slate`; components use
- * this semantic layer so existing StyleSheets update natively without JS style regeneration. */
-export const neutralColors = {
+/**
+ * shadcn/ui zinc tokens for the rebuilt UI kit in `src/components/ui/`. Monochrome by design:
+ * hierarchy comes from 1px borders, muted text and the card/background step, not from hue.
+ */
+export const uiColors = {
   dark: {
-    bg: '#111827',
-    surface: '#1e293b',
-    surfaceDeep: '#0f172a',
-    border: '#334155',
-    textPrimary: '#f1f5f9',
-    textSecondary: '#94a3b8',
-    textMuted: '#64748b',
-    textDim: '#475569',
+    background: '#09090b',
+    foreground: '#fafafa',
+    card: '#18181b',
+    muted: '#27272a',
+    mutedForeground: '#a1a1aa',
+    faintForeground: '#71717a',
+    border: '#27272a',
+    primary: '#fafafa',
+    primaryForeground: '#18181b',
   },
   light: {
-    bg: '#ffffff',
-    surface: '#ffffff',
-    surfaceDeep: '#f6f8fa',
-    border: '#d9e1e8',
-    textPrimary: '#0f172a',
-    textSecondary: '#475569',
-    textMuted: '#64748b',
-    textDim: '#94a3b8',
+    background: '#ffffff',
+    foreground: '#09090b',
+    card: '#ffffff',
+    muted: '#f4f4f5',
+    mutedForeground: '#71717a',
+    faintForeground: '#a1a1aa',
+    border: '#e4e4e7',
+    primary: '#18181b',
+    primaryForeground: '#fafafa',
   },
 } as const
 
-/** Interactive surface language. Navy signals that the rider can act on an object. */
-export const controlColors = {
-  dark: {
-    background: '#0f172a',
-    backgroundPressed: '#1e293b',
-    backgroundDisabled: '#273449',
-    border: '#334155',
-    divider: '#334155',
-    text: '#f1f5f9',
-    textMuted: '#94a3b8',
-    icon: '#f1f5f9',
-  },
-  light: {
-    background: '#0f172a',
-    backgroundPressed: '#1e293b',
-    backgroundDisabled: '#273449',
-    border: '#334155',
-    divider: '#334155',
-    text: '#f1f5f9',
-    textMuted: '#94a3b8',
-    icon: '#f1f5f9',
-  },
-} as const
-
-/**
- * iOS resolves these values through DynamicColorIOS; Android needs resources, which
- * `scripts/generate-android-theme.ts` generates from them.
- */
-export const neutral = {
-  bg: adaptiveColor('neutral_bg', neutralColors.dark.bg, neutralColors.light.bg),
-  surface: adaptiveColor(
-    'neutral_surface',
-    neutralColors.dark.surface,
-    neutralColors.light.surface,
+export const ui = {
+  background: adaptiveColor('ui_background', uiColors.dark.background, uiColors.light.background),
+  foreground: adaptiveColor('ui_foreground', uiColors.dark.foreground, uiColors.light.foreground),
+  card: adaptiveColor('ui_card', uiColors.dark.card, uiColors.light.card),
+  muted: adaptiveColor('ui_muted', uiColors.dark.muted, uiColors.light.muted),
+  mutedForeground: adaptiveColor(
+    'ui_muted_foreground',
+    uiColors.dark.mutedForeground,
+    uiColors.light.mutedForeground,
   ),
-  surfaceDeep: adaptiveColor(
-    'neutral_surface_deep',
-    neutralColors.dark.surfaceDeep,
-    neutralColors.light.surfaceDeep,
+  /** Quieter than `mutedForeground`, for secondary marks beside hero text. */
+  faintForeground: adaptiveColor(
+    'ui_faint_foreground',
+    uiColors.dark.faintForeground,
+    uiColors.light.faintForeground,
   ),
-  border: adaptiveColor('neutral_border', neutralColors.dark.border, neutralColors.light.border),
-  textPrimary: adaptiveColor(
-    'neutral_text_primary',
-    neutralColors.dark.textPrimary,
-    neutralColors.light.textPrimary,
-  ),
-  textSecondary: adaptiveColor(
-    'neutral_text_secondary',
-    neutralColors.dark.textSecondary,
-    neutralColors.light.textSecondary,
-  ),
-  textMuted: adaptiveColor(
-    'neutral_text_muted',
-    neutralColors.dark.textMuted,
-    neutralColors.light.textMuted,
-  ),
-  textDim: adaptiveColor(
-    'neutral_text_dim',
-    neutralColors.dark.textDim,
-    neutralColors.light.textDim,
+  border: adaptiveColor('ui_border', uiColors.dark.border, uiColors.light.border),
+  primary: adaptiveColor('ui_primary', uiColors.dark.primary, uiColors.light.primary),
+  primaryForeground: adaptiveColor(
+    'ui_primary_foreground',
+    uiColors.dark.primaryForeground,
+    uiColors.light.primaryForeground,
   ),
 } as const
 
-export const control = {
-  background: adaptiveColor(
-    'control_background',
-    controlColors.dark.background,
-    controlColors.light.background,
-  ),
-  backgroundPressed: adaptiveColor(
-    'control_background_pressed',
-    controlColors.dark.backgroundPressed,
-    controlColors.light.backgroundPressed,
-  ),
-  backgroundDisabled: adaptiveColor(
-    'control_background_disabled',
-    controlColors.dark.backgroundDisabled,
-    controlColors.light.backgroundDisabled,
-  ),
-  border: adaptiveColor('control_border', controlColors.dark.border, controlColors.light.border),
-  divider: adaptiveColor(
-    'control_divider',
-    controlColors.dark.divider,
-    controlColors.light.divider,
-  ),
-  text: adaptiveColor('control_text', controlColors.dark.text, controlColors.light.text),
-  textMuted: adaptiveColor(
-    'control_text_muted',
-    controlColors.dark.textMuted,
-    controlColors.light.textMuted,
-  ),
-  icon: adaptiveColor('control_icon', controlColors.dark.icon, controlColors.light.icon),
+/** Corner radii of the shadcn kit: controls, cards, and pills. */
+export const radius = {
+  md: 8,
+  lg: 12,
+  full: 999,
 } as const
 
-/**
- * Colored-action surface — the "two-layer" colored button. On dark the accent alone (transparent
- * base) carries the identity; on light the accent tints the navy control surface (navy base + the
- * accent at `tint` on top), so a colored action keeps the weight of a filled control without a new
- * palette color.
- */
+/** Colored-action surface: the accent tints the surface beneath at `tint`, with accent-coloured text and border. */
 export const coloredAction = {
-  /** Dark theme: accent alone at this opacity on the surface beneath (dev's tinted pill). */
-  darkTint: 0.12,
-  /** Accent strength over the navy control base in light mode. */
-  tint: 0.3,
+  tint: 0.12,
 } as const
 
 export const telemetryColors = {
@@ -398,8 +324,8 @@ export const telemetryColors = {
     controllerTemp: accentColors.dark.orange.color,
     motorTemp: accentColors.dark.red.color,
     battVoltage: accentColors.dark.green.light,
-    footpad1: neutralColors.dark.textSecondary,
-    footpad2: neutralColors.dark.textMuted,
+    footpad1: uiColors.dark.mutedForeground,
+    footpad2: uiColors.dark.faintForeground,
     pitch: accentColors.dark.purple.light,
     roll: accentColors.dark.fuchsia.color,
     balancePitch: accentColors.dark.fuchsia.light,
@@ -414,8 +340,8 @@ export const telemetryColors = {
     controllerTemp: accentColors.light.orange.color,
     motorTemp: accentColors.light.red.color,
     battVoltage: accentColors.light.green.color,
-    footpad1: neutralColors.light.textSecondary,
-    footpad2: neutralColors.light.textMuted,
+    footpad1: uiColors.light.foreground,
+    footpad2: uiColors.light.mutedForeground,
     pitch: accentColors.light.purple.color,
     roll: accentColors.light.fuchsia.color,
     balancePitch: accentColors.light.pink.color,
@@ -530,7 +456,7 @@ export const settingsIcon = {
   privacyZones: palette.green.color,
   filters: palette.purple.color,
   graphs: palette.cyan.color,
-  advanced: neutral.textSecondary,
+  advanced: ui.mutedForeground,
   dev: palette.yellow.color,
   about: palette.cyan.color,
 } as const
@@ -566,41 +492,42 @@ export const zone = {
 export const interaction = {
   /** Android ripple for bounded pressables (cards, cells). */
   ripple: {
-    color: alpha(neutral.textSecondary, 0.12),
+    color: alpha(ui.mutedForeground, 0.12),
     borderless: false,
     foreground: true,
   },
   /** Android ripple for icon-only pressables with no visible bounds. */
   rippleBorderless: {
-    color: alpha(neutral.textSecondary, 0.12),
+    color: alpha(ui.mutedForeground, 0.12),
     borderless: true,
     foreground: true,
   },
   /** iOS/cross-platform pressed background for list rows and sheet items. */
-  pressedBg: neutral.surface,
+  pressedBg: ui.card,
   /** iOS/cross-platform pressed opacity for metric cells and icon buttons. */
   pressedOpacity: 0.55,
 } as const
 
-/** Weights shipped as static Raleway instances in `assets/fonts/`. Android ignores the
+/** Weights shipped as static Geist instances in `assets/fonts/`. Android ignores the
  *  `wght` variation axis of a custom variable font (it renders the file's default
  *  instance), so each weight is its own font file and family name. */
 export type FontWeight = '300' | '400' | '500' | '600' | '700' | '800' | '900'
 
-/** App-wide UI font family for a given weight. Load via `useFonts` in
- *  `src/app/_layout.tsx` before first render. Monospace readouts
- *  (`fontFamily: 'monospace'`) bypass this token by inlining their value. */
-export const font = (weight: FontWeight = '500') => `Raleway-${weight}`
+/** App-wide UI font family (Geist) for a given weight. Load via `useFonts` in
+ *  `src/app/_layout.tsx` before first render. */
+export const font = (weight: FontWeight = '400') => `Geist-${weight}`
 
 export type MonoWeight = '500' | '600' | '700' | '800'
 
-/** Static JetBrains Mono family used by numeric readouts. */
-export const mono = (weight: MonoWeight = '700') => `JetBrainsMono-${weight}`
+/** Numeric readout family: Geist with its tabular (`tnum`) digits baked in as the defaults, so
+ *  live values never shift width as they tick, including in Skia where OpenType features are
+ *  unavailable. Same typeface as `font`; only the digit widths differ. */
+export const mono = (weight: MonoWeight = '700') => `GeistTabular-${weight}`
 
 export const theme = {
   palette,
-  neutral,
-  control,
+  ui,
+  radius,
   telemetry,
   map,
   status,

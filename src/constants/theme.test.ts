@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
-import { accentColors, controlColors, neutralColors, telemetryColors } from '@/constants/theme'
+import { accentColors, telemetryColors, uiColors } from '@/constants/theme'
 
 function relativeLuminance(hex: string): number {
   const channels = [1, 3, 5].map(
@@ -53,29 +53,18 @@ describe('accent palettes', () => {
   })
 
   test('light canvas is white and copy remains readable without decorative surface contrast', () => {
-    const neutral = neutralColors.light
+    const ui = uiColors.light
 
-    expect(neutral.bg).toBe('#ffffff')
-    expect(neutral.surface).toBe('#ffffff')
-    expect(contrastRatio(neutral.textMuted, neutral.bg)).toBeGreaterThanOrEqual(4.5)
-    expect(contrastRatio(accentColors.light.yellow.text, neutral.bg)).toBeGreaterThanOrEqual(4.5)
-  })
-
-  test('control foregrounds meet AA contrast on interactive surfaces', () => {
-    const failures: string[] = []
-    for (const [appearance, control] of Object.entries(controlColors)) {
-      for (const role of ['text', 'textMuted', 'icon'] as const) {
-        const ratio = contrastRatio(control[role], control.background)
-        if (ratio < 4.5) failures.push(`${appearance}.${role}: ${ratio.toFixed(2)}`)
-      }
-    }
-    expect(failures).toEqual([])
+    expect(ui.background).toBe('#ffffff')
+    expect(ui.card).toBe('#ffffff')
+    expect(contrastRatio(ui.mutedForeground, ui.background)).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(accentColors.light.yellow.text, ui.background)).toBeGreaterThanOrEqual(4.5)
   })
 
   test('light telemetry strokes remain distinct on the white canvas', () => {
     const failures: string[] = []
     for (const [name, color] of Object.entries(telemetryColors.light)) {
-      const ratio = contrastRatio(color, neutralColors.light.bg)
+      const ratio = contrastRatio(color, uiColors.light.background)
       if (ratio < 3) failures.push(`${name}: ${ratio.toFixed(2)}`)
     }
     expect(failures).toEqual([])
@@ -85,8 +74,7 @@ describe('accent palettes', () => {
     for (const appearance of ['light', 'dark'] as const) {
       const resources = androidColors(appearance)
       const families = [
-        ['neutral', neutralColors[appearance]],
-        ['control', controlColors[appearance]],
+        ['ui', uiColors[appearance]],
         ['telemetry', telemetryColors[appearance]],
       ] as const
 
@@ -107,8 +95,8 @@ describe('accent palettes', () => {
 
       // Adaptive colors used with theme.alpha() need a native resource too. A missing
       // entry crashes Android's ColorPropConverter instead of falling back to JS.
-      expect(resources.get('vescape_control_background_alpha_085')).toBe(
-        `#d9${controlColors[appearance].background.slice(1)}`,
+      expect(resources.get('vescape_ui_muted_alpha_085')).toBe(
+        `#d9${uiColors[appearance].muted.slice(1)}`,
       )
     }
   })
