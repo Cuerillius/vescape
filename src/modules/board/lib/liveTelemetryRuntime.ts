@@ -18,6 +18,10 @@ interface LiveTelemetryValues {
   balancePitch: SharedValue<number | null>
   adc1: SharedValue<number | null>
   adc2: SharedValue<number | null>
+  /** Odometer distance covered since this board connection started, metres. */
+  tripM: SharedValue<number | null>
+  /** Distance left on this charge at this session's consumption, metres; null until measurable. */
+  rangeM: SharedValue<number | null>
   lastPacketAt: SharedValue<number | null>
   avgLatencyMs: SharedValue<number | null>
   pullRateHz: SharedValue<number | null>
@@ -40,6 +44,8 @@ const EMPTY_TICK: TickScalars = {
   balancePitch: null,
   adc1: null,
   adc2: null,
+  tripM: null,
+  rangeM: null,
   lastPacketAt: null,
   avgLatencyMs: null,
   pullRateHz: null,
@@ -74,21 +80,53 @@ function createValues(): LiveTelemetryValues {
     balancePitch: makeMutable<number | null>(null),
     adc1: makeMutable<number | null>(null),
     adc2: makeMutable<number | null>(null),
+    tripM: makeMutable<number | null>(null),
+    rangeM: makeMutable<number | null>(null),
     lastPacketAt: makeMutable<number | null>(null),
     avgLatencyMs: makeMutable<number | null>(null),
     pullRateHz: makeMutable<number | null>(null),
   }
 }
 
+/** Below this much session distance the consumption rate is too noisy to project, metres. */
+const MIN_RANGE_SAMPLE_M = 1_000
+/** Below this much charge used the consumption rate is too noisy to project, percent. */
+const MIN_RANGE_USED_PERCENT = 2
+
+/**
+ * Distance left on this charge if the rest of it goes like this session so far: the metres ridden
+ * per percent of charge used, times the percent left. Null until the session has enough of both.
+ */
+export function estimateRangeM(
+  tripM: number | null,
+  startPercent: number | null,
+  percent: number | null,
+): number | null {
+  if (tripM == null || startPercent == null || percent == null) return null
+  const usedPercent = startPercent - percent
+  if (tripM < MIN_RANGE_SAMPLE_M || usedPercent < MIN_RANGE_USED_PERCENT) return null
+  return (tripM / usedPercent) * Math.max(0, percent)
+}
+
+/** Where the current connection started: odometer and charge at its first readings. */
+interface SessionStart {
+  odometerM: number | null
+  batteryPercent: number | null
+}
+
 /** Pure JS projection of a telemetry frame into the scalar bundle. No SharedValue writes. */
-function tickScalars(telemetry: TelemetryEvent): TickScalars {
+function tickScalars(telemetry: TelemetryEvent, start: SessionStart): TickScalars {
+  const odometerM = finite(telemetry.odometer)
+  const batteryPercent = finite(telemetry.batteryPercent)
+  const tripM =
+    odometerM == null || start.odometerM == null ? null : Math.max(0, odometerM - start.odometerM)
   return {
     speedKmh: absolute(telemetry.speed),
     dutyPercent: dutyPercent(telemetry.dutyCycle),
     motorCurrent: finite(telemetry.motorCurrent),
     batteryCurrent: finite(telemetry.batteryCurrent),
     batteryVoltage: finite(telemetry.batteryVoltage),
-    batteryPercent: finite(telemetry.batteryPercent),
+    batteryPercent,
     motorTemp: telemetry.tempMotor != null && telemetry.tempMotor > 0 ? telemetry.tempMotor : null,
     controllerTemp: finite(telemetry.tempMosfet),
     pitch: finite(telemetry.pitch),
@@ -96,6 +134,8 @@ function tickScalars(telemetry: TelemetryEvent): TickScalars {
     balancePitch: finite(telemetry.balancePitch),
     adc1: finite(telemetry.adc1),
     adc2: finite(telemetry.adc2),
+    tripM,
+    rangeM: estimateRangeM(tripM, start.batteryPercent, batteryPercent),
     lastPacketAt: finite(telemetry.lastPacketAt),
     avgLatencyMs: finite(telemetry.avgLatency),
     pullRateHz: finite(telemetry.pullRateHz),
@@ -123,6 +163,8 @@ export function createLiveTelemetryRuntime(): LiveTelemetryRuntime {
     values.balancePitch.value = next.balancePitch
     values.adc1.value = next.adc1
     values.adc2.value = next.adc2
+    values.tripM.value = next.tripM
+    values.rangeM.value = next.rangeM
     values.lastPacketAt.value = next.lastPacketAt
     values.avgLatencyMs.value = next.avgLatencyMs
     values.pullRateHz.value = next.pullRateHz
@@ -133,29 +175,46 @@ export function createLiveTelemetryRuntime(): LiveTelemetryRuntime {
   }
 
   let connectionSeq = 0
+  // The session counts from the first odometer and charge readings of the current connection.
+  const start: SessionStart = { odometerM: null, batteryPercent: null }
+  function resetStart(): void {
+    start.odometerM = null
+    start.batteryPercent = null
+  }
+  function captureStart(telemetry: TelemetryEvent | null): void {
+    start.odometerM ??= finite(telemetry?.odometer)
+    start.batteryPercent ??= finite(telemetry?.batteryPercent)
+  }
 
   return {
     values,
 
     syncConnectionSeq(nextConnectionSeq) {
+      if (nextConnectionSeq !== connectionSeq) resetStart()
       connectionSeq = nextConnectionSeq
     },
 
     seedFromBoardState(state) {
+      if (state.connectionSeq !== connectionSeq) resetStart()
       connectionSeq = state.connectionSeq
       let latest: TelemetryEvent | null = null
       for (const telemetry of state.recentTelemetry) {
         if (latest === null || telemetry.lastPacketAt > latest.lastPacketAt) latest = telemetry
       }
-      pushTick(latest ? tickScalars(latest) : EMPTY_TICK)
+      // Oldest first, so the session starts at the earliest reading native still holds.
+      const byAge = [...state.recentTelemetry].sort((a, b) => a.lastPacketAt - b.lastPacketAt)
+      for (const telemetry of byAge) captureStart(telemetry)
+      pushTick(latest ? tickScalars(latest, start) : EMPTY_TICK)
     },
 
     ingestTick(tick) {
       if (tick.generation != null && tick.generation !== connectionSeq) return
-      pushTick(tickScalars(tick))
+      captureStart(tick)
+      pushTick(tickScalars(tick, start))
     },
 
     reset() {
+      resetStart()
       pushTick(EMPTY_TICK)
     },
   }

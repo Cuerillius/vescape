@@ -7,7 +7,7 @@ import { AddBoardWizard } from '@/modules/board/components/AddBoardWizard'
 import { theme } from '@/constants/theme'
 import { useAddBoardWizard } from '@/modules/board/hooks/useAddBoardWizard'
 
-const LINK_STEP_ROW_HEIGHT = 76
+const LINK_STEP_ROW_HEIGHT = 44
 
 export default function AddBoardScreen() {
   const wizard = useAddBoardWizard()
@@ -45,7 +45,7 @@ export default function AddBoardScreen() {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   container: {
     flex: 1,
@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-    gap: 10,
+    gap: 16,
   },
 })

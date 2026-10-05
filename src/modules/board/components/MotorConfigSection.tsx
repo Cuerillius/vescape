@@ -14,11 +14,12 @@ import {
  * screen showing motor config wants the same source, the same heading and the same empty state, so
  * they say it once here rather than each repeating the wiring.
  */
-export function MotorConfigSection({ rows }: { rows: MotorConfigRow[] }) {
+export function MotorConfigSection({ rows, bare }: { rows: MotorConfigRow[]; bare?: boolean }) {
   const values = useMotorConfigFields()
   const error = useMotorConfigValuesStore((state) => state.error)
   return (
     <BoardConfigSection
+      bare={bare}
       title="Motor config"
       rows={rows}
       values={values}

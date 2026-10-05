@@ -2,12 +2,11 @@ import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { computeAutoRangeFromValues } from '@/components/charts/chartMath'
-import { BoardConfigSection } from '@/modules/board/components/BoardConfigSection'
 import { FOOTPAD_CONFIG_ROWS } from '@/modules/board/constants/boardConfigRows'
 import { FootpadIndicator } from '@/modules/board/components/FootpadIndicator'
 import { liveTelemetryRuntime } from '@/modules/board/lib/liveTelemetryRuntime'
 import { ControlDetailLayout } from '@/modules/board/components/ControlDetailLayout'
-import { LiveChartStack } from '@/modules/board/components/LiveChartStack'
+import { MetricChartPanel, useLimitsSections } from '@/modules/board/components/MetricDetailScreen'
 import { toChartSeries, toLiveChart } from '@/modules/board/components/metricDetailData'
 import { telemetry } from '@/modules/board/constants/telemetry'
 import { useLiveMetric, liveSelectors } from '@/modules/board/hooks/useLiveMetric'
@@ -66,10 +65,12 @@ export default function FootpadScreen() {
     ]
   }, [adc1Data, adc2Data, adc1Threshold, adc2Threshold, windowMs])
 
+  const sections = useLimitsSections({ boardConfigRows: FOOTPAD_CONFIG_ROWS })
+
   return (
     <ControlDetailLayout
       title="Footpad"
-      gauge={
+      hero={
         // The same pad as the telemetry strip, at a size where each rail's fill is readable while
         // the rider shifts weight — the charts below answer "what happened", this answers "now".
         <View style={styles.padWrap}>
@@ -85,16 +86,14 @@ export default function FootpadScreen() {
           />
         </View>
       }
-    >
-      <LiveChartStack charts={charts} />
-      <BoardConfigSection rows={FOOTPAD_CONFIG_ROWS} />
-    </ControlDetailLayout>
+      chart={<MetricChartPanel charts={charts} />}
+      sections={sections}
+    />
   )
 }
 
 const styles = StyleSheet.create({
   padWrap: {
     alignItems: 'center',
-    paddingVertical: 20,
   },
 })

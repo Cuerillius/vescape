@@ -1,9 +1,12 @@
 import { StyleSheet, View } from 'react-native'
-import { ArrowCounterClockwiseIcon, EyeSlashIcon } from 'phosphor-react-native'
+import IconEngine from '@tabler/icons-react-native/IconEngine'
+import IconEye from '@tabler/icons-react-native/IconEye'
+import IconEyeOff from '@tabler/icons-react-native/IconEyeOff'
 import type { BoardWarning } from 'vescape-core'
 
 import { Text } from '@/components/base/Text'
-import { IconButton } from '@/components/base/IconButton'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { SEVERITY_LABEL, severityStatus } from '@/modules/board/constants/boardWarnings'
 import {
   parseWarningDetail,
@@ -12,6 +15,7 @@ import {
 } from '@/modules/board/lib/boardWarnings'
 import { fmtTimeAgo } from '@/helpers/format'
 import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 
 interface BoardWarningRowProps {
   warning: BoardWarning
@@ -22,43 +26,57 @@ interface BoardWarningRowProps {
 }
 
 /**
- * One row in the Board Warnings sheet: title, severity chip, description, first/last detected, and
+ * One row in the Board Warnings sheet: title, severity badge, description, first/last detected, and
  * payload-driven detail. Passive display only — no sounds or vibration. Data comes from the JS mirror
  * store; dismissing never touches the native warning registry, only the board's dismissed list.
+ *
+ * Styled like `VescFaultRow`: an undismissed warning is a loud card in its severity color with an
+ * icon tile; a dismissed one drops back to a neutral, dimmed card.
  */
 export function BoardWarningRow({ warning, dismissed, onSetDismissed }: BoardWarningRowProps) {
-  const s = severityStatus(warning.severity)
+  const status = severityStatus(warning.severity)
+  const loud = !dismissed
+  const title = warningTitle(warning.kind)
   const description = warningDescription(warning.kind)
   const detail = parseWarningDetail(warning.kind, warning.payloadJson)
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
+  const accent = useResolvedColor(status.color)
+  const accentBg = useResolvedColor(status.bg)
 
   return (
     <View
       style={[
         styles.card,
-        { borderColor: dismissed ? theme.neutral.border : s.border },
+        loud && { borderColor: accent, backgroundColor: accentBg },
         dismissed && styles.cardDismissed,
       ]}
     >
       <View style={styles.header}>
+        <View
+          style={[
+            styles.tile,
+            { backgroundColor: loud ? theme.alpha(accent, 0.3) : theme.ui.muted },
+          ]}
+        >
+          <IconEngine size={24} color={loud ? accent : mutedColor} />
+        </View>
         <View style={styles.headerText}>
           <Text style={styles.title} numberOfLines={2}>
-            {warningTitle(warning.kind)}
+            {title}
           </Text>
-          <View
-            style={[styles.chip, { backgroundColor: dismissed ? theme.neutral.surfaceDeep : s.bg }]}
-          >
-            <Text
-              style={[styles.chipText, { color: dismissed ? theme.neutral.textMuted : s.text }]}
-            >
-              {dismissed ? 'Dismissed' : SEVERITY_LABEL[warning.severity]}
-            </Text>
+          <View style={styles.chips}>
+            {loud ? (
+              <Badge label={SEVERITY_LABEL[warning.severity]} color={status.text} />
+            ) : (
+              <Badge label="Dismissed" variant="outline" />
+            )}
           </View>
         </View>
-        <IconButton
-          icon={dismissed ? ArrowCounterClockwiseIcon : EyeSlashIcon}
-          size="sm"
+        <Button
+          variant="ghost"
+          icon={dismissed ? IconEye : IconEyeOff}
           onPress={() => onSetDismissed(warning.kind, !dismissed)}
-          accessibilityLabel={`${dismissed ? 'Restore' : 'Dismiss'} ${warningTitle(warning.kind)}`}
+          accessibilityLabel={`${dismissed ? 'Restore' : 'Dismiss'} ${title}`}
         />
       </View>
 
@@ -84,49 +102,51 @@ export function BoardWarningRow({ warning, dismissed, onSetDismissed }: BoardWar
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: theme.ui.card,
+    borderColor: theme.ui.border,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
     padding: 14,
     gap: 10,
   },
   cardDismissed: {
-    opacity: 0.55,
+    opacity: 0.6,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
+    alignItems: 'center',
+    gap: 12,
+  },
+  tile: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerText: {
     flex: 1,
     gap: 6,
   },
   title: {
-    color: theme.neutral.textPrimary,
-    fontSize: 15,
+    color: theme.ui.foreground,
+    fontSize: 17,
     fontWeight: '800',
+    letterSpacing: -0.3,
   },
-  chip: {
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   description: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
     lineHeight: 18,
   },
   detected: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
   },
   detail: {
     gap: 4,
@@ -137,12 +157,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   detailLabel: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
     flexShrink: 1,
   },
   detailValue: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.foreground,
     fontSize: 12,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],

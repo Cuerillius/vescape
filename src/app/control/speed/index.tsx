@@ -1,15 +1,14 @@
 import { useMemo } from 'react'
 
-import { MotorConfigSection } from '@/modules/board/components/MotorConfigSection'
-import { ControlDetailLayout } from '@/modules/board/components/ControlDetailLayout'
-import { BoardConfigSection } from '@/modules/board/components/BoardConfigSection'
-import { SPEED_CONFIG_ROWS } from '@/modules/board/constants/boardConfigRows'
-import { LiveChartStack } from '@/modules/board/components/LiveChartStack'
+import { theme } from '@/constants/theme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
+import { MetricDetailScreen } from '@/modules/board/components/MetricDetailScreen'
 import {
   toChartBands,
   toChartSeries,
   toLiveChart,
 } from '@/modules/board/components/metricDetailData'
+import { SPEED_CONFIG_ROWS } from '@/modules/board/constants/boardConfigRows'
 import { SPEED_MOTOR_CONFIG_ROWS } from '@/modules/board/constants/motorConfigRows'
 import { telemetry } from '@/modules/board/constants/telemetry'
 import {
@@ -17,41 +16,55 @@ import {
   useLiveExcludedRanges,
   liveSelectors,
 } from '@/modules/board/hooks/useLiveMetric'
-import { useLiveWindowMs } from '@/modules/settings/store/settingsStore'
 import { liveTelemetryRuntime } from '@/modules/board/lib/liveTelemetryRuntime'
+import { useLiveWindowMs } from '@/modules/settings/store/settingsStore'
 
 const cfg = telemetry.speed
-const CHART_HEIGHT = 120
+const dutyCfg = telemetry.duty
+const CHART_HEIGHT = 140
 
 export default function SpeedScreen() {
+  const ui = useResolvedUiColors()
   const speed = useLiveMetric(liveSelectors.speed)
+  const duty = useLiveMetric(liveSelectors.duty)
   const windowMs = useLiveWindowMs()
   const excludedRanges = useLiveExcludedRanges('avg_speed', 'max_speed')
+
+  const speedSeries = useMemo(() => toChartSeries(speed, windowMs), [speed, windowMs])
+  const dutySeries = useMemo(() => toChartSeries(duty, windowMs), [duty, windowMs])
 
   const charts = useMemo(
     () => [
       toLiveChart({
         key: 'speed',
         metric: cfg,
-        data: toChartSeries(speed, windowMs),
+        data: speedSeries,
         range: cfg.chartRange,
         height: CHART_HEIGHT,
         bands: toChartBands(excludedRanges),
+        secondary: {
+          key: 'duty',
+          data: dutySeries,
+          range: dutyCfg.chartRange,
+          color: theme.alpha(ui.faintForeground, 0.6),
+          unit: dutyCfg.unit,
+          decimals: dutyCfg.decimals,
+        },
       }),
     ],
-    [excludedRanges, speed, windowMs],
+    [dutySeries, excludedRanges, ui.faintForeground, speedSeries],
   )
 
   return (
-    <ControlDetailLayout
-      title={cfg.label}
-      controlId={cfg.controlId}
-      unit={cfg.unit}
-      liveValue={liveTelemetryRuntime.values.speedKmh}
-    >
-      <LiveChartStack charts={charts} />
-      <BoardConfigSection rows={SPEED_CONFIG_ROWS} />
-      <MotorConfigSection rows={SPEED_MOTOR_CONFIG_ROWS} />
-    </ControlDetailLayout>
+    <MetricDetailScreen
+      metric={cfg}
+      value={liveTelemetryRuntime.values.speedKmh}
+      absolute
+      series={speedSeries}
+      charts={charts}
+      boardConfigRows={SPEED_CONFIG_ROWS}
+      motorConfigRows={SPEED_MOTOR_CONFIG_ROWS}
+      limitsSummary="Tiltback and ERPM"
+    />
   )
 }

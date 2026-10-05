@@ -108,7 +108,7 @@ export default function AddBoardScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   list: {
     padding: 16,
@@ -124,11 +124,11 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   subtitle: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 14,
   },
   empty: {
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
@@ -138,11 +138,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
     borderRadius: 10,
   },
   skipText: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 15,
     fontWeight: '600',
   },

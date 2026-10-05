@@ -1,45 +1,68 @@
 import { useMemo } from 'react'
 
 import { computeAutoRangeFromValues } from '@/components/charts/chartMath'
-import { MotorConfigSection } from '@/modules/board/components/MotorConfigSection'
-import { ControlDetailLayout } from '@/modules/board/components/ControlDetailLayout'
-import { LiveChartStack } from '@/modules/board/components/LiveChartStack'
+import { theme } from '@/constants/theme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
+import { MetricDetailScreen } from '@/modules/board/components/MetricDetailScreen'
 import { toChartSeries, toLiveChart } from '@/modules/board/components/metricDetailData'
 import { CONTROLLER_TEMP_CONFIG_ROWS } from '@/modules/board/constants/motorConfigRows'
 import { telemetry } from '@/modules/board/constants/telemetry'
 import { liveSelectors, useLiveMetric } from '@/modules/board/hooks/useLiveMetric'
-import { useLiveWindowMs } from '@/modules/settings/store/settingsStore'
+import { useControllerTempLimit } from '@/modules/board/hooks/useMetricLimits'
 import { liveTelemetryRuntime } from '@/modules/board/lib/liveTelemetryRuntime'
+import { useLiveWindowMs } from '@/modules/settings/store/settingsStore'
 
 const cfg = telemetry.controllerTemp
-const CHART_HEIGHT = 120
+const motorCfg = telemetry.motorTemp
+const CHART_HEIGHT = 140
 
 export default function ControllerTempScreen() {
+  const ui = useResolvedUiColors()
   const controllerTemp = useLiveMetric(liveSelectors.controllerTemp)
+  const motorTemp = useLiveMetric(liveSelectors.motorTemp)
   const windowMs = useLiveWindowMs()
+  const limit = useControllerTempLimit()
 
+  const controllerSeries = useMemo(
+    () => toChartSeries(controllerTemp, windowMs),
+    [controllerTemp, windowMs],
+  )
+  const motorSeries = useMemo(() => toChartSeries(motorTemp, windowMs), [motorTemp, windowMs])
+
+  // Both temperatures share one scale, so the motor riding hotter or cooler than the controller
+  // reads straight off the plot.
   const charts = useMemo(() => {
-    const data = toChartSeries(controllerTemp, windowMs)
+    const range = computeAutoRangeFromValues([...controllerSeries.vs, ...motorSeries.vs], {
+      baseline: cfg.chartRange,
+    })
     return [
       toLiveChart({
         key: 'controllerTemp',
         metric: cfg,
-        data,
-        range: computeAutoRangeFromValues(data.vs, { baseline: cfg.chartRange }),
+        data: controllerSeries,
+        range,
         height: CHART_HEIGHT,
+        secondary: {
+          key: 'motorTemp',
+          data: motorSeries,
+          range,
+          color: theme.alpha(ui.faintForeground, 0.6),
+          unit: motorCfg.unit,
+          decimals: motorCfg.decimals,
+        },
       }),
     ]
-  }, [controllerTemp, windowMs])
+  }, [controllerSeries, motorSeries, ui.faintForeground])
 
   return (
-    <ControlDetailLayout
+    <MetricDetailScreen
+      metric={cfg}
       title="Controller Temperature"
-      controlId={cfg.controlId!}
-      unit={cfg.unit}
-      liveValue={liveTelemetryRuntime.values.controllerTemp}
-    >
-      <LiveChartStack charts={charts} />
-      <MotorConfigSection rows={CONTROLLER_TEMP_CONFIG_ROWS} />
-    </ControlDetailLayout>
+      value={liveTelemetryRuntime.values.controllerTemp}
+      limit={limit}
+      series={controllerSeries}
+      charts={charts}
+      motorConfigRows={CONTROLLER_TEMP_CONFIG_ROWS}
+    />
   )
 }

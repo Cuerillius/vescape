@@ -1,13 +1,103 @@
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
-import { WarningDiamondIcon } from 'phosphor-react-native'
+import IconCircleCheck from '@tabler/icons-react-native/IconCircleCheck'
 import { readVescFaultLog, setVescFaultDismissed, type VescFaultOccurrence } from 'vescape-core'
 
-import { Placeholder } from '@/components/base/Placeholder'
 import { Text } from '@/components/base/Text'
+import { Card, CardDescription, CardTitle } from '@/components/ui/Card'
 import { VescFaultRow } from '@/modules/board/components/VescFaultRow'
 import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { useVescFaultsStore } from '@/modules/board/store/vescFaultsStore'
+
+interface VescFaultsViewProps {
+  /** VESC Fault Occurrences for this Board, newest first. */
+  faults: VescFaultOccurrence[]
+  onSetDismissed: (id: string, dismissed: boolean) => void
+  /** Raw controller terminal output; null until read. */
+  faultLog: string | null
+  faultLogError: string | null
+  readingFaultLog: boolean
+  /** A dismissal or fault-mirror failure to show above the log. */
+  error: string | null
+}
+
+/** The faults drawer's content, free of native reads so the showcase can drive it with mock data. */
+export function VescFaultsView({
+  faults,
+  onSetDismissed,
+  faultLog,
+  faultLogError,
+  readingFaultLog,
+  error,
+}: VescFaultsViewProps) {
+  const okColor = useResolvedColor(theme.status.success.color)
+  const orange = useResolvedColor(theme.status.warning.color)
+  const open = faults.filter((fault) => !fault.dismissed)
+  const live = open.filter((fault) => fault.clearedAtMs == null).length
+  return (
+    <View style={styles.list}>
+      {open.length > 0 ? (
+        <View
+          style={[
+            styles.banner,
+            { borderColor: orange, backgroundColor: theme.alpha(orange, 0.3) },
+          ]}
+        >
+          <Text style={[styles.bannerCount, { color: theme.status.warning.text }]}>
+            {open.length}
+          </Text>
+          <View style={styles.bannerText}>
+            <Text style={styles.bannerTitle}>
+              {open.length === 1 ? 'Fault needs attention' : 'Faults need attention'}
+            </Text>
+            <Text style={styles.bannerHint}>
+              {live > 0
+                ? `${live} still active. Dismiss one once you have dealt with it.`
+                : 'All cleared by the controller. Dismiss them once you have looked.'}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {faults.length === 0 ? (
+        <Card style={styles.empty}>
+          <IconCircleCheck size={22} color={okColor} />
+          <View style={styles.emptyText}>
+            <CardTitle>No faults</CardTitle>
+            <CardDescription>No live faults recorded by Vescape.</CardDescription>
+          </View>
+        </Card>
+      ) : (
+        <View style={styles.faults}>
+          {faults.map((fault) => (
+            <VescFaultRow key={fault.id} fault={fault} onSetDismissed={onSetDismissed} />
+          ))}
+        </View>
+      )}
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Card style={styles.log}>
+        <View style={styles.logHeader}>
+          <View style={styles.logCopy}>
+            <CardTitle>Controller fault log</CardTitle>
+            <CardDescription>
+              Read when opened. Board must be connected and stopped.
+            </CardDescription>
+          </View>
+          {readingFaultLog ? <ActivityIndicator color={orange} /> : null}
+        </View>
+        {faultLogError ? <Text style={styles.error}>{faultLogError}</Text> : null}
+        {faultLog != null ? (
+          <View style={styles.logOutput}>
+            <Text style={styles.logText}>{faultLog.trim() || '(no output)'}</Text>
+          </View>
+        ) : null}
+      </Card>
+    </View>
+  )
+}
 
 interface VescFaultsSheetProps {
   boardId: string
@@ -58,101 +148,95 @@ export function VescFaultsSheet({ boardId, faults, visible }: VescFaultsSheetPro
   }, [boardId, visible])
 
   return (
-    <View style={styles.list}>
-      {faults.length === 0 ? (
-        <View style={styles.empty}>
-          <Placeholder
-            icon={WarningDiamondIcon}
-            title="No faults"
-            description="No live faults recorded by Vescape."
-          />
-        </View>
-      ) : (
-        <View style={styles.faults}>
-          {faults.map((fault) => (
-            <VescFaultRow
-              key={fault.id}
-              fault={fault}
-              onSetDismissed={(id, value) => {
-                setDismissError(null)
-                void setVescFaultDismissed(id, value).catch(() => {
-                  setDismissError('Fault dismissal could not be saved.')
-                })
-              }}
-            />
-          ))}
-        </View>
-      )}
-      <View style={styles.consoleSection}>
-        {dismissError || readError ? (
-          <Text style={styles.consoleError}>{dismissError ?? readError}</Text>
-        ) : null}
-        <View style={styles.consoleHeader}>
-          <View style={styles.consoleCopy}>
-            <Text style={styles.consoleTitle}>Controller fault log</Text>
-            <Text style={styles.consoleHint}>
-              Read when opened. Board must be connected and stopped.
-            </Text>
-          </View>
-          {readingFaultLog && <ActivityIndicator color={theme.status.caution.color} />}
-        </View>
-        {faultLogError && <Text style={styles.consoleError}>{faultLogError}</Text>}
-        {faultLog != null && (
-          <View style={styles.consoleOutput}>
-            <Text style={styles.consoleText}>{faultLog.trim() || '(no output)'}</Text>
-          </View>
-        )}
-      </View>
-    </View>
+    <VescFaultsView
+      faults={faults}
+      onSetDismissed={(id, value) => {
+        setDismissError(null)
+        void setVescFaultDismissed(id, value).catch(() => {
+          setDismissError('Fault dismissal could not be saved.')
+        })
+      }}
+      faultLog={faultLog}
+      faultLogError={faultLogError}
+      readingFaultLog={readingFaultLog}
+      error={dismissError ?? readError}
+    />
   )
 }
 
 const styles = StyleSheet.create({
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
+  },
+  bannerCount: {
+    minWidth: 40,
+    textAlign: 'center',
+    fontSize: 40,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  bannerText: {
+    flex: 1,
+    gap: 2,
+  },
+  bannerTitle: {
+    color: theme.ui.foreground,
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  bannerHint: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+  },
   list: {
-    gap: 16,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   faults: {
     gap: 10,
   },
   empty: {
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
   },
-  consoleSection: {
-    gap: 8,
-    paddingTop: 4,
+  emptyText: {
+    flex: 1,
+    gap: 2,
   },
-  consoleHeader: {
+  log: {
+    padding: 14,
+    gap: 10,
+  },
+  logHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  consoleCopy: {
+  logCopy: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
-  consoleTitle: {
-    color: theme.neutral.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  consoleHint: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-  },
-  consoleError: {
-    color: theme.status.error.text,
-    fontSize: 12,
-  },
-  consoleOutput: {
+  logOutput: {
     padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    backgroundColor: theme.neutral.surfaceDeep,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.ui.muted,
   },
-  consoleText: {
-    color: theme.neutral.textSecondary,
+  logText: {
+    color: theme.ui.foreground,
     fontFamily: 'monospace',
     fontSize: 11,
+  },
+  error: {
+    color: theme.status.error.text,
+    fontSize: 12,
   },
 })

@@ -33,7 +33,7 @@ export function VescFaultCaptureSection({ capture, loading }: VescFaultCaptureSe
   if (loading) {
     return (
       <View style={styles.state}>
-        <ActivityIndicator color={theme.neutral.textMuted} />
+        <ActivityIndicator color={theme.ui.mutedForeground} />
       </View>
     )
   }
@@ -115,30 +115,30 @@ function num(value: number | null, digits: number): string {
 const styles = StyleSheet.create({
   container: { gap: 10 },
   state: { paddingVertical: 8 },
-  stateText: { color: theme.neutral.textMuted, fontSize: 12 },
+  stateText: { color: theme.ui.mutedForeground, fontSize: 12 },
   stats: { flexDirection: 'row', gap: 16 },
   stat: { gap: 2 },
   statLabel: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  statValue: { color: theme.neutral.textPrimary, fontSize: 14, fontWeight: '700' },
+  statValue: { color: theme.ui.foreground, fontSize: 14, fontWeight: '700' },
   row: { flexDirection: 'row', paddingVertical: 2 },
-  headerRow: { borderBottomWidth: 1, borderBottomColor: theme.neutral.border, paddingBottom: 4 },
+  headerRow: { borderBottomWidth: 1, borderBottomColor: theme.ui.border, paddingBottom: 4 },
   cell: {
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 11,
     fontVariant: ['tabular-nums'],
     width: 62,
     textAlign: 'right',
   },
   offsetCell: { width: 64, textAlign: 'left' },
-  offsetText: { color: theme.neutral.textMuted },
+  offsetText: { color: theme.ui.mutedForeground },
   headerCell: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.4,

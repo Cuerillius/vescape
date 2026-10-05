@@ -55,7 +55,7 @@ export type TelemetryLevel = 'normal' | 'warning' | 'critical'
 
 /** Color for a telemetry level — palette-sourced, single source of truth. */
 export const TELEMETRY_LEVEL_COLOR: Record<TelemetryLevel, ThemeColor> = {
-  normal: theme.palette.slate.textSecondary,
+  normal: theme.ui.mutedForeground,
   warning: theme.status.warning.color,
   critical: theme.status.error.color,
 }

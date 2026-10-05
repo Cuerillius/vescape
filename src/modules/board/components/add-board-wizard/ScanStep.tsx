@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import {
-  ArrowRightIcon,
-  BluetoothIcon,
-  CaretDownIcon,
-  CaretRightIcon,
-  CheckCircleIcon,
-  WifiHighIcon,
-  WifiLowIcon,
-  WifiSlashIcon,
-} from 'phosphor-react-native'
+import { ActivityIndicator, Pressable, type ScrollView, StyleSheet, View } from 'react-native'
+import { router } from 'expo-router'
+import IconArrowRight from '@tabler/icons-react-native/IconArrowRight'
+import IconBluetooth from '@tabler/icons-react-native/IconBluetooth'
+import IconChevronDown from '@tabler/icons-react-native/IconChevronDown'
+import IconChevronRight from '@tabler/icons-react-native/IconChevronRight'
+import IconRefresh from '@tabler/icons-react-native/IconRefresh'
 import { useShallow } from 'zustand/react/shallow'
 
-import { Button } from '@/components/base/Button'
 import { DeviceRow } from '@/components/base/DeviceRow'
+import { Text } from '@/components/base/Text'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Card, CardDescription, CardTitle } from '@/components/ui/Card'
 import { theme } from '@/constants/theme'
+import { useResolvedColor } from '@/hooks/useTheme'
 import { BoardLinkTimeline } from '@/modules/board/components/BoardLinkTimeline'
+import {
+  WizardFooterButtons,
+  WizardStepLayout,
+} from '@/modules/board/components/add-board-wizard/WizardStepLayout'
 import type { UseAddBoardWizard } from '@/modules/board/hooks/useAddBoardWizard'
 import { useBoardLink } from '@/modules/board/hooks/useBoardLink'
 import { formatBmsSuffix, formatBoardTransport } from '@/modules/board/lib/boardTransport'
@@ -45,12 +48,49 @@ export function ScanStep({ wizard, onLinkActiveStepIndexChange, scrollRef }: Pro
 function LinkStep({ wizard, onLinkActiveStepIndexChange, scrollRef }: Props) {
   const link = useBoardLink(wizard.bleId || null, wizard.boardId)
 
+  const forward =
+    link.phase === 'picking'
+      ? {
+          label: 'Next',
+          icon: IconArrowRight,
+          disabled: link.selectedLink == null || link.isFinalizing,
+          onPress: () => {
+            if (link.selectedLink) wizard.onDeviceProbed(link.selectedLink)
+          },
+          testID: 'add-board-link-save',
+        }
+      : link.phase === 'failed'
+        ? {
+            label: 'Retry',
+            icon: IconRefresh,
+            disabled: false,
+            onPress: link.retry,
+            testID: 'add-board-link-retry',
+          }
+        : {
+            label: 'Next',
+            icon: IconArrowRight,
+            disabled: true,
+            onPress: () => {},
+            testID: 'add-board-link-next',
+          }
+
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={styles.scroll}
-      contentContainerStyle={styles.step}
-      keyboardShouldPersistTaps="handled"
+    <WizardStepLayout
+      title={wizard.bleName || wizard.bleId}
+      description="Linking your board over Bluetooth"
+      scrollRef={scrollRef}
+      footer={
+        <WizardFooterButtons
+          onBack={wizard.clearDevice}
+          onForward={forward.onPress}
+          forwardLabel={forward.label}
+          forwardIcon={forward.icon}
+          forwardDisabled={forward.disabled}
+          backTestID="add-board-link-choose-another"
+          forwardTestID={forward.testID}
+        />
+      }
     >
       <BoardLinkTimeline
         phase={link.phase}
@@ -58,50 +98,12 @@ function LinkStep({ wizard, onLinkActiveStepIndexChange, scrollRef }: Props) {
         candidates={link.candidates}
         selected={link.selected}
         onSelect={link.select}
-        deviceLabel={wizard.bleName || wizard.bleId}
         bleId={wizard.bleId}
+        fill
         testIDPrefix="add-board-link"
         onActiveStepIndexChange={onLinkActiveStepIndexChange}
-        actions={
-          link.phase === 'picking' ? (
-            <Button
-              label="Save link"
-              variant="tune"
-              icon={CheckCircleIcon}
-              disabled={link.selectedLink == null || link.isFinalizing}
-              loading={link.isFinalizing}
-              onPress={() => {
-                if (link.selectedLink) wizard.onDeviceProbed(link.selectedLink)
-              }}
-              testID="add-board-link-save"
-            />
-          ) : link.phase === 'failed' ? (
-            <>
-              <Button
-                label="Retry"
-                variant="tune"
-                icon={WifiHighIcon}
-                onPress={link.retry}
-                testID="add-board-link-retry"
-              />
-              <Button
-                label="Choose another device"
-                variant="secondary"
-                icon={BluetoothIcon}
-                onPress={wizard.clearDevice}
-                testID="add-board-link-choose-another"
-              />
-              <Button
-                label="Create offline"
-                variant="secondary"
-                onPress={wizard.continueOffline}
-                testID="add-board-link-offline"
-              />
-            </>
-          ) : null
-        }
       />
-    </ScrollView>
+    </WizardStepLayout>
   )
 }
 
@@ -117,6 +119,7 @@ function ScanSelectStep({ wizard }: { wizard: UseAddBoardWizard }) {
     })),
   )
   const [showOther, setShowOther] = useState(false)
+  const mutedColor = useResolvedColor(theme.ui.mutedForeground)
 
   useEffect(() => {
     void request()
@@ -140,191 +143,132 @@ function ScanSelectStep({ wizard }: { wizard: UseAddBoardWizard }) {
     return { vescDevices: vesc, otherDevices: other }
   }, [devices])
 
-  const SignalIcon = isScanning ? WifiHighIcon : devices.length > 0 ? WifiLowIcon : WifiSlashIcon
+  const scanStatus =
+    status === 'denied'
+      ? 'Bluetooth permission required'
+      : error
+        ? error
+        : isScanning
+          ? 'Scanning for nearby boards…'
+          : 'No boards found'
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.step}
-      keyboardShouldPersistTaps="handled"
+    <WizardStepLayout
+      title="Pair your board"
+      description="Power the board on and keep the phone close."
+      footer={
+        <WizardFooterButtons
+          onBack={() => router.back()}
+          onForward={wizard.next}
+          forwardLabel="Next"
+          forwardIcon={IconArrowRight}
+          forwardDisabled={wizard.draftLink == null}
+          backTestID="add-board-pair-back"
+          forwardTestID="add-board-pair-next"
+        />
+      }
     >
-      <View style={styles.header}>
-        <BluetoothIcon size={20} color={theme.palette.sky.color} weight="duotone" />
-        <Text style={styles.title}>Pair your board</Text>
-        <View style={styles.headerSpacer} />
-        {wizard.draftLink ? (
-          <Button
-            label="Next"
-            variant="accent"
-            size="sm"
-            icon={ArrowRightIcon}
-            iconPosition="right"
-            onPress={wizard.next}
-            testID="add-board-pair-next"
-            style={styles.headerActionButton}
-          />
-        ) : (
-          <Button
-            label="Skip"
-            variant="accent"
-            size="sm"
-            icon={ArrowRightIcon}
-            iconPosition="right"
-            onPress={wizard.continueOffline}
-            testID="add-board-skip-pairing"
-            style={styles.headerActionButton}
-          />
-        )}
-      </View>
-
       {wizard.draftLink ? (
         <>
-          <View style={styles.pairedBanner}>
-            <BluetoothIcon size={16} color={theme.palette.green.color} weight="duotone" />
-            <Text style={styles.pairedText}>
-              Linked to {wizard.bleName || wizard.bleId} ·{' '}
-              {formatBoardTransport(wizard.draftLink.transport)}
-              {formatBmsSuffix(wizard.draftLink.hasBms)}
-            </Text>
-          </View>
+          <Card style={styles.pairedCard}>
+            <Badge label="Linked" dot={theme.status.success.color} />
+            <CardTitle>{wizard.bleName || wizard.bleId}</CardTitle>
+            <CardDescription>
+              {`${formatBoardTransport(wizard.draftLink.transport)}${formatBmsSuffix(wizard.draftLink.hasBms)}`}
+            </CardDescription>
+          </Card>
           <Button
             label="Change device"
-            variant="secondary"
-            icon={BluetoothIcon}
+            variant="outline"
+            size="lg"
+            icon={IconBluetooth}
             onPress={wizard.clearDevice}
           />
         </>
       ) : (
         <>
           <View style={styles.scanHeader}>
-            {isScanning && <ActivityIndicator color={theme.palette.sky.color} size="small" />}
-            <SignalIcon
-              size={14}
-              color={isScanning ? theme.palette.sky.color : theme.neutral.textMuted}
-              weight="bold"
-            />
-            <Text style={styles.scanStatus}>
-              {status === 'denied'
-                ? 'Bluetooth permission required'
-                : error
-                  ? error
-                  : isScanning
-                    ? 'Scanning for nearby boards…'
-                    : 'No boards found'}
-            </Text>
+            {isScanning ? <ActivityIndicator color={mutedColor} size="small" /> : null}
+            <CardDescription style={styles.scanStatus}>{scanStatus}</CardDescription>
           </View>
-          {vescDevices.map((device) => (
-            <DeviceRow
-              key={device.id}
-              id={device.id}
-              name={device.name}
-              rssi={device.rssi}
-              onPress={() => wizard.selectDevice(device.id, device.name)}
-            />
-          ))}
-          {vescDevices.length === 0 && devices.length === 0 && isScanning && (
+          <View style={styles.deviceList}>
+            {vescDevices.map((device) => (
+              <DeviceRow
+                key={device.id}
+                id={device.id}
+                name={device.name}
+                rssi={device.rssi}
+                onPress={() => wizard.selectDevice(device.id, device.name)}
+              />
+            ))}
+          </View>
+          {vescDevices.length === 0 && devices.length === 0 && isScanning ? (
             <Text style={styles.emptyHint}>Boards will appear as they are found</Text>
-          )}
-          {otherDevices.length > 0 && (
+          ) : null}
+          {otherDevices.length > 0 ? (
             <>
               <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showOther }}
                 style={styles.otherDevicesToggle}
                 onPress={() => setShowOther((visible) => !visible)}
                 hitSlop={8}
               >
                 {showOther ? (
-                  <CaretDownIcon size={12} color={theme.neutral.textMuted} weight="bold" />
+                  <IconChevronDown size={16} color={mutedColor} />
                 ) : (
-                  <CaretRightIcon size={12} color={theme.neutral.textMuted} weight="bold" />
+                  <IconChevronRight size={16} color={mutedColor} />
                 )}
-                <Text style={styles.otherDevicesLabel}>Other devices ({otherDevices.length})</Text>
+                <CardDescription>{`Other devices (${otherDevices.length})`}</CardDescription>
               </Pressable>
-              {showOther &&
-                otherDevices.map((device) => (
-                  <DeviceRow
-                    key={device.id}
-                    id={device.id}
-                    name={device.name}
-                    rssi={device.rssi}
-                    onPress={() => wizard.selectDevice(device.id, device.name)}
-                  />
-                ))}
+              {showOther ? (
+                <View style={styles.deviceList}>
+                  {otherDevices.map((device) => (
+                    <DeviceRow
+                      key={device.id}
+                      id={device.id}
+                      name={device.name}
+                      rssi={device.rssi}
+                      onPress={() => wizard.selectDevice(device.id, device.name)}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </>
-          )}
+          ) : null}
         </>
       )}
-    </ScrollView>
+    </WizardStepLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  step: {
-    flexGrow: 1,
-    gap: 14,
-  },
-  header: {
+  scanHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  headerSpacer: {
-    flex: 1,
-  },
-  title: {
-    color: theme.neutral.textPrimary,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  headerActionButton: {
-    height: 28,
-    paddingHorizontal: 10,
-  },
-  scanHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
   scanStatus: {
     flex: 1,
     minWidth: 0,
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+  },
+  deviceList: {
+    gap: 8,
   },
   emptyHint: {
-    color: theme.neutral.textDim,
+    color: theme.ui.mutedForeground,
     textAlign: 'center',
     marginTop: 32,
-    fontSize: 13,
+    fontSize: 14,
   },
   otherDevicesToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
-  otherDevicesLabel: {
-    color: theme.neutral.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  pairedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: theme.palette.green.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: theme.palette.green.border,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  pairedText: {
-    color: theme.palette.green.text,
-    fontSize: 14,
-    fontWeight: '600',
+  pairedCard: {
+    gap: 6,
+    padding: 16,
   },
 })

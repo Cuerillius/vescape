@@ -1,9 +1,12 @@
-import { ArrowsDownUpIcon, CaretDownIcon, CaretUpIcon } from 'phosphor-react-native'
+import IconChevronDown from '@tabler/icons-react-native/IconChevronDown'
+import IconChevronUp from '@tabler/icons-react-native/IconChevronUp'
+import type { Icon as TablerIcon } from '@tabler/icons-react-native'
 import { Pressable, StyleSheet, View } from 'react-native'
 
 import { Text } from '@/components/base/Text'
-import { Stepper } from '@/components/forms/Stepper'
-import { ExpandingWidget } from '@/components/widgets/ExpandingWidget'
+import { Drawer } from '@/components/ui/Drawer'
+import { Stepper } from '@/components/ui/Stepper'
+import type { WidgetHeaderProps } from '@/components/widgets/widgetHeader'
 import { theme } from '@/constants/theme'
 import {
   BOARD_MOVE_STRENGTH_MAX_PERCENT,
@@ -11,25 +14,21 @@ import {
   BOARD_MOVE_STRENGTH_STEP_PERCENT,
   useBoardMoveControl,
 } from '@/modules/board/hooks/useBoardMoveControl'
+import IconArrowsUpDown from '@tabler/icons-react-native/IconArrowsUpDown'
 
-/**
- * Board Move: hold a direction to roll the board while it is disengaged. The focused panel also
- * exposes the move strength, because how much push is enough depends on the board's own remote limits.
- */
-export function BoardMoveControl() {
-  return (
-    <ExpandingWidget
-      icon={ArrowsDownUpIcon}
-      title="Move"
-      description="Hold to roll the board while you are off it."
-      accent={theme.palette.cyan.color}
-      body={BoardMoveBody}
-      surface={false}
-    />
-  )
+/** Header of the Board Move panel, shared by every entry point that opens it. */
+export const BOARD_MOVE_WIDGET: WidgetHeaderProps = {
+  icon: IconArrowsUpDown,
+  title: 'Move',
+  description: 'Hold to roll the board while you are off it.',
+  accent: theme.palette.cyan.color,
 }
 
-function BoardMoveBody() {
+/**
+ * Board Move: hold a direction to roll the board while it is disengaged. The panel also exposes the
+ * move strength, because how much push is enough depends on the board's own remote limits.
+ */
+export function BoardMoveBody() {
   const {
     canCommand,
     blockedMessage,
@@ -44,14 +43,14 @@ function BoardMoveBody() {
     <>
       <View style={styles.buttons}>
         <MoveButton
-          icon={CaretDownIcon}
+          icon={IconChevronDown}
           label="Move board backward"
           disabled={!canCommand}
           onPressIn={moveBackward}
           onPressOut={stopMove}
         />
         <MoveButton
-          icon={CaretUpIcon}
+          icon={IconChevronUp}
           label="Move board forward"
           disabled={!canCommand}
           onPressIn={moveForward}
@@ -65,6 +64,7 @@ function BoardMoveBody() {
           <Text style={styles.strengthHint}>Board still caps this with its own remote limits.</Text>
         </View>
         <Stepper
+          label="move strength"
           value={strengthPercent}
           unit="%"
           min={BOARD_MOVE_STRENGTH_MIN_PERCENT}
@@ -74,10 +74,24 @@ function BoardMoveBody() {
         />
       </View>
 
-      {!canCommand ? (
-        <Text style={styles.disabledNote}>{blockedMessage ?? 'Connect board to move it.'}</Text>
-      ) : null}
+      {blockedMessage ? <Text style={styles.disabledNote}>{blockedMessage}</Text> : null}
     </>
+  )
+}
+
+/** The Board Move controls in the shared bottom drawer; entry points only decide when it is open. */
+export function BoardMoveDrawer({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  return (
+    <Drawer
+      visible={visible}
+      title={BOARD_MOVE_WIDGET.title}
+      description={BOARD_MOVE_WIDGET.description}
+      onClose={onClose}
+    >
+      <View style={styles.drawerBody}>
+        <BoardMoveBody />
+      </View>
+    </Drawer>
   )
 }
 
@@ -88,7 +102,7 @@ function MoveButton({
   onPressIn,
   onPressOut,
 }: {
-  icon: typeof CaretUpIcon
+  icon: TablerIcon
   label: string
   disabled: boolean
   onPressIn: () => void
@@ -107,12 +121,16 @@ function MoveButton({
         pressed && !disabled && styles.buttonPressed,
       ]}
     >
-      <Icon size={26} color={theme.palette.cyan.color} weight="bold" />
+      <Icon size={26} color={theme.ui.foreground} />
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
+  drawerBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
   buttons: {
     flexDirection: 'row',
     gap: 10,
@@ -122,13 +140,13 @@ const styles = StyleSheet.create({
     height: 74,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.palette.cyan.border,
-    backgroundColor: theme.control.background,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
   },
   buttonPressed: {
-    backgroundColor: theme.palette.cyan.bg,
+    backgroundColor: theme.ui.muted,
   },
   buttonDisabled: {
     opacity: 0.35,
@@ -144,17 +162,17 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   strengthLabel: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontWeight: '700',
   },
   strengthHint: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
   },
   disabledNote: {
     marginTop: 10,
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
   },
 })

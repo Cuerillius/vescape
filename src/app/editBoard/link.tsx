@@ -1,21 +1,26 @@
 import { useCallback, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, StyleSheet, type ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
+import IconBluetooth from '@tabler/icons-react-native/IconBluetooth'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
+import IconRefresh from '@tabler/icons-react-native/IconRefresh'
 import { useShallow } from 'zustand/react/shallow'
 
-import { LinkIcon } from 'phosphor-react-native'
-
-import { BoardLinkTimeline } from '@/modules/board/components/BoardLinkTimeline'
-import { IconHero } from '@/components/settings/IconHero'
-import { Button } from '@/components/base/Button'
-import { useBoardLink } from '@/modules/board/hooks/useBoardLink'
-import { routes } from '@/navigation/routes'
-import { useBoardStore } from '@/modules/board/store/boardStore'
+import { Button } from '@/components/ui/Button'
 import { theme } from '@/constants/theme'
+import { BoardLinkTimeline } from '@/modules/board/components/BoardLinkTimeline'
+import {
+  WizardFooterButtons,
+  WizardStepLayout,
+} from '@/modules/board/components/add-board-wizard/WizardStepLayout'
+import { useBoardLink } from '@/modules/board/hooks/useBoardLink'
+import { useBoardStore } from '@/modules/board/store/boardStore'
+import { routes } from '@/navigation/routes'
 
-const LINK_STEP_ROW_HEIGHT = 76
+const LINK_STEP_ROW_HEIGHT = 44
 
+/** Links an existing board, laid out like the add-board wizard's pairing step. */
 export default function BoardLinkScreen() {
   const {
     boardId,
@@ -71,87 +76,79 @@ export default function BoardLinkScreen() {
   }
 
   const deviceLabel = board?.name?.trim() || bleName || bleId || 'Board'
+  const failed = link.phase === 'failed'
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <IconHero
-        icon={LinkIcon}
-        title={deviceLabel}
-        description="Linking your board over Bluetooth"
-      />
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
-        {bleId != null ? (
-          <BoardLinkTimeline
-            phase={link.phase}
-            progress={link.progress}
-            candidates={link.candidates}
-            selected={link.selected}
-            onSelect={link.select}
-            deviceLabel={deviceLabel}
-            hideHeader
-            bleId={bleId}
-            testIDPrefix="board-link"
-            failureNote={existingLink ? 'Existing link kept — your board still works' : undefined}
-            onActiveStepIndexChange={handleActiveStepIndexChange}
-          />
-        ) : null}
-      </ScrollView>
-
-      {link.phase === 'failed' ? (
-        <View style={[styles.footer, styles.actionRow]}>
-          <Button
-            style={styles.actionButton}
-            label="Scan new device"
-            variant="secondary"
-            onPress={scanNewDevice}
-            testID="board-link-choose-another"
-          />
-          <Button
-            style={styles.actionButton}
-            label="Retry"
-            variant="tune"
-            onPress={link.retry}
-            testID="board-link-retry"
-          />
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <SafeAreaView style={styles.flex} edges={['bottom']}>
+        <View style={styles.content}>
+          <WizardStepLayout
+            title={deviceLabel}
+            description="Linking your board over Bluetooth"
+            scrollRef={scrollRef}
+            headerRight={
+              failed ? (
+                <Button
+                  label="Scan new device"
+                  variant="outline"
+                  icon={IconBluetooth}
+                  onPress={scanNewDevice}
+                  testID="board-link-choose-another"
+                />
+              ) : undefined
+            }
+            footer={
+              <WizardFooterButtons
+                onBack={() => router.back()}
+                onForward={failed ? link.retry : handleSave}
+                forwardLabel={failed ? 'Retry' : 'Save link'}
+                forwardIcon={failed ? IconRefresh : IconCheck}
+                forwardDisabled={
+                  !failed &&
+                  (link.phase !== 'picking' ||
+                    link.selectedLink == null ||
+                    link.isFinalizing ||
+                    saving)
+                }
+                backTestID="board-link-back"
+                forwardTestID={failed ? 'board-link-retry' : 'board-link-save'}
+              />
+            }
+          >
+            {bleId != null ? (
+              <BoardLinkTimeline
+                phase={link.phase}
+                progress={link.progress}
+                candidates={link.candidates}
+                selected={link.selected}
+                onSelect={link.select}
+                bleId={bleId}
+                fill
+                testIDPrefix="board-link"
+                failureNote={
+                  existingLink ? 'Existing link kept — your board still works' : undefined
+                }
+                onActiveStepIndexChange={handleActiveStepIndexChange}
+              />
+            ) : null}
+          </WizardStepLayout>
         </View>
-      ) : (
-        <View style={styles.footer}>
-          <Button
-            label="Save link"
-            variant="tune"
-            onPress={handleSave}
-            disabled={link.phase !== 'picking' || link.selectedLink == null || link.isFinalizing}
-            loading={saving || link.isFinalizing}
-            testID="board-link-save"
-          />
-        </View>
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: theme.neutral.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 16,
-    paddingBottom: 112,
-    gap: 14,
-  },
-  footer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
     flex: 1,
+    padding: 16,
+    gap: 16,
   },
 })

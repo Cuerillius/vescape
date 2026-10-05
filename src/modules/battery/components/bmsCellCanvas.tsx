@@ -1,4 +1,4 @@
-import { Canvas, Circle, RoundedRect } from '@shopify/react-native-skia'
+import { Canvas, Circle, Rect } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 import { useDerivedValue, type DerivedValue } from 'react-native-reanimated'
 
@@ -32,10 +32,10 @@ const INDEX_WIDTH = 14
 const INDEX_FONT_SIZE = 8
 const VALUE_WIDTH = 42
 const VALUE_FONT_SIZE = 9
-const ROW_HEIGHT = 12
-const ROW_GAP = 3
-const BAR_HEIGHT = 2
-const DOT_RADIUS = 2
+const ROW_HEIGHT = 18
+const ROW_GAP = 4
+const BAR_HEIGHT = 12
+const DOT_RADIUS = 3
 
 const STAT_VALUE_FONT_SIZE = 14
 const STAT_VALUE_HEIGHT = Math.ceil(STAT_VALUE_FONT_SIZE * TEXT_LINE_RATIO)
@@ -167,19 +167,18 @@ function CellRowLayer({
         text={indexText}
         size={INDEX_FONT_SIZE}
         weight="600"
-        color={theme.palette.slate.textDim}
+        color={theme.ui.faintForeground}
         align="right"
         x={0}
         y={top}
         width={INDEX_WIDTH}
         height={ROW_HEIGHT}
       />
-      <RoundedRect
+      <Rect
         x={trackX}
         y={centerY - BAR_HEIGHT / 2}
         width={barWidth}
         height={BAR_HEIGHT}
-        r={BAR_HEIGHT / 2}
         color={cellColor}
       />
       <Circle

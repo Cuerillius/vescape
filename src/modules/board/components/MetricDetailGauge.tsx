@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { StyleSheet } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
-import { SpeakerHighIcon, StopIcon } from 'phosphor-react-native'
 
 import { Button } from '@/components/base/Button'
 import type { DualGaugeAlert } from '@/components/charts/gaugeAlert'
@@ -15,6 +14,8 @@ import {
 } from '@/modules/history/lib/metricColorScale'
 import { useResolvedAlertRules } from '@/modules/alerts/hooks/useResolvedAlertRules'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
+import IconPlayerStop from '@tabler/icons-react-native/IconPlayerStop'
+import IconVolume from '@tabler/icons-react-native/IconVolume'
 
 interface MetricDetailGaugeProps {
   metric: TelemetryMetricConfig
@@ -70,7 +71,6 @@ export function MetricDetailGauge({
       value={gaugeValue}
       min={min}
       max={max}
-      color={metric.color}
       unit={metric.unit}
       decimals={metric.decimals}
       alerts={alerts}
@@ -78,7 +78,7 @@ export function MetricDetailGauge({
       headerRight={
         <Button
           label={alertTest.running ? 'Stop' : 'Preview'}
-          icon={alertTest.running ? StopIcon : SpeakerHighIcon}
+          icon={alertTest.running ? IconPlayerStop : IconVolume}
           variant="caution"
           size="sm"
           disabled={!alertTest.canRun}

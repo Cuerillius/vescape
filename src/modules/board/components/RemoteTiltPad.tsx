@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import { Text } from '@/components/base/Text'
-import { Button } from '@/components/base/Button'
+import { Button } from '@/components/ui/Button'
 import { theme } from '@/constants/theme'
 import {
   createTiltPresentationOwner,
@@ -369,31 +369,29 @@ export function RemoteTiltPad({
         <MonoText
           text={valueText}
           size={16}
-          color={theme.palette.sky.text}
+          color={theme.ui.foreground}
           width={readoutWidth}
           height={24}
         />
         <MonoText
           text={timeText}
           size={14}
-          color={theme.neutral.textSecondary}
+          color={theme.ui.mutedForeground}
           align="right"
           width={readoutWidth}
           height={24}
         />
       </Canvas>
-      {error ? <Text accessibilityRole="alert">{error}</Text> : null}
+      {error ? (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
       {readOnly ? (
         <Text style={styles.readOnlyNote}>{readOnlyLabel ?? 'Sensor controlled'}</Text>
       ) : (
         <View style={styles.cancelRow}>
-          <Button
-            label="Cancel tilt"
-            onPress={cancel}
-            disabled={!active}
-            variant="destructive"
-            size="sm"
-          />
+          <Button label="Cancel tilt" onPress={cancel} disabled={!active} />
         </View>
       )}
     </View>
@@ -403,10 +401,10 @@ export function RemoteTiltPad({
 const styles = StyleSheet.create({
   pad: {
     height: PAD_HEIGHT,
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
-    backgroundColor: theme.neutral.surfaceDeep,
+    borderColor: theme.ui.border,
+    backgroundColor: theme.ui.card,
     overflow: 'hidden',
   },
   padDisabled: {
@@ -422,11 +420,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
     borderBottomWidth: 1,
-    borderBottomColor: theme.alpha(theme.palette.slate.light, 0.3),
+    borderBottomColor: theme.ui.border,
     borderStyle: 'dashed',
   },
   lockBandText: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.faintForeground,
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 1.5,
@@ -438,26 +436,26 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 1,
     marginLeft: -0.5,
-    backgroundColor: theme.alpha(theme.palette.slate.light, 0.3),
+    backgroundColor: theme.ui.border,
   },
   centerLine: {
     left: '50%',
     width: 2,
     marginLeft: -1,
-    backgroundColor: theme.palette.sky.color,
+    backgroundColor: theme.ui.foreground,
   },
   gridLineH: {
     position: 'absolute',
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: theme.alpha(theme.palette.slate.light, 0.3),
+    backgroundColor: theme.ui.border,
   },
   gridLabel: {
     position: 'absolute',
     right: 6,
     top: 2,
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     fontSize: 9,
     fontWeight: '600',
   },
@@ -467,17 +465,17 @@ const styles = StyleSheet.create({
     width: 40,
     marginLeft: -20,
     textAlign: 'center',
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     fontSize: 9,
     fontWeight: '600',
   },
   zeroTiltLabel: {
-    color: theme.palette.sky.text,
+    color: theme.ui.foreground,
     fontWeight: '800',
   },
   axisLabel: {
     position: 'absolute',
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -494,13 +492,13 @@ const styles = StyleSheet.create({
     width: THUMB_RADIUS * 2,
     height: THUMB_RADIUS * 2,
     borderRadius: 999,
-    backgroundColor: theme.palette.sky.color,
+    backgroundColor: theme.ui.foreground,
     borderWidth: 2,
-    borderColor: theme.neutral.textPrimary,
+    borderColor: theme.ui.background,
   },
   thumbRest: {
-    backgroundColor: theme.neutral.textMuted,
-    borderColor: theme.neutral.border,
+    backgroundColor: theme.ui.faintForeground,
+    borderColor: theme.ui.border,
   },
   readout: {
     height: 24,
@@ -510,10 +508,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  error: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: theme.status.error.text,
+    fontSize: 12,
+  },
   readOnlyNote: {
     marginTop: 8,
     textAlign: 'center',
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
   },
 })

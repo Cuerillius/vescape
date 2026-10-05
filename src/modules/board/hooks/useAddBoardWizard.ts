@@ -40,8 +40,8 @@ export function draftAlertPresetSelection(setup: DraftAlertSetupBag): AlertPrese
   ) as AlertPresetSelection
 }
 
-/** Canonical step order. `presets` is the per-board Alert Preset setup step. */
-export const WIZARD_STEPS = ['scan', 'name', 'battery', 'presets', 'confirm'] as const
+/** Canonical step order. Alert Preset setup is optional and lives on `confirm`. */
+export const WIZARD_STEPS = ['scan', 'setup', 'confirm'] as const
 export type WizardStepId = (typeof WIZARD_STEPS)[number]
 
 /** Sub-phase of the Pair step: choosing a peripheral, or probing the chosen one. */
@@ -58,7 +58,6 @@ interface AddBoardWizardState {
   bleName: string
   draftLink: BoardLink | null
   name: string
-  description: string
   batteryMode: BatteryMode
   cellPresetId: string
   seriesCount: number
@@ -82,9 +81,7 @@ interface AddBoardWizardActions {
   selectDevice: (id: string, deviceName: string) => void
   clearDevice: () => void
   onDeviceProbed: (link: BoardLink) => void
-  continueOffline: () => void
   setName: (v: string) => void
-  setDescription: (v: string) => void
   setBatteryMode: (v: BatteryMode) => void
   setCellPresetId: (v: string) => void
   setSeriesCount: (v: number) => void
@@ -103,7 +100,7 @@ export function useAddBoardWizard(): UseAddBoardWizard {
     useShallow((s) => ({ addBoard: s.addBoard, setActiveBoard: s.setActiveBoard })),
   )
 
-  // Alert setup is per-board now (#254), so every new board gets its own guided preset step.
+  // Alert setup is per-board (#254) but optional: new boards start from the default presets.
   const steps = WIZARD_STEPS
 
   const [step, setStep] = useState(0)
@@ -113,7 +110,6 @@ export function useAddBoardWizard(): UseAddBoardWizard {
   const [bleName, setBleName] = useState('')
   const [draftLink, setDraftLink] = useState<BoardLink | null>(null)
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
   const [batteryMode, setBatteryMode] = useState<BatteryMode>(DEFAULT_BATTERY_CONFIG.mode)
   const [cellPresetId, setCellPresetId] = useState(DEFAULT_BATTERY_CONFIG.cellPresetId)
   const [seriesCount, setSeriesCount] = useState(DEFAULT_BATTERY_CONFIG.seriesCount)
@@ -137,7 +133,8 @@ export function useAddBoardWizard(): UseAddBoardWizard {
   const derivedBattery = deriveBatteryConfig(previewConfig)
   const batteryWarning = derivedBattery.warning
   const hasBatteryConfig = batteryWarning == null
-  const canSave = Boolean(name.trim()) && batteryWarning == null
+  // A Board exists only once it has been paired: an unlinked Board can never connect.
+  const canSave = Boolean(name.trim()) && batteryWarning == null && draftLink != null
   const batterySummary = getBatterySummary(
     false,
     derivedBattery,
@@ -174,12 +171,6 @@ export function useAddBoardWizard(): UseAddBoardWizard {
     next()
   }
 
-  // Explicit offline path: create the Board with no Board Link.
-  const continueOffline = () => {
-    clearDevice()
-    next()
-  }
-
   const save = async () => {
     if (!canSave) return
     const batteryConfig = buildBatteryConfig(
@@ -193,7 +184,6 @@ export function useAddBoardWizard(): UseAddBoardWizard {
     const board = await addBoard({
       id: boardId,
       name: name.trim(),
-      description: description.trim() || undefined,
       link: draftLink,
       batteryConfig,
       // Native saves the Board and its generated preset rules together.
@@ -222,7 +212,6 @@ export function useAddBoardWizard(): UseAddBoardWizard {
     bleName,
     draftLink,
     name,
-    description,
     batteryMode,
     cellPresetId,
     seriesCount,
@@ -241,9 +230,7 @@ export function useAddBoardWizard(): UseAddBoardWizard {
     selectDevice,
     clearDevice,
     onDeviceProbed,
-    continueOffline,
     setName,
-    setDescription,
     setBatteryMode,
     setCellPresetId,
     setSeriesCount,

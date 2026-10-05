@@ -6,6 +6,7 @@ import { useBoardStore } from '@/modules/board/store/boardStore'
 import { useBleStore } from '@/modules/board/store/bleStore'
 import { routes } from '@/navigation/routes'
 import { boardNeedsLink } from '@/modules/board/lib/boardTransport'
+import { recordingStateFrom } from '@/modules/board/lib/boardConnection'
 import { switchBoard } from '@/modules/board/lib/boardSwitch'
 
 function isBoardBusy(status: string): boolean {
@@ -37,6 +38,9 @@ export function useBoardConnection() {
     stopScan,
     connect,
     disconnect,
+    telemetryRecordingEnabled,
+    telemetryRecordingPaused,
+    startTelemetryRecording,
     stopTelemetryRecording,
   } = useBleStore(
     useShallow((s) => ({
@@ -45,9 +49,13 @@ export function useBoardConnection() {
       stopScan: s.stopScan,
       connect: s.connect,
       disconnect: s.disconnect,
+      telemetryRecordingEnabled: s.telemetryRecordingEnabled,
+      telemetryRecordingPaused: s.telemetryRecordingPaused,
+      startTelemetryRecording: s.startTelemetryRecording,
       stopTelemetryRecording: s.stopTelemetryRecording,
     })),
   )
+  const recordingState = recordingStateFrom(telemetryRecordingEnabled, telemetryRecordingPaused)
 
   const activeBoard = boards.find((b) => b.id === activeBoardId)
 
@@ -70,6 +78,22 @@ export function useBoardConnection() {
       }
     },
     [activeBoardId, disconnect, setActiveBoard, stopTelemetryRecording],
+  )
+
+  // Tapping a board in the list is the pick and the connect in one step. An unlinked Board can't
+  // start a Board Session; route to the link/probe flow instead.
+  const handleConnectBoard = useCallback(
+    async (id: string) => {
+      await handleSelectBoard(id)
+      const board = boards.find((b) => b.id === id)
+      if (!board) return
+      if (boardNeedsLink(board)) {
+        router.push({ pathname: routes.editBoardLink, params: { boardId: board.id } })
+        return
+      }
+      void connect(id)
+    },
+    [boards, connect, handleSelectBoard],
   )
 
   const handleAddBoard = useCallback(() => {
@@ -101,9 +125,12 @@ export function useBoardConnection() {
     activeBoardId,
     nativeStateReady,
     bleStatus,
-    handleSelectBoard,
+    recordingState,
+    handleConnectBoard,
     handleAddBoard,
     handleCancel,
     handleRetryConnect,
+    handleEndRide: stopTelemetryRecording,
+    handleStartRecording: startTelemetryRecording,
   }
 }

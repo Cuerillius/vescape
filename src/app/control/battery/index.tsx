@@ -1,40 +1,29 @@
-import { useLayoutEffect, useEffect, useMemo, useCallback } from 'react'
-import { useNavigation, useRouter, useFocusEffect } from 'expo-router'
-import { BracketsCurlyIcon } from 'phosphor-react-native'
+import { useEffect, useMemo } from 'react'
 import { useSharedValue } from 'react-native-reanimated'
 
-import { BmsCellVoltages } from '@/modules/battery/components/BmsCellVoltages'
-import { MotorConfigSection } from '@/modules/board/components/MotorConfigSection'
-import { ControlDetailLayout } from '@/modules/board/components/ControlDetailLayout'
-import { BoardConfigSection } from '@/modules/board/components/BoardConfigSection'
+import { MetricDetailScreen } from '@/modules/board/components/MetricDetailScreen'
 import { BATTERY_CONFIG_ROWS } from '@/modules/board/constants/boardConfigRows'
-import { LiveChartStack } from '@/modules/board/components/LiveChartStack'
 import { toChartSeries, toLiveChart } from '@/modules/board/components/metricDetailData'
-import { IconButton } from '@/components/base/IconButton'
 import { computeAutoRangeFromValues } from '@/components/charts/chartMath'
 import { BATTERY_MOTOR_CONFIG_ROWS } from '@/modules/board/constants/motorConfigRows'
 import { telemetry } from '@/modules/board/constants/telemetry'
 import { theme } from '@/constants/theme'
-import { useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedUiColors } from '@/hooks/useTheme'
 import { useLiveMetric, liveSelectors } from '@/modules/board/hooks/useLiveMetric'
 import { deriveBatteryConfig } from '@/modules/battery/lib'
 import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 import { useBoardStore } from '@/modules/board/store/boardStore'
-import { acquireBmsSeriesStream, releaseBmsSeriesStream } from '@/modules/board/store/bleStore'
-import { routes } from '@/navigation/routes'
 import { useLiveWindowMs } from '@/modules/settings/store/settingsStore'
 
 const battVoltageCfg = telemetry.battVoltage
 const battCurrentCfg = telemetry.battCurrent
-const battPercentCfg = { ...battVoltageCfg, unit: '%', decimals: 0 }
+const battPercentCfg = { ...battVoltageCfg, label: 'Battery', unit: '%', decimals: 0 }
 
 const PERCENT_RANGE = { min: 0, max: 100 }
 
 export default function BatteryScreen() {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   useRenderRateWarning('BatteryScreen')
-  const navigation = useNavigation()
-  const router = useRouter()
   const batteryPercent = useLiveMetric(liveSelectors.batteryPercent)
   const batteryVoltage = useLiveMetric(liveSelectors.batteryVoltage)
   const batteryCurrent = useLiveMetric(liveSelectors.batteryCurrent)
@@ -42,25 +31,6 @@ export default function BatteryScreen() {
 
   // One cursor shared by every chart on this screen — scrubbing any chart moves all of them.
   const scrubTimeMs = useSharedValue<number | null>(null)
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <IconButton
-          icon={BracketsCurlyIcon}
-          onPress={() => router.push(routes.controlBatteryRaw)}
-          accessibilityLabel="Raw BMS data"
-        />
-      ),
-    })
-  }, [navigation, router])
-
-  useFocusEffect(
-    useCallback(() => {
-      acquireBmsSeriesStream()
-      return releaseBmsSeriesStream
-    }, []),
-  )
 
   const percentSeries = useMemo(
     () => toChartSeries(batteryPercent, windowMs),
@@ -97,7 +67,7 @@ export default function BatteryScreen() {
   }, [battery, voltageSeries])
 
   // Pack percent with voltage riding on the right axis, then pack current — one stack, so
-  // scrubbing either also moves the cell card above them.
+  // scrubbing either moves the other.
   const charts = useMemo(
     () => [
       toLiveChart({
@@ -109,7 +79,7 @@ export default function BatteryScreen() {
           key: 'batteryVoltage',
           data: voltageSeries,
           range: voltageRange,
-          color: theme.alpha(neutral.textDim, 0.6),
+          color: theme.alpha(ui.faintForeground, 0.6),
           unit: battVoltageCfg.unit,
           decimals: battVoltageCfg.decimals,
         },
@@ -123,7 +93,7 @@ export default function BatteryScreen() {
         }),
       }),
     ],
-    [currentSeries, neutral.textDim, percentSeries, voltageRange, voltageSeries],
+    [currentSeries, ui.faintForeground, percentSeries, voltageRange, voltageSeries],
   )
 
   // Gauge reads the latest of the calm ~1Hz decimated series — the same SoC source/cadence the
@@ -135,18 +105,25 @@ export default function BatteryScreen() {
     percentValue.value = latestPercent
   }, [latestPercent, percentValue])
 
+  // Peak means little for a charge level; what a rider reads off a pack is how much of it the
+  // window used.
+  const chartSummary = useMemo(() => {
+    if (percentSeries.vs.length === 0) return undefined
+    const used = percentSeries.vs[0] - percentSeries.vs[percentSeries.vs.length - 1]
+    return `Used ${Math.round(Math.max(0, used))}%`
+  }, [percentSeries])
+
   return (
-    <ControlDetailLayout
-      title="Battery"
-      controlId={battVoltageCfg.controlId}
-      unit={battVoltageCfg.unit}
-      liveValue={percentValue}
-    >
-      {/* Cell groups sit above the charts so a scrubbing thumb doesn't cover them. */}
-      <BmsCellVoltages scrubTimeMs={scrubTimeMs} windowMs={windowMs} />
-      <LiveChartStack charts={charts} scrubTimeMs={scrubTimeMs} />
-      <BoardConfigSection rows={BATTERY_CONFIG_ROWS} />
-      <MotorConfigSection rows={BATTERY_MOTOR_CONFIG_ROWS} />
-    </ControlDetailLayout>
+    <MetricDetailScreen
+      metric={battPercentCfg}
+      value={percentValue}
+      series={percentSeries}
+      chartSummary={chartSummary}
+      charts={charts}
+      scrubTimeMs={scrubTimeMs}
+      boardConfigRows={BATTERY_CONFIG_ROWS}
+      motorConfigRows={BATTERY_MOTOR_CONFIG_ROWS}
+      limitsSummary="Voltage pushback and cutoff"
+    />
   )
 }

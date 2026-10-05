@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react'
 import type { TelemetryEvent } from 'vescape-core'
 
 import { acquireFocusedSeries, releaseFocusedSeries } from '@/modules/board/store/bleStore'
-import { useLiveSeriesStore } from '@/modules/board/store/liveSeriesStore'
 import { useFocusedSeriesStore } from '@/modules/board/store/focusedSeriesStore'
 import { type ExcludedRange, toExcludedRanges } from '@/components/charts/chartMath'
 import { finite, absolute } from '@/helpers/finite'
@@ -60,16 +59,6 @@ function flatToPoints(flat: number[]): LiveMetricPoint[] {
     points.push({ ts: flat[i], value: flat[i + 1] })
   }
   return points
-}
-
-/**
- * Center-screen sparkline series: decimated natively (min/max per bucket) and pushed ~1Hz
- * on `onLiveSeries`. `metricKey` matches the native `LIVE_SERIES_METRICS` set. No raw samples
- * cross the bridge and no per-render projection runs.
- */
-export function useLiveSeries(metricKey: string): LiveMetricPoint[] {
-  const flat = useLiveSeriesStore((s) => s.metrics[metricKey] ?? EMPTY_FLAT)
-  return useMemo(() => flatToPoints(flat), [flat])
 }
 
 /**

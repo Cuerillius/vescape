@@ -1,54 +1,64 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import { ArrowLeftIcon, ArrowRightIcon, type Icon } from 'phosphor-react-native'
+import IconArrowLeft from '@tabler/icons-react-native/IconArrowLeft'
+import IconArrowRight from '@tabler/icons-react-native/IconArrowRight'
 
-import { Button } from '@/components/base/Button'
-import { theme, type ThemeColor } from '@/constants/theme'
+import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
+import { theme } from '@/constants/theme'
 
 interface WizardStepLayoutProps {
   title: string
   description?: ReactNode
-  icon: Icon
-  color: ThemeColor
   headerRight?: ReactNode
   footer?: ReactNode
+  scrollRef?: RefObject<ScrollView | null>
   children: ReactNode
 }
 
 export function WizardStepLayout({
   title,
   description,
-  icon: IconComponent,
-  color,
   headerRight,
   footer,
+  scrollRef,
   children,
 }: WizardStepLayoutProps) {
   return (
     <View style={styles.fill}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.topContent}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerTitle}>
-              <IconComponent size={20} color={color} weight="duotone" />
-              <Text style={styles.title} numberOfLines={2}>
-                {title}
-              </Text>
-            </View>
-            {headerRight ? <View style={styles.headerRight}>{headerRight}</View> : null}
-          </View>
-          {description ? <Text style={styles.description}>{description}</Text> : null}
-        </View>
-        <View style={styles.mainContent}>
-          <View style={styles.contentStack}>{children}</View>
-        </View>
+        <StepHeader title={title} description={description} right={headerRight} />
+        <View style={styles.contentStack}>{children}</View>
       </ScrollView>
       {footer ? <View style={styles.footer}>{footer}</View> : null}
+    </View>
+  )
+}
+
+/** Step title with an optional muted sentence under it and an action on the right. */
+export function StepHeader({
+  title,
+  description,
+  right,
+}: {
+  title: string
+  description?: ReactNode
+  right?: ReactNode
+}) {
+  return (
+    <View style={styles.topContent}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        {right ? <View style={styles.headerRight}>{right}</View> : null}
+      </View>
+      {description ? <Text style={styles.description}>{description}</Text> : null}
     </View>
   )
 }
@@ -69,23 +79,56 @@ export function WizardNavActions({
   testIDPrefix,
 }: WizardNavActionsProps) {
   return (
+    <WizardFooterButtons
+      onBack={onBack}
+      onForward={onNext}
+      forwardLabel={nextLabel}
+      forwardIcon={IconArrowRight}
+      forwardDisabled={!canContinue}
+      backTestID={`${testIDPrefix}-back`}
+      forwardTestID={`${testIDPrefix}-next`}
+    />
+  )
+}
+
+/** Back (outline) beside the step's one primary action. */
+export function WizardFooterButtons({
+  onBack,
+  onForward,
+  forwardLabel,
+  forwardIcon,
+  forwardDisabled,
+  backTestID,
+  forwardTestID,
+}: {
+  onBack: () => void
+  onForward: () => void
+  forwardLabel: string
+  forwardIcon: Parameters<typeof Button>[0]['icon']
+  forwardDisabled?: boolean
+  backTestID: string
+  forwardTestID: string
+}) {
+  return (
     <View style={styles.actions}>
       <Button
         style={styles.action}
+        size="lg"
         label="Back"
-        variant="secondary"
-        icon={ArrowLeftIcon}
+        variant="outline"
+        icon={IconArrowLeft}
         onPress={onBack}
-        testID={`${testIDPrefix}-back`}
+        testID={backTestID}
       />
       <Button
         style={styles.action}
-        label={nextLabel}
-        icon={ArrowRightIcon}
-        iconPosition="right"
-        onPress={onNext}
-        disabled={!canContinue}
-        testID={`${testIDPrefix}-next`}
+        size="lg"
+        label={forwardLabel}
+        variant="primary"
+        icon={forwardIcon}
+        onPress={onForward}
+        disabled={forwardDisabled}
+        testID={forwardTestID}
       />
     </View>
   )
@@ -94,15 +137,14 @@ export function WizardNavActions({
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
-    gap: 14,
+    gap: 16,
   },
   scroll: {
     flex: 1,
   },
   body: {
     flexGrow: 1,
-    justifyContent: 'space-between',
-    gap: 14,
+    gap: 20,
     paddingBottom: 4,
   },
   headerRow: {
@@ -111,39 +153,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  headerTitle: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   headerRight: {
     flexShrink: 0,
   },
   topContent: {
     gap: 6,
   },
-  mainContent: {
-    flex: 1,
-    minHeight: 0,
-    justifyContent: 'center',
-  },
   contentStack: {
-    gap: 14,
-    paddingBottom: 6,
+    flexGrow: 1,
+    gap: 16,
   },
   title: {
-    flexShrink: 1,
-    color: theme.neutral.textPrimary,
-    fontSize: 20,
-    fontWeight: '800',
+    flex: 1,
+    minWidth: 0,
+    color: theme.ui.foreground,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
   description: {
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
+    color: theme.ui.mutedForeground,
+    fontSize: 14,
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',

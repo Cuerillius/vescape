@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native'
-import { SlidersHorizontalIcon } from 'phosphor-react-native'
+import IconAdjustmentsHorizontal from '@tabler/icons-react-native/IconAdjustmentsHorizontal'
 
 import { Placeholder } from '@/components/base/Placeholder'
 import { SectionHeader } from '@/components/base/SectionHeader'
@@ -131,7 +131,10 @@ export function BoardConfigSection({
   values: override,
   empty = 'No config read from this board yet. Connect it to read its setup.',
   error,
+  bare = false,
 }: {
+  /** Plain caption instead of the icon header, for sections that sit inside another row. */
+  bare?: boolean
   title?: string
   /** Any schema's rows: the section only reads `values[row.id]`, it never names a field itself. */
   rows: ConfigRow<string>[]
@@ -147,18 +150,27 @@ export function BoardConfigSection({
 
   return (
     <View style={styles.section}>
-      <SectionHeader
-        icon={SlidersHorizontalIcon}
-        color={theme.palette.sky.color}
-        title={title}
-        right={
-          values?.freshness === 'last-known' ? <Text style={styles.stale}>Last known</Text> : null
-        }
-      />
+      {bare ? (
+        <View style={styles.bareHeader}>
+          <Text style={styles.bareTitle}>{title}</Text>
+          {values?.freshness === 'last-known' ? <Text style={styles.stale}>Last known</Text> : null}
+        </View>
+      ) : (
+        <SectionHeader
+          icon={IconAdjustmentsHorizontal}
+          color={theme.palette.sky.color}
+          title={title}
+          right={
+            values?.freshness === 'last-known' ? <Text style={styles.stale}>Last known</Text> : null
+          }
+        />
+      )}
       <View style={styles.card}>
-        {values == null ? (
+        {values == null && bare ? (
+          <Text style={styles.stale}>{resolvedError ?? empty}</Text>
+        ) : values == null ? (
           <Placeholder
-            icon={SlidersHorizontalIcon}
+            icon={IconAdjustmentsHorizontal}
             description={resolvedError ?? empty}
             style={styles.empty}
           />
@@ -189,6 +201,16 @@ const styles = StyleSheet.create({
   card: {
     gap: 2,
   },
+  bareHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bareTitle: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   row: {
     paddingVertical: 7,
     gap: 2,
@@ -200,20 +222,20 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
-    color: theme.neutral.textSecondary,
+    color: theme.ui.mutedForeground,
     fontSize: 14,
   },
   value: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontWeight: '600',
   },
   note: {
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     fontSize: 12,
   },
   stale: {
-    color: theme.neutral.textDim,
+    color: theme.ui.faintForeground,
     fontSize: 12,
   },
   empty: {

@@ -1,7 +1,10 @@
 import type { BatteryConfig } from 'vescape-core'
 
-import type { deriveBatteryConfig } from '@/modules/battery/lib'
-import { BATTERY_CELL_PRESETS } from '@/modules/battery/lib'
+import {
+  BATTERY_CELL_PRESETS,
+  DEFAULT_BATTERY_CONFIG,
+  deriveBatteryConfig,
+} from '@/modules/battery/lib'
 import { fmtVoltageRange } from '@/helpers/format'
 
 export type BatteryMode = BatteryConfig['mode']
@@ -75,4 +78,19 @@ export function getBatterySummary(
     value: `${seriesCount}s${parallelCount}p, ${voltage}`,
     hint: nominalWh ?? 'Preset pack config',
   }
+}
+
+/** The one-line summary of a saved battery config, for surfaces that only read it. */
+export function summarizeBatteryConfig(config: BatteryConfig | null | undefined): BatterySummary {
+  const derived = deriveBatteryConfig(config ?? DEFAULT_BATTERY_CONFIG)
+  if (!config) return getBatterySummary(true, derived, 'preset', '', 0, 0)
+  const preset = config.mode === 'preset' ? config : null
+  return getBatterySummary(
+    false,
+    derived,
+    config.mode,
+    preset?.cellPresetId ?? '',
+    preset?.seriesCount ?? 0,
+    preset?.parallelCount ?? 0,
+  )
 }

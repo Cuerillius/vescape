@@ -33,7 +33,7 @@ export function toChartSeries(
 }
 
 function exclusionColor(reason: string): ThemeColor {
-  return reason === 'free_spin' ? theme.palette.yellow.color : theme.palette.slate.textSecondary
+  return reason === 'free_spin' ? theme.palette.yellow.color : theme.ui.mutedForeground
 }
 
 /** Excluded stretches as hairlines on the floor of the plot, clear of the line they annotate. */

@@ -2,14 +2,13 @@ import { useMemo } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams } from 'expo-router'
-import { BracketsCurlyIcon } from 'phosphor-react-native'
 
-import { IconHero } from '@/components/settings/IconHero'
 import { RawSection } from '@/components/settings/RawSection'
 import { Text } from '@/components/base/Text'
 import { theme } from '@/constants/theme'
 import { useBoardConfigValuesStore } from '@/modules/board/store/boardConfigValuesStore'
 import { useMotorConfigValuesStore } from '@/modules/board/store/motorConfigValuesStore'
+import { SettingsDescription } from '@/modules/settings/components/SettingsGroup'
 
 /**
  * Raw dump of this Board Session's decoded Refloat config. Values are session-scoped (ADR 0035), so
@@ -65,10 +64,9 @@ export default function BoardConfigScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <IconHero
-          icon={BracketsCurlyIcon}
-          description="Decoded Refloat and VESC motor config for the current Board Session, exactly as read."
-        />
+        <SettingsDescription>
+          Decoded Refloat and VESC motor config for the current Board Session, exactly as read.
+        </SettingsDescription>
         {configError ? <Text style={styles.error}>{configError}</Text> : null}
         {motorError ? <Text style={styles.error}>{motorError}</Text> : null}
 
@@ -107,14 +105,16 @@ export default function BoardConfigScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.palette.slate.bg,
+    backgroundColor: theme.ui.background,
   },
   content: {
     padding: 16,
-    gap: 8,
+    paddingBottom: 32,
+    gap: 24,
   },
   error: {
     color: theme.status.error.text,
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
   },
 })

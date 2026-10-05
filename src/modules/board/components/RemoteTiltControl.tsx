@@ -1,25 +1,20 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
-import { JoystickIcon } from 'phosphor-react-native'
+import { Drawer } from '@/components/ui/Drawer'
 
 import { RemoteTiltPad } from '@/modules/board/components/RemoteTiltPad'
-import { ExpandingWidget } from '@/components/widgets/ExpandingWidget'
+import type { WidgetHeaderProps } from '@/components/widgets/widgetHeader'
 import { theme } from '@/constants/theme'
 import { useRemoteTiltControl } from '@/modules/board/hooks/useRemoteTiltControl'
 import type { GroundClearanceRelease } from 'vescape-core'
+import IconDeviceGamepad2 from '@tabler/icons-react-native/IconDeviceGamepad2'
 
-/** Remote tilt controller row; the pad itself opens as a focused panel. */
-export function RemoteTiltControl() {
-  return (
-    <ExpandingWidget
-      icon={JoystickIcon}
-      title="Tilt"
-      description="Adjust board tilt from your phone in real time."
-      accent={theme.palette.sky.color}
-      body={RemoteTiltBody}
-      surface={false}
-    />
-  )
+/** Header of the Remote Tilt panel, shared by every entry point that opens it. */
+export const REMOTE_TILT_WIDGET: WidgetHeaderProps = {
+  icon: IconDeviceGamepad2,
+  title: 'Tilt',
+  description: 'Adjust board tilt from your phone in real time.',
+  accent: theme.palette.sky.color,
 }
 
 /**
@@ -45,7 +40,8 @@ const RELEASE_REASONS: Record<GroundClearanceRelease, string> = {
   'manual-tilt': 'Finishing your tilt before the sensor takes over.',
 }
 
-function RemoteTiltBody() {
+/** The Remote Tilt pad, as opened in a widget focus panel. */
+export function RemoteTiltBody() {
   const {
     canCommand,
     boardConnected,
@@ -78,18 +74,35 @@ function RemoteTiltBody() {
         onLock={lockRemoteTilt}
         onCancel={stopRemoteTilt}
       />
-      {!canCommand && !sensorTilt.bound ? (
-        <Text style={styles.remoteTiltDisabled}>
-          {blockedMessage ?? 'Connect board to control tilt.'}
-        </Text>
-      ) : null}
+      {blockedMessage ? <Text style={styles.remoteTiltDisabled}>{blockedMessage}</Text> : null}
     </>
   )
 }
 
+/** The Remote Tilt pad in the shared bottom drawer; entry points only decide when it is open. */
+export function RemoteTiltDrawer({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  return (
+    <Drawer
+      visible={visible}
+      title={REMOTE_TILT_WIDGET.title}
+      description={REMOTE_TILT_WIDGET.description}
+      onClose={onClose}
+    >
+      <View style={styles.drawerBody}>
+        <RemoteTiltBody />
+      </View>
+    </Drawer>
+  )
+}
+
 const styles = StyleSheet.create({
+  drawerBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
   remoteTiltDisabled: {
-    color: theme.neutral.textDim,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
   },
 })

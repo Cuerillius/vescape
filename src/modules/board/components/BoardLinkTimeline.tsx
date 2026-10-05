@@ -1,24 +1,20 @@
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Text } from '@/components/base/Text'
-import {
-  BatteryChargingIcon,
-  BluetoothIcon,
-  CpuIcon,
-  HandshakeIcon,
-  type Icon,
-  GearSixIcon,
-  LightningIcon,
-  LinkIcon,
-  MagnifyingGlassIcon,
-  PathIcon,
-  PlugsConnectedIcon,
-  WarningCircleIcon,
-} from 'phosphor-react-native'
+import type { Icon } from '@tabler/icons-react-native'
+import IconAlertCircle from '@tabler/icons-react-native/IconAlertCircle'
+import IconBatteryCharging from '@tabler/icons-react-native/IconBatteryCharging'
+import IconBluetooth from '@tabler/icons-react-native/IconBluetooth'
+import IconBolt from '@tabler/icons-react-native/IconBolt'
+import IconCpu from '@tabler/icons-react-native/IconCpu'
+import IconHeartHandshake from '@tabler/icons-react-native/IconHeartHandshake'
+import IconPlugConnected from '@tabler/icons-react-native/IconPlugConnected'
+import IconRoute from '@tabler/icons-react-native/IconRoute'
+import IconSearch from '@tabler/icons-react-native/IconSearch'
+import IconSettings from '@tabler/icons-react-native/IconSettings'
 import type { BoardCandidate, BoardProbeProgressEvent, BoardProbeStep } from 'vescape-core'
 
 import { RadioIndicator } from '@/components/controls/RadioIndicator'
-import { IconHero } from '@/components/settings/IconHero'
 import { StepTimeline, type StepState, type TimelineStep } from '@/components/base/StepTimeline'
 import type { BoardLinkPhase } from '@/modules/board/hooks/useBoardLink'
 import {
@@ -74,15 +70,15 @@ const STEP_LABEL: Record<StepKey, string> = {
 }
 
 const STEP_ICON: Record<StepKey, Icon> = {
-  connect: BluetoothIcon,
-  handshake: HandshakeIcon,
-  scan: MagnifyingGlassIcon,
-  transport: PathIcon,
-  bms: BatteryChargingIcon,
-  identity: CpuIcon,
-  session: PlugsConnectedIcon,
-  config: LightningIcon,
-  motorConfig: GearSixIcon,
+  connect: IconBluetooth,
+  handshake: IconHeartHandshake,
+  scan: IconSearch,
+  transport: IconRoute,
+  bms: IconBatteryCharging,
+  identity: IconCpu,
+  session: IconPlugConnected,
+  config: IconBolt,
+  motorConfig: IconSettings,
 }
 
 /** What each step does — shown until a concrete result replaces it. */
@@ -123,10 +119,6 @@ interface Props {
   candidates: BoardCandidate[]
   selected: BoardCandidate | null
   onSelect: (candidate: BoardCandidate) => void
-  /** Primary identity of the thing being linked (board name, or BLE name). */
-  deviceLabel: string
-  /** Hide the internal IconHero header (caller renders it elsewhere, e.g. pinned top). */
-  hideHeader?: boolean
   /** Peripheral id, surfaced as the "Connected to …" finding. */
   bleId?: string | null
   /** Terminal actions (Save / Retry / Choose another), rendered after the timeline. */
@@ -135,6 +127,8 @@ interface Props {
   failureNote?: string
   /** Active row index while probing; -1 when terminal, so parent scroll can reset. */
   onActiveStepIndexChange?: (index: number) => void
+  /** Stretch the checklist over the parent's height, sizing rows to fit without scrolling. */
+  fill?: boolean
   testIDPrefix: string
 }
 
@@ -151,12 +145,11 @@ export function BoardLinkTimeline({
   candidates,
   selected,
   onSelect,
-  deviceLabel,
-  hideHeader,
   bleId,
   actions,
   failureNote,
   onActiveStepIndexChange,
+  fill,
   testIDPrefix,
 }: Props) {
   const steps = buildSteps(phase, progress, candidates, bleId, {
@@ -171,16 +164,8 @@ export function BoardLinkTimeline({
   }, [activeIndex, onActiveStepIndexChange])
 
   return (
-    <View style={styles.container} testID={testIDPrefix}>
-      {hideHeader ? null : (
-        <IconHero
-          icon={LinkIcon}
-          title={deviceLabel}
-          description="Linking your board over Bluetooth"
-        />
-      )}
-
-      <StepTimeline steps={steps} />
+    <View style={[styles.container, fill && styles.containerFill]} testID={testIDPrefix}>
+      <StepTimeline steps={steps} fill={fill} />
 
       {phase === 'failed' && failureNote ? (
         <Text style={styles.failureNote}>{failureNote}</Text>
@@ -440,7 +425,7 @@ function TransportPicker({
 function RefloatIdentityWarning() {
   return (
     <View style={styles.warningRow}>
-      <WarningCircleIcon size={13} color={theme.status.warning.color} weight="fill" />
+      <IconAlertCircle size={13} color={theme.status.warning.color} />
       <Text style={styles.warningText}>Refloat version missing</Text>
     </View>
   )
@@ -449,7 +434,7 @@ function RefloatIdentityWarning() {
 function BmsChip() {
   return (
     <View style={styles.bmsChip}>
-      <LightningIcon size={12} color={theme.palette.green.color} weight="duotone" />
+      <IconBolt size={12} color={theme.palette.green.color} />
       <Text style={styles.bmsChipText}>BMS</Text>
     </View>
   )
@@ -459,11 +444,14 @@ const styles = StyleSheet.create({
   container: {
     gap: 12,
   },
+  containerFill: {
+    flex: 1,
+  },
   pickerCard: {
-    backgroundColor: theme.neutral.surface,
+    backgroundColor: theme.ui.card,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: theme.neutral.border,
+    borderColor: theme.ui.border,
   },
   pickerRow: {
     flexDirection: 'row',
@@ -474,19 +462,19 @@ const styles = StyleSheet.create({
   },
   pickerRowDivider: {
     borderTopWidth: 1,
-    borderTopColor: theme.neutral.border,
+    borderTopColor: theme.ui.border,
   },
   pickerText: {
     flex: 1,
     gap: 2,
   },
   pickerLabel: {
-    color: theme.neutral.textPrimary,
+    color: theme.ui.foreground,
     fontSize: 14,
     fontWeight: '700',
   },
   identityText: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -516,7 +504,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   failureNote: {
-    color: theme.neutral.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 13,
     fontWeight: '600',
   },

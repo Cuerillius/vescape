@@ -7,10 +7,9 @@ import {
   type DerivedValue,
   type SharedValue,
 } from 'react-native-reanimated'
-import { BatteryVerticalHighIcon, BatteryWarningVerticalIcon } from 'phosphor-react-native'
+import IconBatteryExclamation from '@tabler/icons-react-native/IconBatteryExclamation'
 
 import { Placeholder } from '@/components/base/Placeholder'
-import { SectionHeader } from '@/components/base/SectionHeader'
 import { Text } from '@/components/base/Text'
 
 import {
@@ -30,7 +29,6 @@ import {
 import { useCanvasSize } from '@/hooks/useCanvasSize'
 import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 import { useBleStore } from '@/modules/board/store/bleStore'
-import { telemetry } from '@/modules/board/constants/telemetry'
 import { useBoardStore } from '@/modules/board/store/boardStore'
 import { resolveAdaptiveColor, theme, type ThemeColor } from '@/constants/theme'
 import { useThemeStore } from '@/hooks/useTheme'
@@ -150,19 +148,14 @@ export function BmsCellVoltages({
   if (groupCount === 0) {
     return (
       <View style={styles.container}>
-        <SectionHeader
-          icon={BatteryVerticalHighIcon}
-          color={CELL_SECTION_COLOR}
-          title="Cell balance"
-        />
         <Placeholder
-          icon={BatteryWarningVerticalIcon}
+          icon={IconBatteryExclamation}
+          compact
           description={
             bmsLinked
               ? 'Waiting for the first cell reading from the smart BMS.'
               : 'No smart BMS detected. Re-link a board with a BMS on the CAN bus to see per-cell voltages.'
           }
-          style={styles.placeholder}
         />
       </View>
     )
@@ -206,7 +199,7 @@ function statColor(tone: 'min' | 'max' | 'neutral'): ThemeColor {
     ? theme.status.warning.text
     : tone === 'max'
       ? theme.palette.yellow.text
-      : theme.palette.slate.textPrimary
+      : theme.ui.foreground
 }
 
 /**
@@ -294,12 +287,6 @@ function BmsCellCard({ groupCount, summary, windowStats, windowLabel }: BmsCellC
 
   return (
     <View style={styles.container} onLayout={onLayout}>
-      <SectionHeader
-        icon={BatteryVerticalHighIcon}
-        color={CELL_SECTION_COLOR}
-        title="Cell balance"
-        description={`${groupCount}S pack`}
-      />
       <StatBlock labels={['Δ SPREAD', 'MIN', 'AVG', 'MAX']} values={summaryStats} width={size.w} />
       <StatBlock
         labels={[`PEAK Δ (${windowLabel})`, 'WORST GROUP']}
@@ -336,15 +323,9 @@ function StatBlock({
   )
 }
 
-/** The section is the pack's, so it wears the pack's colour. */
-const CELL_SECTION_COLOR = telemetry.battVoltage.color
-
 const styles = StyleSheet.create({
   container: {
     gap: 12,
-  },
-  placeholder: {
-    paddingVertical: 18,
   },
   statBlock: {
     gap: 2,
@@ -356,7 +337,7 @@ const styles = StyleSheet.create({
   statLabel: {
     flex: 1,
     textAlign: 'center',
-    color: theme.palette.slate.textMuted,
+    color: theme.ui.mutedForeground,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.5,

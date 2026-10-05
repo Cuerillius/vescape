@@ -120,6 +120,45 @@ describe('live telemetry runtime', () => {
     expect(runtime.values.batteryVoltage.value).toBeNull()
   })
 
+  test('trip counts odometer distance from the first reading of the current connection', () => {
+    const runtime = createLiveTelemetryRuntime()
+    runtime.seedFromBoardState(
+      boardState([
+        telemetry({ lastPacketAt: 10_000, odometer: 1_250 }),
+        telemetry({ lastPacketAt: 9_000, odometer: 1_000 }),
+      ]),
+    )
+    expect(runtime.values.tripM.value).toBe(250)
+
+    runtime.ingestTick(telemetry({ odometer: 1_600 }))
+    expect(runtime.values.tripM.value).toBe(600)
+
+    // A new connection starts a new trip.
+    runtime.syncConnectionSeq(8)
+    runtime.ingestTick(telemetry({ generation: 8, odometer: 1_700 }))
+    expect(runtime.values.tripM.value).toBe(0)
+    runtime.ingestTick(telemetry({ generation: 8, odometer: 1_750 }))
+    expect(runtime.values.tripM.value).toBe(50)
+  })
+
+  test('range projects session distance per percent onto the charge left', () => {
+    const runtime = createLiveTelemetryRuntime()
+    runtime.syncConnectionSeq(7)
+    runtime.ingestTick(telemetry({ odometer: 10_000, batteryPercent: 90 }))
+    // Too little ridden or used to project yet.
+    runtime.ingestTick(telemetry({ odometer: 10_500, batteryPercent: 88 }))
+    expect(runtime.values.rangeM.value).toBeNull()
+    runtime.ingestTick(telemetry({ odometer: 12_000, batteryPercent: 89 }))
+    expect(runtime.values.rangeM.value).toBeNull()
+
+    // 4 km for 10 % → 400 m per percent, 80 % left.
+    runtime.ingestTick(telemetry({ odometer: 14_000, batteryPercent: 80 }))
+    expect(runtime.values.rangeM.value).toBe(32_000)
+
+    runtime.reset()
+    expect(runtime.values.rangeM.value).toBeNull()
+  })
+
   test('an empty authoritative snapshot clears values from the prior session', () => {
     const runtime = createLiveTelemetryRuntime()
     runtime.seedFromBoardState(boardState([telemetry()]))

@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { interpolateColor, type DerivedValue, type SharedValue } from 'react-native-reanimated'
 import {
+  Group,
   Path,
   RadialGradient,
   Skia,
+  StrokeCap,
   Text as SkiaText,
   vec,
   type SkFont,
@@ -12,10 +14,12 @@ import {
 import { MonoText, TEXT_LINE_RATIO } from '@/components/base/MonoValue'
 import { alertBandFractions, type DualGaugeAlert } from '@/components/charts/gaugeAlert'
 import { theme, type AlphaLevel } from '@/constants/theme'
-import { useResolvedAccentColors, useResolvedNeutralColors } from '@/hooks/useTheme'
+import { useResolvedAccentColors, useResolvedUiColors } from '@/hooks/useTheme'
 import { useSkiaFont } from '@/hooks/useSkiaFont'
 import type { MetricHotRange } from '@/modules/history/lib/metricColorScale'
 import {
+  arcPath,
+  arcSegmentPath,
   clamp01,
   normalizeFraction,
   polar,
@@ -44,19 +48,6 @@ export function gaugeRampColor(
 
 // ── Gradients ────────────────────────────────────────────────────────────────
 
-interface GlowGradientProps {
-  arc: Arc
-  color: string
-  /** Stop offsets + opacities, matching the SVG RadialGradient stops. */
-  stops: number[]
-  opacities: AlphaLevel[]
-}
-
-export function GlowGradient({ arc, color, stops, opacities }: GlowGradientProps) {
-  const colors = useMemo(() => opacities.map((o) => theme.alpha(color, o)), [color, opacities])
-  return <RadialGradient c={vec(arc.cx, arc.cy)} r={arc.r} colors={colors} positions={stops} />
-}
-
 const ALERT_STOPS = [0, 0.82, 0.965, 0.99, 1]
 const ALERT_OPACITIES: AlphaLevel[] = [0, 0, 0.12, 0.12, 0]
 
@@ -65,21 +56,32 @@ const ALERT_OPACITIES: AlphaLevel[] = [0, 0, 0.12, 0.12, 0]
 const TICK_LENGHT = 2
 const TICK_WIDTH = 0.35
 
-function AlertTick({ arc, fraction }: { arc: Arc; fraction: number }) {
-  const accents = useResolvedAccentColors()
+function AlertTick({
+  arc,
+  fraction,
+  stroke,
+  tickWidth,
+  crossesArc,
+  color,
+}: {
+  arc: Arc
+  fraction: number
+  stroke: number
+  tickWidth: number
+  crossesArc: boolean
+  color: string
+}) {
   const path = useMemo(
-    () => radialTickPath(arc, fraction, TICK_LENGHT, -STROKE / 2),
-    [arc, fraction],
+    () =>
+      radialTickPath(
+        arc,
+        fraction,
+        stroke / 2 + TICK_LENGHT - 0.5,
+        crossesArc ? stroke / 2 : -stroke / 2,
+      ),
+    [arc, fraction, stroke, crossesArc],
   )
-  return (
-    <Path
-      path={path}
-      color={accents.yellow.color}
-      style="stroke"
-      strokeWidth={TICK_WIDTH}
-      strokeCap="butt"
-    />
-  )
+  return <Path path={path} color={color} style="stroke" strokeWidth={tickWidth} strokeCap="butt" />
 }
 
 // Numeric marker labels sit just inside the arc, centered on the tick.
@@ -91,22 +93,31 @@ function AlertLabel({
   fraction,
   text,
   font,
+  inset,
+  fontSize,
+  color,
 }: {
   arc: Arc
   fraction: number
   text: string
   font: SkFont
+  inset: number
+  fontSize: number
+  color: string
 }) {
-  const accents = useResolvedAccentColors()
-  const p = polar(arc, arc.r - LABEL_INSET, fraction)
+  const p = polar(arc, arc.r - inset, fraction)
   const width = textAdvanceWidth(font, text)
+  // Anchored by side, not centred: a wide label centred on a point near the arc's end would run
+  // back over the tick and the arc. cos is 1 at the right end (text ends at the point) and -1 at
+  // the left end (text starts at it).
+  const angle = arc.from + (arc.to - arc.from) * fraction
   return (
     <SkiaText
-      x={p.x - width / 2}
-      y={p.y + LABEL_FONT_SIZE / 2}
+      x={p.x - (width * (1 + Math.cos(angle))) / 2}
+      y={p.y + fontSize / 2}
       text={text}
       font={font}
-      color={accents.yellow.color}
+      color={color}
     />
   )
 }
@@ -118,10 +129,33 @@ interface AlertMarkerProps {
   max: number
   /** Null on gauges too small to carry readable numeric labels. */
   labelFont?: SkFont | null
+  /** Arc stroke the markers sit against; defaults to the thin shared gauge stroke. */
+  stroke?: number
+  tickWidth?: number
+  /** Markers sit on a thick arc: ticks cross its stroke and bands tint it, with no glow. */
+  onArc?: boolean
+  /** Distance of the numeric labels inside the arc's centre line. */
+  labelInset?: number
+  labelFontSize?: number
+  /** Marker colour; defaults to the yellow accent. */
+  color?: string
 }
 
-export function AlertMarker({ arc, alert, min = 0, max, labelFont = null }: AlertMarkerProps) {
+export function AlertMarker({
+  arc,
+  alert,
+  min = 0,
+  max,
+  labelFont = null,
+  stroke = STROKE,
+  tickWidth = TICK_WIDTH,
+  onArc = false,
+  labelInset = LABEL_INSET,
+  labelFontSize = LABEL_FONT_SIZE,
+  color,
+}: AlertMarkerProps) {
   const accents = useResolvedAccentColors()
+  const markerColor = color ?? accents.yellow.color
   const thresholdFraction = normalizeFraction(alert.threshold, min, max)
   const maxFraction =
     alert.thresholdMax == null ? null : normalizeFraction(alert.thresholdMax, min, max)
@@ -130,29 +164,91 @@ export function AlertMarker({ arc, alert, min = 0, max, labelFont = null }: Aler
   const bandPath = useMemo(() => {
     const band = alertBandFractions(alert, (value) => normalizeFraction(value, min, max))
     if (!band) return null
-    const d = rangeWedgePath(arc, band.from, band.to)
+    const d = onArc
+      ? arcSegmentPath(
+          arc,
+          band.from,
+          band.to,
+          band.to >= 1 ? stroke / 2 / arc.r / Math.abs(arc.to - arc.from) : 0,
+        )
+      : rangeWedgePath(arc, band.from, band.to, stroke)
     return d ? Skia.Path.MakeFromSVGString(d) : null
-  }, [arc, alert, min, max])
+  }, [arc, alert, min, max, stroke, onArc])
+
+  // The band is cut to the track's own rounded outline, so it never squares off the track's ends.
+  const trackOutline = useMemo(
+    () =>
+      onArc
+        ? (Skia.Path.MakeFromSVGString(arcPath(arc, 1))?.stroke({
+            width: stroke,
+            cap: StrokeCap.Round,
+          }) ?? null)
+        : null,
+    [arc, stroke, onArc],
+  )
 
   return (
     <>
-      {bandPath ? (
+      {bandPath && trackOutline ? (
+        <Group clip={trackOutline}>
+          <Path
+            path={bandPath}
+            color={theme.alpha(markerColor, 0.4)}
+            style="stroke"
+            strokeWidth={stroke}
+            strokeCap="butt"
+          />
+        </Group>
+      ) : null}
+      {bandPath && !onArc ? (
         <Path path={bandPath}>
           <RadialGradient
             c={vec(arc.cx, arc.cy)}
             r={arc.r}
-            colors={ALERT_OPACITIES.map((o) => theme.alpha(accents.yellow.color, o))}
+            colors={ALERT_OPACITIES.map((o) => theme.alpha(markerColor, o))}
             positions={ALERT_STOPS}
           />
         </Path>
       ) : null}
-      <AlertTick arc={arc} fraction={thresholdFraction} />
-      {maxFraction != null ? <AlertTick arc={arc} fraction={maxFraction} /> : null}
+      <AlertTick
+        arc={arc}
+        fraction={thresholdFraction}
+        stroke={stroke}
+        tickWidth={tickWidth}
+        crossesArc={onArc}
+        color={markerColor}
+      />
+      {maxFraction != null ? (
+        <AlertTick
+          arc={arc}
+          fraction={maxFraction}
+          stroke={stroke}
+          tickWidth={tickWidth}
+          crossesArc={onArc}
+          color={markerColor}
+        />
+      ) : null}
       {labelFont && alert.label ? (
-        <AlertLabel arc={arc} fraction={thresholdFraction} text={alert.label} font={labelFont} />
+        <AlertLabel
+          arc={arc}
+          fraction={thresholdFraction}
+          text={alert.label}
+          font={labelFont}
+          inset={labelInset}
+          fontSize={labelFontSize}
+          color={markerColor}
+        />
       ) : null}
       {labelFont && alert.labelMax && maxFraction != null ? (
-        <AlertLabel arc={arc} fraction={maxFraction} text={alert.labelMax} font={labelFont} />
+        <AlertLabel
+          arc={arc}
+          fraction={maxFraction}
+          text={alert.labelMax}
+          font={labelFont}
+          inset={labelInset}
+          fontSize={labelFontSize}
+          color={markerColor}
+        />
       ) : null}
     </>
   )
@@ -194,7 +290,7 @@ export function GaugeReadout({
   valueLineHeight,
   unitSize,
 }: GaugeReadoutProps) {
-  const neutral = useResolvedNeutralColors()
+  const ui = useResolvedUiColors()
   const unitFont = useSkiaFont('500', unitSize)
   const unitLineHeight = Math.ceil(unitSize * TEXT_LINE_RATIO)
   const top = box.y + (box.height - (valueLineHeight + UNIT_GAP + unitLineHeight)) / 2
@@ -226,7 +322,7 @@ export function GaugeReadout({
           y={unitOrigin.y}
           text={unit}
           font={unitFont}
-          color={neutral.textMuted}
+          color={ui.mutedForeground}
         />
       ) : null}
     </>

@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
+import { StyleSheet, View } from 'react-native'
 import type { BatteryConfig } from 'vescape-core'
 
-import { Select, type SelectOption } from '@/components/forms/Select'
-import { Stepper } from '@/components/forms/Stepper'
-import { Input } from '@/components/forms/Input'
+import { Text } from '@/components/base/Text'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { SelectMenu, type SelectMenuOption } from '@/components/ui/SelectMenu'
+import { Stepper } from '@/components/ui/Stepper'
 import { theme } from '@/constants/theme'
 import {
   BATTERY_CELL_PRESETS,
@@ -54,7 +55,7 @@ export function BoardBatteryForm({
     () => unique(BATTERY_CELL_PRESETS.map((preset) => preset.formFactor)),
     [],
   )
-  const formFactorOptions = useMemo<SelectOption[]>(
+  const formFactorOptions = useMemo<SelectMenuOption<string>[]>(
     () => formFactors.map((formFactor) => ({ label: formFactor, value: formFactor })),
     [formFactors],
   )
@@ -68,7 +69,7 @@ export function BoardBatteryForm({
       ),
     [selectedFormFactor],
   )
-  const brandOptions = useMemo<SelectOption[]>(
+  const brandOptions = useMemo<SelectMenuOption<string>[]>(
     () => brands.map((brand) => ({ label: brand, value: brand })),
     [brands],
   )
@@ -80,7 +81,7 @@ export function BoardBatteryForm({
       ),
     [selectedBrand, selectedFormFactor],
   )
-  const modelOptions = useMemo<SelectOption[]>(
+  const modelOptions = useMemo<SelectMenuOption<string>[]>(
     () =>
       models.map((preset) => ({
         label: `${preset.model}${preset.verified ? '' : ' (unverified)'}`,
@@ -116,98 +117,90 @@ export function BoardBatteryForm({
 
   return (
     <View style={styles.form}>
-      <View style={styles.segmented}>
-        <Pressable
-          style={[styles.segment, batteryMode === 'preset' && styles.segmentActive]}
+      <View style={styles.modeRow}>
+        <Button
+          label="Preset"
+          variant={batteryMode === 'preset' ? 'primary' : 'outline'}
           onPress={() => onChangeBatteryMode('preset')}
+          style={styles.modeButton}
           testID={testIDPrefix ? `${testIDPrefix}-preset-mode` : undefined}
-        >
-          <Text style={[styles.segmentText, batteryMode === 'preset' && styles.segmentTextActive]}>
-            Preset
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.segment, batteryMode === 'manual' && styles.segmentActive]}
+        />
+        <Button
+          label="Manual"
+          variant={batteryMode === 'manual' ? 'primary' : 'outline'}
           onPress={() => onChangeBatteryMode('manual')}
+          style={styles.modeButton}
           testID={testIDPrefix ? `${testIDPrefix}-manual-mode` : undefined}
-        >
-          <Text style={[styles.segmentText, batteryMode === 'manual' && styles.segmentTextActive]}>
-            Manual
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {batteryMode === 'preset' ? (
         <>
-          <View style={styles.selectGrid}>
-            <View style={styles.selectField}>
-              <Text style={styles.label}>Form factor</Text>
-              <Select
-                options={formFactorOptions}
-                value={selectedFormFactor}
-                onChange={(formFactor) => choosePreset({ formFactor })}
-              />
-            </View>
-            <View style={styles.selectField}>
-              <Text style={styles.label}>Brand</Text>
-              <Select
-                options={brandOptions}
-                value={selectedBrand}
-                onChange={(brand) => choosePreset({ brand })}
-              />
-            </View>
-          </View>
-          <Text style={styles.label}>Model</Text>
-          <Select
+          <SelectMenu
+            label="Form factor"
+            options={formFactorOptions}
+            value={selectedFormFactor}
+            onChange={(formFactor) => choosePreset({ formFactor })}
+          />
+          <SelectMenu
+            label="Brand"
+            options={brandOptions}
+            value={selectedBrand}
+            onChange={(brand) => choosePreset({ brand })}
+          />
+          <SelectMenu
+            label="Model"
             options={modelOptions}
             value={cellPresetId}
             onChange={(nextPresetId) => choosePreset({ cellPresetId: nextPresetId })}
           />
-          <View style={styles.stepperGrid}>
-            <View style={styles.stepperField}>
-              <Text style={styles.label}>Series</Text>
-              <Stepper
-                value={seriesCount}
-                min={1}
-                max={40}
-                onChange={onChangeSeriesCount}
-                fullWidth
-                testIDPrefix={testIDPrefix ? `${testIDPrefix}-series` : undefined}
-              />
-            </View>
-            <View style={styles.stepperField}>
-              <Text style={styles.label}>Parallel</Text>
-              <Stepper
-                value={parallelCount}
-                min={1}
-                max={20}
-                onChange={onChangeParallelCount}
-                fullWidth
-                testIDPrefix={testIDPrefix ? `${testIDPrefix}-parallel` : undefined}
-              />
-            </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Series</Text>
+            <Stepper
+              value={seriesCount}
+              min={1}
+              max={40}
+              step={1}
+              label="series count"
+              onChange={onChangeSeriesCount}
+              testIDPrefix={testIDPrefix ? `${testIDPrefix}-series` : undefined}
+            />
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Parallel</Text>
+            <Stepper
+              value={parallelCount}
+              min={1}
+              max={20}
+              step={1}
+              label="parallel count"
+              onChange={onChangeParallelCount}
+              testIDPrefix={testIDPrefix ? `${testIDPrefix}-parallel` : undefined}
+            />
           </View>
         </>
       ) : (
-        <View style={styles.selectGrid}>
-          <Input
-            style={styles.voltageInput}
-            value={manualMinVoltage}
-            onChangeText={onChangeManualMinVoltage}
-            placeholder="Min (0%)"
-            placeholderTextColor={theme.neutral.textDim}
-            keyboardType="decimal-pad"
-            testID={testIDPrefix ? `${testIDPrefix}-manual-min-input` : undefined}
-          />
-          <Input
-            style={styles.voltageInput}
-            value={manualMaxVoltage}
-            onChangeText={onChangeManualMaxVoltage}
-            placeholder="Max (100%)"
-            placeholderTextColor={theme.neutral.textDim}
-            keyboardType="decimal-pad"
-            testID={testIDPrefix ? `${testIDPrefix}-manual-max-input` : undefined}
-          />
+        <View style={styles.voltageRow}>
+          <View style={styles.voltageField}>
+            <Text style={styles.label}>Empty (0%) volts</Text>
+            <Input
+              value={manualMinVoltage}
+              onChangeText={onChangeManualMinVoltage}
+              placeholder="60"
+              keyboardType="decimal-pad"
+              testID={testIDPrefix ? `${testIDPrefix}-manual-min-input` : undefined}
+            />
+          </View>
+          <View style={styles.voltageField}>
+            <Text style={styles.label}>Full (100%) volts</Text>
+            <Input
+              value={manualMaxVoltage}
+              onChangeText={onChangeManualMaxVoltage}
+              placeholder="84"
+              keyboardType="decimal-pad"
+              testID={testIDPrefix ? `${testIDPrefix}-manual-max-input` : undefined}
+            />
+          </View>
         </View>
       )}
 
@@ -222,58 +215,32 @@ function unique(values: string[]): string[] {
 
 const styles = StyleSheet.create({
   form: {
-    gap: 10,
+    gap: 14,
   },
-  segmented: {
-    flexDirection: 'row',
-    backgroundColor: theme.neutral.surfaceDeep,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    padding: 3,
-  },
-  segment: {
-    flex: 1,
-    alignItems: 'center',
-    borderRadius: 6,
-    paddingVertical: 10,
-  },
-  segmentActive: {
-    backgroundColor: theme.palette.cyan.bg,
-  },
-  segmentText: {
-    color: theme.neutral.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  segmentTextActive: {
-    color: theme.palette.cyan.text,
-  },
-  selectGrid: {
+  modeRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  selectField: {
+  modeButton: {
     flex: 1,
-    minWidth: 0,
   },
-  stepperGrid: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  stepperField: {
+  label: {
+    color: theme.ui.mutedForeground,
+    fontSize: 13,
+  },
+  voltageRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  voltageField: {
     flex: 1,
     gap: 6,
-  },
-  label: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  voltageInput: {
-    flex: 1,
   },
   warning: {
     color: theme.status.warning.text,

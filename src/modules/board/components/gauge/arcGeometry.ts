@@ -49,22 +49,33 @@ export function arcPath(arc: Arc, fraction: number, r = arc.r) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 0 ${sweepFlag(arc)} ${end.x} ${end.y}`
 }
 
-export function wedgePath(arc: Arc, fraction: number, r = arc.r) {
-  'worklet'
-  const c = clamp01(fraction)
-  if (c <= 0) return ''
-  const start = polar(arc, r, 0)
-  const end = polar(arc, r, c)
-  return `M ${arc.cx} ${arc.cy} L ${start.x} ${start.y} A ${r} ${r} 0 0 ${sweepFlag(arc)} ${end.x} ${end.y} Z`
-}
-
-/** Wedge between two fractions — used for alert ranges. */
-export function rangeWedgePath(arc: Arc, fromFraction: number, toFraction: number) {
+/**
+ * Stroke-able run of `arc` between two sweep fractions. `endExtend` runs it past the end by that
+ * fraction, so a run that reaches the end of a round-capped track can fill the cap too.
+ */
+export function arcSegmentPath(arc: Arc, fromFraction: number, toFraction: number, endExtend = 0) {
   'worklet'
   const from = clamp01(fromFraction)
   const to = clamp01(toFraction)
   if (to <= from) return ''
-  const r = arc.r - STROKE / 2
+  const start = polar(arc, arc.r, from)
+  const end = polar(arc, arc.r, to + endExtend)
+  const largeArc = (to + endExtend - from) * Math.abs(arc.to - arc.from) > Math.PI ? 1 : 0
+  return `M ${start.x} ${start.y} A ${arc.r} ${arc.r} 0 ${largeArc} ${sweepFlag(arc)} ${end.x} ${end.y}`
+}
+
+/** Wedge between two fractions — used for alert ranges. */
+export function rangeWedgePath(
+  arc: Arc,
+  fromFraction: number,
+  toFraction: number,
+  stroke?: number,
+) {
+  'worklet'
+  const from = clamp01(fromFraction)
+  const to = clamp01(toFraction)
+  if (to <= from) return ''
+  const r = arc.r - (stroke ?? STROKE) / 2
   const start = polar(arc, r, from)
   const end = polar(arc, r, to)
   return `M ${arc.cx} ${arc.cy} L ${start.x} ${start.y} A ${r} ${r} 0 0 ${sweepFlag(arc)} ${end.x} ${end.y} Z`

@@ -1,218 +1,138 @@
-import { useUnitSystem } from '@/hooks/useUnitSystem'
-import { draftAlertPreview } from '@/modules/alerts/lib/draftAlertPreview'
 import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { Text } from '@/components/base/Text'
-import {
-  ArrowLeftIcon,
-  BatteryFullIcon,
-  BellRingingIcon,
-  BluetoothIcon,
-  CheckCircleIcon,
-  TextTIcon,
-  type Icon,
-} from 'phosphor-react-native'
+import IconCheck from '@tabler/icons-react-native/IconCheck'
 
-import { Button } from '@/components/base/Button'
-import { theme, type ThemeColor } from '@/constants/theme'
-import { ALERT_PRESET_METRICS, type AlertPresetMetric } from '@/modules/alerts/lib/alertPresets'
-import { useAlertPresetFormat } from '@/modules/alerts/hooks/useAlertPresetFormat'
-import { WizardStepLayout } from '@/modules/board/components/add-board-wizard/WizardStepLayout'
+import { Text } from '@/components/base/Text'
+import { Accordion, type AccordionItem } from '@/components/ui/Accordion'
+import { Card, CardDescription } from '@/components/ui/Card'
+import { Separator } from '@/components/ui/Separator'
+import { theme } from '@/constants/theme'
+import { speedFromKmh, speedUnit } from '@/helpers/units'
+import { useUnitSystem } from '@/hooks/useUnitSystem'
+import { ALERT_CONTROL_ICONS } from '@/modules/alerts/constants/alertControlIcons'
+import { ALERT_PRESET_METRICS } from '@/modules/alerts/lib/alertPresets'
+import { alertLevelSummary } from '@/modules/alerts/lib/alertSummary'
+import { draftAlertPreview } from '@/modules/alerts/lib/draftAlertPreview'
+import { DraftMetricAlerts } from '@/modules/board/components/add-board-wizard/DraftMetricAlerts'
+import {
+  WizardFooterButtons,
+  WizardStepLayout,
+} from '@/modules/board/components/add-board-wizard/WizardStepLayout'
 import { ALERT_METRIC_META } from '@/modules/board/components/add-board-wizard/alertMetricMeta'
 import type { UseAddBoardWizard } from '@/modules/board/hooks/useAddBoardWizard'
 import { formatBmsSuffix, formatBoardTransport } from '@/modules/board/lib/boardTransport'
 
 export function ConfirmStep({ wizard }: { wizard: UseAddBoardWizard }) {
-  const { formatSummary } = useAlertPresetFormat()
   const units = useUnitSystem()
-  const { alertSummaries, previewErrors } = useMemo(() => {
+  const { alertSetup, topSpeedKmh, hasBatteryConfig } = wizard
+
+  const { alertItems, previewErrors } = useMemo(() => {
     const errors: string[] = []
-    const summaries = ALERT_PRESET_METRICS.map((metric) => {
-      const { level, rules } = wizard.alertSetup[metric]
+    const items = ALERT_PRESET_METRICS.map((metric): AccordionItem => {
+      const { level, rules } = alertSetup[metric]
       const preview = draftAlertPreview(
         metric,
         level,
-        {
-          speedUnitSystem: units,
-          topSpeedKmh: wizard.topSpeedKmh,
-          hasBatteryConfig: wizard.hasBatteryConfig,
-        },
+        { speedUnitSystem: units, topSpeedKmh, hasBatteryConfig },
         rules,
       )
       if (preview.error) errors.push(`${ALERT_METRIC_META[metric].name}: ${preview.error}`)
-      const summary =
-        level === 'custom'
-          ? `${rules.length} custom ${rules.length === 1 ? 'alert' : 'alerts'}`
-          : formatSummary(metric, preview.rules)
-      return { metric, summary }
-    }).filter((row): row is { metric: AlertPresetMetric; summary: string } => row.summary != null)
-    return { alertSummaries: summaries, previewErrors: errors }
-  }, [wizard.alertSetup, wizard.hasBatteryConfig, wizard.topSpeedKmh, formatSummary, units])
+      return {
+        key: metric,
+        title: ALERT_METRIC_META[metric].name,
+        summary: alertLevelSummary(level, rules.filter((rule) => rule.enabled).length),
+        icon: ALERT_CONTROL_ICONS[metric],
+        testID: `add-board-alerts-${metric}`,
+        content: <DraftMetricAlerts wizard={wizard} metric={metric} />,
+      }
+    })
+    return { alertItems: items, previewErrors: errors }
+  }, [alertSetup, hasBatteryConfig, topSpeedKmh, units, wizard])
 
   return (
     <WizardStepLayout
       title="Review & save"
-      icon={CheckCircleIcon}
-      color={theme.palette.purple.color}
+      description="Everything can be changed later from the Board tab."
       footer={
-        <View style={styles.actions}>
-          <Button
-            style={styles.action}
-            label="Back"
-            variant="secondary"
-            icon={ArrowLeftIcon}
-            onPress={wizard.back}
-            testID="add-board-confirm-back"
-          />
-          <Button
-            style={styles.action}
-            label="Save"
-            icon={CheckCircleIcon}
-            iconPosition="right"
-            onPress={() => void wizard.save()}
-            disabled={!wizard.canSave || previewErrors.length > 0}
-            testID="add-board-save"
-          />
-        </View>
+        <WizardFooterButtons
+          onBack={wizard.back}
+          onForward={() => void wizard.save()}
+          forwardLabel="Save"
+          forwardIcon={IconCheck}
+          forwardDisabled={!wizard.canSave || previewErrors.length > 0}
+          backTestID="add-board-confirm-back"
+          forwardTestID="add-board-save"
+        />
       }
     >
-      <View style={styles.card}>
+      <Card>
         <ConfirmRow
-          icon={BluetoothIcon}
-          iconColor={theme.palette.sky.color}
-          label="Board Link"
+          label="Board link"
           value={
             wizard.draftLink
               ? `${wizard.bleName || wizard.bleId} · ${formatBoardTransport(wizard.draftLink.transport)}${formatBmsSuffix(wizard.draftLink.hasBms)}`
               : 'Offline (not linked)'
           }
         />
-        <View style={styles.divider} />
+        <Separator />
+        <ConfirmRow label="Name" value={wizard.name.trim() || 'Unnamed board'} />
+        <Separator />
+        <ConfirmRow label={wizard.batterySummary.title} value={wizard.batterySummary.value} />
+        <Separator />
         <ConfirmRow
-          icon={TextTIcon}
-          iconColor={theme.palette.orange.color}
-          label="Name"
-          value={wizard.name.trim() || 'Unnamed board'}
+          label="Top speed"
+          value={`${Math.round(speedFromKmh(topSpeedKmh, units))} ${speedUnit(units)}`}
         />
-        {wizard.description.trim() ? (
-          <>
-            <View style={styles.divider} />
-            <ConfirmRow
-              icon={TextTIcon}
-              iconColor={theme.palette.orange.color}
-              label="Description"
-              value={wizard.description.trim()}
-            />
-          </>
-        ) : null}
-        <View style={styles.divider} />
-        <ConfirmRow
-          icon={BatteryFullIcon}
-          iconColor={theme.palette.green.color}
-          label={wizard.batterySummary.title}
-          value={wizard.batterySummary.value}
-        />
-      </View>
+      </Card>
 
-      <Text style={styles.sectionTitle}>Alerts</Text>
-      {previewErrors.map((error) => (
-        <Text key={error} style={{ color: theme.status.error.color }}>
-          {error}
-        </Text>
-      ))}
-      <View style={styles.card}>
-        {alertSummaries.length === 0 ? (
-          <ConfirmRow
-            icon={BellRingingIcon}
-            iconColor={theme.palette.amber.color}
-            label="Alerts"
-            value={previewErrors.length ? 'Preview unavailable' : 'All off'}
-          />
-        ) : (
-          alertSummaries.map(({ metric, summary }, index) => (
-            <View key={metric}>
-              {index > 0 ? <View style={styles.divider} /> : null}
-              <ConfirmRow
-                icon={ALERT_METRIC_META[metric].icon}
-                iconColor={theme.palette.amber.color}
-                label={ALERT_METRIC_META[metric].name}
-                value={summary}
-              />
-            </View>
-          ))
-        )}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Alerts</Text>
+        <CardDescription>
+          Optional — sensible defaults are already on. Open a metric to tune it.
+        </CardDescription>
+        {previewErrors.map((error) => (
+          <Text key={error} style={styles.error}>
+            {error}
+          </Text>
+        ))}
+        <Accordion items={alertItems} defaultOpenKey="" />
       </View>
     </WizardStepLayout>
   )
 }
 
-interface ConfirmRowProps {
-  icon: Icon
-  iconColor: ThemeColor
-  label: string
-  value: string
-}
-
-function ConfirmRow({ icon: IconComponent, iconColor, label, value }: ConfirmRowProps) {
+function ConfirmRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.row}>
-      <IconComponent size={16} color={iconColor} weight="duotone" />
-      <View style={styles.rowText}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{value}</Text>
-      </View>
+      <CardDescription>{label}</CardDescription>
+      <Text style={styles.value}>{value}</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  action: {
-    flex: 1,
-  },
-  card: {
-    backgroundColor: theme.neutral.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: theme.neutral.border,
-    paddingVertical: 4,
+  section: {
+    gap: 8,
   },
   sectionTitle: {
-    color: theme.neutral.textMuted,
-    fontSize: 12,
+    color: theme.ui.foreground,
+    fontSize: 16,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 4,
+    letterSpacing: -0.2,
+  },
+  error: {
+    color: theme.status.error.text,
+    fontSize: 13,
+    fontWeight: '500',
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  rowText: {
-    flex: 1,
-    gap: 1,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.neutral.border,
-    marginLeft: 42,
-  },
-  label: {
-    color: theme.neutral.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    gap: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   value: {
-    color: theme.neutral.textPrimary,
-    fontSize: 14,
+    color: theme.ui.foreground,
+    fontSize: 15,
     fontWeight: '600',
   },
 })
