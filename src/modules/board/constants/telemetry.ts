@@ -193,6 +193,9 @@ export const telemetry = defineTelemetry(telemetryDefinitions)
  */
 export const RIM_TEMP_RANGE = { min: 20, max: 100 } as const
 
+/** Screen-edge gap shared by the HUD arcs, so the speed/duty arcs line up over the rim temp arcs. */
+export const HUD_ARC_EDGE_INSET = 12
+
 export const telemetryByControlId = Object.fromEntries(
   Object.values(telemetry)
     .filter((metric) => metric.controlId != null)

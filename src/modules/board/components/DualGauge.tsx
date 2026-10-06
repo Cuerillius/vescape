@@ -11,6 +11,7 @@ import {
 } from '@/modules/history/lib/metricColorScale'
 import { routes } from '@/navigation/routes'
 import { GaugePair } from '@/modules/board/components/DualGaugePair'
+import { HUD_ARC_EDGE_INSET } from '@/modules/board/constants/telemetry'
 
 interface DualGaugeProps {
   speedValue: SharedValue<number | null>
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   wrapCompact: {
-    paddingHorizontal: 20,
+    paddingHorizontal: HUD_ARC_EDGE_INSET,
     paddingVertical: 2,
     marginHorizontal: 0,
     marginBottom: 0,

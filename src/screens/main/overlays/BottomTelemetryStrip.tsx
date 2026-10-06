@@ -8,7 +8,7 @@ import { BAR_H, BAR_H_COMPACT } from '@/components/charts/LinearGaugeBar'
 import { BatteryIndicator } from '@/modules/board/components/BatteryIndicator'
 import { RimTempArc } from '@/modules/board/components/RimTempArc'
 import { interaction, theme } from '@/constants/theme'
-import { telemetry } from '@/modules/board/constants/telemetry'
+import { HUD_ARC_EDGE_INSET, telemetry } from '@/modules/board/constants/telemetry'
 import { routes } from '@/navigation/routes'
 import { useRenderRateWarning } from '@/hooks/useRenderRateWarning'
 import { useBleStore } from '@/modules/board/store/bleStore'
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingTop: STRIP_TOP_PADDING,
     paddingBottom: STRIP_BOTTOM_PADDING,
-    paddingHorizontal: 12,
+    paddingHorizontal: HUD_ARC_EDGE_INSET,
   },
   center: {
     flex: 1,
