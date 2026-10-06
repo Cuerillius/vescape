@@ -869,6 +869,14 @@ export interface TelemetryEvent {
   pullRateHz: number | null
   lastPacketAt: number
   firedAlerts?: FiredAlert[]
+  /**
+   * Highest speed (km/h, unsigned) and duty (%, unsigned) across the live window, as the live
+   * charts plot them. Only on `onLiveTick`.
+   * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/telemetry/TelemetryPipeline.kt `ProcessedTelemetry`
+   * @parity /modules/vescape-core/ios/telemetry/LiveSeriesEmitter.swift `LivePeaks`
+   */
+  speedPeak?: number | null
+  dutyPeak?: number | null
 }
 
 /** Smart-BMS snapshot decoded from a VESC `COMM_BMS_GET_VALUES` reply. */
@@ -2693,6 +2701,7 @@ type VescapeCoreNativeModule = NativeEventEmitter<VescapeCoreEvents> & {
   setTelemetryRecordingEnabled(enabled: boolean): void
   setBmsSeriesFocused(focused: boolean): void
   setFocusedSeriesMetrics(metrics: string[]): void
+  setLiveSeriesMetrics(metrics: string[]): void
   reloadAlertRules(): void
   getCriticalRideNotificationPermissionStatus(): Promise<CriticalRideNotificationPermissionStatus>
   requestCriticalRideNotificationPermission(): Promise<CriticalRideNotificationPermissionStatus>
@@ -2762,6 +2771,7 @@ type VescapeCoreNativeModule = NativeEventEmitter<VescapeCoreEvents> & {
   }): Promise<TelemetrySample[]>
   exportRideGpx(options: RideExportOptions): Promise<RideExportFile>
   exportRideCsv(options: RideExportOptions): Promise<RideExportFile>
+  exportLiveTelemetryCsv(): Promise<RideExportFile>
   getHistoryRange(options: {
     fromMs: number
     toMs: number
@@ -3148,6 +3158,14 @@ export function setBmsSeriesFocused(focused: boolean): void {
 /** Set the metric keys the high-res `onFocusedSeries` stream covers (empty array to stop it). */
 export function setFocusedSeriesMetrics(metrics: string[]): void {
   native.setFocusedSeriesMetrics(metrics)
+}
+
+/**
+ * Set the metric keys `onLiveSeries` carries beyond the always-on battery set (empty array to drop
+ * back to it). The telemetry panel holds these while it is open.
+ */
+export function setLiveSeriesMetrics(metrics: string[]): void {
+  native.setLiveSeriesMetrics(metrics)
 }
 
 /** Tell the Android foreground service to re-read alert rules from native storage. */
@@ -3550,6 +3568,16 @@ export async function exportRideGpx(options: RideExportOptions): Promise<RideExp
  */
 export async function exportRideCsv(options: RideExportOptions): Promise<RideExportFile> {
   return native.exportRideCsv(options)
+}
+
+/**
+ * Live telemetry, every frame at full rate, as a CSV in the ride export's columns. Rejects when the
+ * window is empty.
+ * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/VescapeCoreModule.kt `exportLiveTelemetryCsv`
+ * @parity /modules/vescape-core/ios/VescapeCoreModule.swift `exportLiveTelemetryCsv`
+ */
+export async function exportLiveTelemetryCsv(): Promise<RideExportFile> {
+  return native.exportLiveTelemetryCsv()
 }
 
 export async function getHistoryRange(options: {

@@ -27,6 +27,11 @@ import {
   useAboveStripBottom,
 } from '@/screens/main/overlays/BottomTelemetryStrip'
 import { LiveHud } from '@/screens/main/overlays/LiveHud'
+import {
+  TelemetryPanel,
+  useTelemetryPanelFadeStyle,
+  type TelemetryPanelState,
+} from '@/screens/main/overlays/TelemetryPanel'
 import { TopBar } from '@/screens/main/overlays/TopBar'
 import { BoardDrawer } from '@/screens/main/overlays/BoardDrawer'
 import { HistoryDrawer } from '@/screens/main/overlays/HistoryDrawer'
@@ -43,6 +48,8 @@ interface TelemetryOverlayProps {
   revealProgress: SharedValue<number>
   /** Fades this overlay (and the map vignette) out as the drag commits. */
   dragOpacity: SharedValue<number>
+  /** The panel the strip pulls up into; it hides the floating controls while open. */
+  telemetryPanel: TelemetryPanelState
   boards: Board[]
   activeBoardId: string | null
   activeBoard: Board | undefined
@@ -74,6 +81,7 @@ export function TelemetryOverlay({
   mapRef,
   revealProgress,
   dragOpacity,
+  telemetryPanel,
   boards,
   activeBoardId,
   activeBoard,
@@ -110,6 +118,7 @@ export function TelemetryOverlay({
   const legalModeActive = activeBoard?.legalMode?.enabled ?? false
   const interactive = mode === 'telemetry' && !revealGestureActive
 
+  const panelFadeStyle = useTelemetryPanelFadeStyle(telemetryPanel.progress)
   const interfaceFadeStyle = useAnimatedStyle(() => ({
     opacity: (1 - dragOpacity.value) * telemetryReturnOpacity.value,
   }))
@@ -180,6 +189,7 @@ export function TelemetryOverlay({
     <>
       <MapRevealGesture
         enabled={mode === 'telemetry' || revealGestureActive}
+        paused={telemetryPanel.active}
         progress={revealProgress}
         dragOpacity={dragOpacity}
         onPanStart={handleRevealPanStart}
@@ -196,7 +206,6 @@ export function TelemetryOverlay({
           style={[styles.telemetryInterface, interfaceFadeStyle]}
         >
           <LiveHud revealProgress={revealProgress} />
-          <BottomTelemetryStrip revealProgress={revealProgress} />
           <TopBar
             boards={boards}
             activeBoardId={activeBoardId}
@@ -211,61 +220,84 @@ export function TelemetryOverlay({
             onNavigationPress={onEnterMapFocus}
             onCancelNavigation={onCancelNavigation}
           />
-          <FloatingBar
-            bleStatus={bleStatus}
-            activeBoard={activeBoard}
-            onStopScan={onStopScan}
-            onRetryConnect={onRetryConnect}
-            bottomOffset={aboveStripBottom}
-          />
-          <View
-            ref={historyButtonRef}
-            collapsable={false}
-            style={[styles.historyButton, { bottom: buttonBottom }]}
+          {/* The floating controls step aside for the panel, drifting toward it as they fade. */}
+          <Animated.View
+            pointerEvents={telemetryPanel.active ? 'none' : 'box-none'}
+            style={[styles.floatingControls, panelFadeStyle]}
           >
-            <IconButton
-              icon={ClockCounterClockwiseIcon}
-              size="lg"
-              onPress={() => setHistoryDrawerOpen(true)}
-              testID="history-button"
+            <FloatingBar
+              bleStatus={bleStatus}
+              activeBoard={activeBoard}
+              onStopScan={onStopScan}
+              onRetryConnect={onRetryConnect}
+              bottomOffset={aboveStripBottom}
             />
-          </View>
-          <HistoryDrawer
-            visible={historyDrawerOpen}
-            triggerRef={historyButtonRef}
-            onClose={() => setHistoryDrawerOpen(false)}
-            onOpenRide={onOpenHistoryRide}
-            onOpenFavorite={onOpenHistoryFavorite}
-          />
-          <View
-            ref={tuneButtonRef}
-            collapsable={false}
-            style={[styles.tuneButton, { bottom: buttonBottom }]}
-          >
-            <IconButton
-              icon={legalModeActive ? SirenIcon : SlidersHorizontalIcon}
-              size="lg"
-              accent={legalModeActive ? theme.status.error.color : undefined}
-              onPress={() => setTuneDrawerOpen(true)}
+            <View
+              ref={historyButtonRef}
+              collapsable={false}
+              style={[styles.historyButton, { bottom: buttonBottom }]}
+            >
+              <IconButton
+                icon={ClockCounterClockwiseIcon}
+                size="lg"
+                onPress={() => setHistoryDrawerOpen(true)}
+                testID="history-button"
+              />
+            </View>
+            <HistoryDrawer
+              visible={historyDrawerOpen}
+              triggerRef={historyButtonRef}
+              onClose={() => setHistoryDrawerOpen(false)}
+              onOpenRide={onOpenHistoryRide}
+              onOpenFavorite={onOpenHistoryFavorite}
             />
-          </View>
-          <EdgeDrawer
-            visible={tuneDrawerOpen}
-            triggerRef={tuneButtonRef}
-            title="Board"
-            icon={SlidersHorizontalIcon}
-            onClose={() => setTuneDrawerOpen(false)}
-          >
-            <BoardDrawer
-              onNavigate={() => setTuneDrawerOpen(false)}
-              onOpenLegalLimits={() => {
-                setTuneDrawerOpen(false)
-                onEnterLegalLimits()
-              }}
-            />
-          </EdgeDrawer>
+            <View
+              ref={tuneButtonRef}
+              collapsable={false}
+              style={[styles.tuneButton, { bottom: buttonBottom }]}
+            >
+              <IconButton
+                icon={legalModeActive ? SirenIcon : SlidersHorizontalIcon}
+                size="lg"
+                accent={legalModeActive ? theme.status.error.color : undefined}
+                onPress={() => setTuneDrawerOpen(true)}
+              />
+            </View>
+            <EdgeDrawer
+              visible={tuneDrawerOpen}
+              triggerRef={tuneButtonRef}
+              title="Board"
+              icon={SlidersHorizontalIcon}
+              onClose={() => setTuneDrawerOpen(false)}
+            >
+              <BoardDrawer
+                onNavigate={() => setTuneDrawerOpen(false)}
+                onOpenLegalLimits={() => {
+                  setTuneDrawerOpen(false)
+                  onEnterLegalLimits()
+                }}
+              />
+            </EdgeDrawer>
+          </Animated.View>
         </Animated.View>
       </MapRevealGesture>
+
+      {/* Outside the reveal detector: a touch on the strip belongs to the panel's pull alone, which
+          a drag the reveal also sees could never win. */}
+      <Animated.View
+        pointerEvents={interactive ? 'box-none' : 'none'}
+        style={[styles.stripLayer, interfaceFadeStyle]}
+      >
+        <BottomTelemetryStrip
+          revealProgress={revealProgress}
+          panelProgress={telemetryPanel.progress}
+          panelActive={telemetryPanel.active}
+          openGesture={telemetryPanel.openGesture}
+          onOpenPanel={telemetryPanel.open}
+        />
+      </Animated.View>
+
+      <TelemetryPanel panel={telemetryPanel} />
 
       <View pointerEvents={interactive ? 'box-none' : 'none'} style={styles.offscreenIndicators}>
         {mode === 'telemetry'
@@ -286,6 +318,14 @@ const styles = StyleSheet.create({
   telemetryInterface: {
     ...StyleSheet.absoluteFill,
     zIndex: 6,
+  },
+  stripLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 7,
+  },
+  floatingControls: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 20,
   },
   offscreenIndicators: {
     ...StyleSheet.absoluteFill,

@@ -1,14 +1,10 @@
-import { useFormat } from '@/hooks/useFormat'
 import type { ReactNode } from 'react'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import type { SharedValue } from 'react-native-reanimated'
 import { useRouter } from 'expo-router'
 
 import type { DualGaugeAlert } from '@/components/charts/gaugeAlert'
-import { SparklineMaxBadge, type SparklinePoint } from '@/components/charts/Sparkline'
 import { theme } from '@/constants/theme'
-import { useResolvedTelemetryColors } from '@/hooks/useTheme'
-import { telemetry } from '@/modules/board/constants/telemetry'
 import {
   getHistoryMetricHotRange,
   type MetricHotRange,
@@ -19,9 +15,9 @@ import { GaugePair } from '@/modules/board/components/DualGaugePair'
 interface DualGaugeProps {
   speedValue: SharedValue<number | null>
   dutyValue: SharedValue<number | null>
-  speedSeries?: SparklinePoint[]
-  dutySeries?: SparklinePoint[]
-  windowMs?: number
+  /** Highest speed / duty across the live window, marked on each arc. */
+  speedPeak?: SharedValue<number | null>
+  dutyPeak?: SharedValue<number | null>
   speedMax?: number
   dutyMax?: number
   speedHotRange?: MetricHotRange | null
@@ -40,9 +36,8 @@ interface DualGaugeProps {
 export function DualGauge({
   speedValue,
   dutyValue,
-  speedSeries,
-  dutySeries,
-  windowMs,
+  speedPeak,
+  dutyPeak,
   speedMax = 50,
   dutyMax = 100,
   speedHotRange = getHistoryMetricHotRange('speed'),
@@ -54,8 +49,6 @@ export function DualGauge({
   containerStyle,
   footer,
 }: DualGaugeProps) {
-  const { formatSpeedWithUnit } = useFormat()
-  const telemetryColors = useResolvedTelemetryColors()
   const router = useRouter()
   return (
     <View
@@ -67,35 +60,17 @@ export function DualGauge({
       ]}
     >
       <View style={styles.gaugeContent}>
-        <View style={styles.row} pointerEvents="none">
-          <View style={styles.halfPressable}>
-            <SparklineMaxBadge
-              points={speedSeries ?? []}
-              color={telemetryColors.speed}
-              fmt={(value) => formatSpeedWithUnit(Math.abs(value))}
-              position="left"
-            />
-          </View>
-          <View style={styles.halfPressable}>
-            <SparklineMaxBadge
-              points={dutySeries ?? []}
-              color={telemetryColors.duty}
-              fmt={telemetry.duty.formatWithUnit}
-            />
-          </View>
-        </View>
         <GaugePair
           speedValue={speedValue}
           dutyValue={dutyValue}
+          speedPeak={speedPeak}
+          dutyPeak={dutyPeak}
           speedMax={speedMax}
           dutyMax={dutyMax}
           speedAlerts={speedAlerts}
           dutyAlerts={dutyAlerts}
           speedHotRange={speedHotRange}
           dutyHotRange={dutyHotRange}
-          speedSeries={speedSeries ?? []}
-          dutySeries={dutySeries ?? []}
-          windowMs={windowMs}
           footer={footer}
           onPressSpeed={() => router.push(routes.controlSpeed)}
           onPressDuty={() => router.push(routes.controlDuty)}
@@ -122,14 +97,5 @@ const styles = StyleSheet.create({
   wrapTransparent: {
     backgroundColor: 'transparent',
   },
-  halfPressable: {
-    flex: 1,
-    overflow: 'visible',
-  },
   gaugeContent: { position: 'relative' },
-  row: {
-    flexDirection: 'row',
-    gap: 32,
-    position: 'relative',
-  },
 })
