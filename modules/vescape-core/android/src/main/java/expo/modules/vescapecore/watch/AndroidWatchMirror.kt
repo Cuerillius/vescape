@@ -2,6 +2,7 @@ package expo.modules.vescapecore.watch
 
 import android.content.Context
 import android.os.SystemClock
+import expo.modules.vescapecore.maptiles.MapTiles
 import expo.modules.vescapecore.navigation.NavigationController
 import expo.modules.vescapecore.navigation.NavigationStatus
 import expo.modules.vescapecore.runtime.Scheduler
@@ -22,6 +23,7 @@ internal fun androidWatchMirror(
     isStale: () -> Boolean,
     groupFrame: () -> GroupRideFrame?,
     record: (String, Map<String, Any?>) -> Unit,
+    onNavigatingChanged: () -> Unit,
 ): WatchMirrorCoordinator {
     val navigation = NavigationController.get(context)
     val weather = WeatherCoordinator.get()
@@ -31,6 +33,11 @@ internal fun androidWatchMirror(
     val weatherPusher = WatchWeatherPusher(context, scope, record)
     val boardPusher = WatchBoardPusher(context, scope, record)
     val launcher = WatchMirrorLauncher(context, scope, record)
+    val mapTiles = WatchMapTileSender(
+        scheduler, scope, SystemClock::elapsedRealtime,
+        fetch = { tile -> MapTiles.get(context).tile(tile.z, tile.x, tile.y) },
+        transport = WatchMapTilePusher(context),
+    )
     return WatchMirrorCoordinator(
         scheduler, SystemClock::elapsedRealtime, snapshot, isStale, groupFrame,
         transport = object : WatchMirrorTransport {
@@ -57,6 +64,10 @@ internal fun androidWatchMirror(
                 }
                 return WatchRouteStatus(phase, WatchRouteMirror.desiredRouteId)
             }
+            override fun mapRoute(): WatchMapRouteProgress? {
+                val route = WatchRouteMirror.mapRoute ?: return null
+                return navigation.currentProgress?.let { WatchMapRouteProgress(route, it.remainingMeters) }
+            }
             override fun subscribe(routeChanged: () -> Unit, weatherChanged: (WatchWeather) -> Unit): () -> Unit {
                 navigation.onWatchChange = routeChanged
                 val unsubscribe = weather.addChangeListener { it?.let { value -> weatherChanged(value.toWatchWeather()) } }
@@ -68,5 +79,7 @@ internal fun androidWatchMirror(
             }
         },
         record = record,
+        onNavigatingChanged = onNavigatingChanged,
+        mapTiles = mapTiles::update,
     )
 }

@@ -29,12 +29,19 @@ internal class WatchMirrorIntake {
     var lastFrameAtMs: Long? = null
         private set
     private var latestFrame: WatchFrame? = null
-    private var frameGapMs: Long? = null
+    /** Newest last, at most [MIRROR_CADENCE_WINDOW_GAPS] long. */
+    private val recentGapsMs = ArrayDeque<Long>()
     private var lastGroupRideAtMs: Long? = null
 
     fun acceptTelemetry(bytes: ByteArray, receivedAtMs: Long, appliedAtMs: Long): Boolean {
         val frame = WatchFrameDecoder.decode(bytes) ?: return false
-        lastFrameAtMs?.let { frameGapMs = (receivedAtMs - it).coerceAtLeast(0) }
+        val gapMs = lastFrameAtMs?.let { (receivedAtMs - it).coerceAtLeast(0) }
+        // A gap past the longest window was an outage, not a cadence: kept, it would hold the window
+        // at its cap for the frames after the reconnect.
+        if (gapMs != null && gapMs <= MIRROR_DISCONNECTED_MAX_TIMEOUT_MS) {
+            recentGapsMs.addLast(gapMs)
+            if (recentGapsMs.size > MIRROR_CADENCE_WINDOW_GAPS) recentGapsMs.removeFirst()
+        }
         latestFrame = frame
         lastFrameAtMs = receivedAtMs
         refresh(appliedAtMs)
@@ -68,7 +75,7 @@ internal class WatchMirrorIntake {
     }
 
     fun refresh(nowMs: Long) {
-        mirror = MirrorStateReducer.reduce(latestFrame, lastFrameAtMs, nowMs, mirrorDisconnectedTimeoutMs(frameGapMs))
+        mirror = MirrorStateReducer.reduce(latestFrame, lastFrameAtMs, nowMs, mirrorDisconnectedTimeoutMs(recentGapsMs.maxOrNull()))
         if (mirror.status == MirrorStatus.DISCONNECTED) routeStatus = null
         lastGroupRideAtMs?.let {
             if (nowMs - it > GROUP_RIDE_TIMEOUT_MS) {

@@ -302,6 +302,10 @@ Restart replay after three hours to refresh it. Replay skips live phone listener
 so an empty phone context cannot erase the fixture. Wear OS already supported this companion asset;
 watchOS now uses the same data and timing rules.
 
+The street map replays offline too: `watch-map-tiles.json` lists the fixture tiles and
+`watch-map-tiles/<z>/<x>/<y>.jpg` holds them. Each is copied into `MapTileStore` through `receive`,
+the path a finished phone transfer takes, so the store never deletes the repo's files.
+
 The forecast is synthetic; radar uses real network imagery at the fixture coordinates. Open weather
 to check temperature, hourly scrolling and sun times, then radar to check loading and animation.
 No rain at that location can mean little visible radar color. A fetch failure is recorded in
@@ -318,6 +322,32 @@ xcrun simctl launch <watch-udid> app.vescape.dev.watchkitapp \
 
 Build with `-target VescapeWatch`, not `-scheme`: `-sdk watchsimulator` applies to every target in a
 scheme, and the Live Activity widget is iOS-only, so the scheme build fails on `ActivityKit`.
+
+### Simulator ride end to end
+
+`bun run watchos:ride` is the watchOS peer of `wear:ride` (see "Ride end to end" in
+`docs/watch-mirror.md`). It needs one booted, connected phone + watch pair (`xcrun simctl list
+pairs` shows `(active, connected)`; pair as above), the phone dev build installed with
+`bun run ios`, and Metro running. With more than one such pair, select the watch with
+`WATCHOS_UDID=<uuid>`.
+
+It builds and installs the watch app and launches it in its normal mirror mode, without `--replay`.
+It then relaunches the phone app on Metro (`--initialUrl`, which the dev launcher reads without a
+prompt) and at once opens
+`<bundle-id>://dev/watch-ride?replay=replay-thor301.jsonl&lat=51.13185&lon=16.98653` on the phone.
+A link that arrives while the bundle loads is held by the dev launcher and handed over as the initial
+URL. The phone starts the thor301 replay and, after the first replayed fix, sets the Direction Point;
+native runs Directions and pushes the route through the Application Context.
+
+The link uses the bundle-id scheme, not `vescape://`: a simulator with the store build installed
+beside the dev build would send `vescape://` to either app. If the simulator asks "Open in “vescape
+dev”?", tap Open. `simctl openurl` asks whenever the app is not already in front, and nothing in
+`simctl` can answer it.
+
+Unlike `wear:ride`, the command cannot confirm the ride started: an iOS dev build's `console.log`
+does not reach the simulator log. Check the phone (a Direction Point banner with a distance, and the replayed board
+connected) and the wrist with `xcrun simctl io <udid> screenshot shot.png`. The route arrives a
+few seconds after the phone has loaded.
 
 ### Verified on the simulator, 2026-09-15
 
@@ -670,15 +700,14 @@ and the wrist draws the route at the scale the rider set on the phone.
   same heading and zoom. Layers sample that state on `TimelineView`s. Those timelines run only while the map eases (or a
   stale Rider pulses). The course is kept unwrapped so a heading crossing north turns the short way,
   the same `shortestAngleDelta` rule Android uses, and the zoom uses Android's fast-out-slow-in curve.
-- **The empty-nav hint draws the ported Phosphor map-pin**, the same artwork Wear OS bundles. The
-  chevron and the pin beside the distance are drawn by hand on both wrists, so those match stroke
-  for stroke too.
+- **The chevron and the pin beside the distance are drawn by hand** on both wrists, so they match
+  stroke for stroke.
 
 Everything behavioural stays Android's: the same default and clamped route spans, the same rider drop
 below centre, the same line widths and opacities at rest and in focus, the same rule that the arrow
 setting hides the chevron and nothing else, the same nav-focus behaviour where the readouts leave and
-the nav stack grows, and the same "No navigation / Set a destination on your phone" when the phone is
-not navigating. Ambient skips the route layer for Android's reason: a moving map is the most
+the nav stack grows, and the same map page without Navigation: rider ring, trail and street map, no
+placeholder text. Ambient skips the route layer for Android's reason: a moving map is the most
 expensive thing an always-on panel could be asked to draw.
 
 ### Verified, 2026-09-15
@@ -978,3 +1007,35 @@ the phone and power cutoff accessible. Complete Lights before testing Move.
 
 Record failures and remaining platform differences here and track unresolved work in #491 before
 shipping. App Store preparation remains #493.
+
+## Street map (#551)
+
+The shared behaviour is in "Street map" in `docs/watch-mirror.md`. watchOS-specific parts:
+
+- Tiles ride `transferFile`. `PhoneLink` moves each received file into
+  `Application Support/map-tiles/<style>/<z>/<x>/<y>-<receipt>.jpg` on the delegate queue, because
+  the system deletes it once the callback returns. Each receipt gets its own file and a drop deletes
+  only the file it held, so a resend landing just after a drop survives it. `MapTileStore` deletes
+  every file not on the latest `mapTiles` list and every other style's directory, and applies the
+  list again once the launch scan of kept files has merged.
+- The `mapTiles` list is one more channel on the merged Application Context; `WatchColdState` stays
+  its only writer. An absent or unreadable list leaves the wrist's files alone.
+- The phone records finished transfers in `WCSession.watchDirectoryURL`. That directory goes with a
+  reinstall or an unpair, and `sessionWatchStateDidChange` makes the sender read the record again,
+  so a fresh watch app gets every tile again. The system drops outstanding transfers on a reinstall,
+  an unpair or a watch switch (`sessionDidBecomeInactive`) without a `didFinish`; their sends fail
+  then, and on every wake, so they cannot hold the four in-flight slots for good.
+- A transfer an earlier phone process left queued counts as delivered (it still lands and is
+  recorded) and is cancelled if its tile is dropped; one of another style is cancelled.
+
+### Verified on the simulator, 2026-10-07
+
+iPhone 17 + Apple Watch SE 3 40 mm, `bun run watchos:ride`: the phone plans, fetches and issues
+`transferFile` for each tile and writes the record. The tile list reaches the wrist through the
+Application Context, and the wrist then deletes files not on it. Tiles copied into the wrist's
+container are drawn under the trail, dimmed behind the gauges and at full opacity on the map page.
+
+**Not verified.** The simulator's `wcd` never delivers the file payload to the watch: the phone
+reports each transfer finished without an error (`failed to find transfer` in the phone `wcd` log)
+and the watch receives none. File delivery, a reinstall on hardware, and the frame cost of the layer
+need a physical Apple Watch.

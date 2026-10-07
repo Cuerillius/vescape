@@ -30,6 +30,18 @@ internal const val WATCH_SETTING_NAV_ARROW = "navArrowEnabled"
 /** Show the trail behind telemetry gauges. The map page always retains its trail. */
 internal const val WATCH_SETTING_TELEMETRY_TRAIL = "telemetryTrailEnabled"
 
+/** Whether the telemetry screen draws Group Ride marks. Off: they fade in on the map page only. */
+internal const val WATCH_SETTING_TELEMETRY_GROUP = "telemetryGroupEnabled"
+
+/** Whether the telemetry screen draws the Navigation route line. Off: it fades in on the map page only. */
+internal const val WATCH_SETTING_TELEMETRY_ROUTE = "telemetryRouteEnabled"
+
+/** Whether the wrist draws the street map. Off: the phone sends no tiles; tiles already on the wrist stay. */
+internal const val WATCH_SETTING_STREET_MAP = "streetMapEnabled"
+
+/** Street map opacity behind the gauges, integer percent from [WatchMapGauges.STEPS]. */
+internal const val WATCH_SETTING_MAP_GAUGES = "mapGaugesPercent"
+
 /** App-wide speed and distance preference; older phones default to metric. */
 internal const val WATCH_SETTING_UNIT_SYSTEM = "unitSystem"
 
@@ -49,6 +61,10 @@ internal val WATCH_SOURCE_SETTING_KEYS = setOf(
     "boardMoveStrengthPercent",
     "wearNavArrowEnabled",
     "wearTelemetryTrailEnabled",
+    "wearTelemetryGroupEnabled",
+    "wearTelemetryRouteEnabled",
+    "wearStreetMapEnabled",
+    "wearMapGaugesPercent",
     "unitSystem",
     "wearTiltRatePercent",
     "wearPushRateHz",
@@ -62,6 +78,10 @@ internal data class WatchSettings(
     val unitSystem: String = "metric",
     val tiltRatePercent: Int = 20,
     val telemetryTrailEnabled: Boolean = true,
+    val telemetryGroupEnabled: Boolean = true,
+    val telemetryRouteEnabled: Boolean = true,
+    val streetMapEnabled: Boolean = true,
+    val mapGaugesPercent: Int = WatchMapGauges.DEFAULT_PERCENT,
 )
 
 /**
@@ -75,6 +95,10 @@ internal fun AppSettings.toWatchSettings(): WatchSettings = WatchSettings(
     boardMoveStrengthPercent = boardMoveStrengthPercent,
     navArrowEnabled = wearNavArrowEnabled,
     telemetryTrailEnabled = wearTelemetryTrailEnabled,
+    telemetryGroupEnabled = wearTelemetryGroupEnabled,
+    telemetryRouteEnabled = wearTelemetryRouteEnabled,
+    streetMapEnabled = wearStreetMapEnabled,
+    mapGaugesPercent = wearMapGaugesPercent,
     unitSystem = unitSystem,
     tiltRatePercent = wearTiltRatePercent,
 )

@@ -1670,6 +1670,37 @@ export interface AppSettings {
    */
   wearTelemetryTrailEnabled: boolean
   /**
+   * Show Group Ride dots and edge triangles on the watch telemetry screen. Enabled by default; off,
+   * they fade in on the map page only, and the Group Ride page is unchanged. The phone keeps sending
+   * the Group Ride frame either way. Mirrored as cold settings to both watch platforms.
+   * @parity /modules/vescape-core/ios/watch/WatchSettings.swift
+   * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/watch/WatchSettings.kt
+   */
+  wearTelemetryGroupEnabled: boolean
+  /**
+   * Draw the Navigation route line on the watch telemetry screen. Enabled by default; off, it fades in
+   * on the map page only. The nav chevron and distance readout stay, and the phone keeps sending the
+   * route either way. Mirrored as cold settings to both watch platforms.
+   * @parity /modules/vescape-core/ios/watch/WatchSettings.swift
+   * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/watch/WatchSettings.kt
+   */
+  wearTelemetryRouteEnabled: boolean
+  /**
+   * Draw the street map on the watch. Enabled by default. Off: the phone sends no map tiles and
+   * both wrists hide the map; tiles already on the wrist stay. Mirrored as cold settings.
+   * @parity /modules/vescape-core/ios/watch/WatchSettings.swift
+   * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/watch/WatchSettings.kt
+   */
+  wearStreetMapEnabled: boolean
+  /**
+   * Street map opacity behind the watch gauges, integer percent: one of 0 (Off), 30, 45, 60, 75, 90
+   * (default 60). The map page always draws it at 100 %. Native snaps any other value to 60. Mirrored as cold
+   * settings.
+   * @parity /modules/vescape-core/ios/watch/WatchMapTile.swift `WatchMapGauges`
+   * @parity /modules/vescape-core/android/src/main/java/expo/modules/vescapecore/watch/WatchMapTile.kt `WatchMapGauges`
+   */
+  wearMapGaugesPercent: number
+  /**
    * Wrist Tilt stick speed at full deflection, percent of full tilt per second (1–100). Pushed to the
    * wrist, which integrates the stick into a Remote Tilt lock.
    *
@@ -2522,11 +2553,15 @@ export interface RouteProgress {
   /** The point on the path nearest to the rider. */
   latitude: number
   longitude: number
-  /** Metres left to the Direction Point measured along the path, not as the crow flies. */
+  /**
+   * Metres left to the Direction Point measured along the path, not as the crow flies. Projected
+   * onto the path's end, it is the straight line from the rider to that end.
+   */
   remainingMeters: number
   /**
-   * Absolute degrees clockwise from north, aimed a short way further along the path. Absolute, not
-   * relative to where the rider is pointing — rotate it yourself if a view needs it rider-up.
+   * Absolute degrees clockwise from north, aimed a short way further along the path, or at the
+   * path's end once the rider is projected onto it. Absolute, not relative to where the rider is
+   * pointing — rotate it yourself if a view needs it rider-up.
    */
   bearingDeg: number
 }

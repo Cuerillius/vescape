@@ -16,6 +16,10 @@ struct WatchMapScene<Gauges: View, Readouts: View>: View {
   let trailColor: Color
   let navArrowEnabled: Bool
   let telemetryTrailEnabled: Bool
+  let telemetryGroupEnabled: Bool
+  let telemetryRouteEnabled: Bool
+  let streetMapEnabled: Bool
+  let mapGaugesPercent: Int
   let unitSystem: String
   @ViewBuilder var gauges: () -> Gauges
   @ViewBuilder var readouts: () -> Readouts
@@ -25,13 +29,20 @@ struct WatchMapScene<Gauges: View, Readouts: View>: View {
 
   private var scene: WatchMapSceneState {
     WatchMapSceneState(frame: frame, routeId: route?.routeId, routeStatus: routeStatus, group: groupRide,
-      ambient: ambient.active, telemetryTrailEnabled: telemetryTrailEnabled)
+      ambient: ambient.active, telemetryTrailEnabled: telemetryTrailEnabled, telemetryGroupEnabled: telemetryGroupEnabled,
+      telemetryRouteEnabled: telemetryRouteEnabled, streetMapEnabled: streetMapEnabled, mapGaugesPercent: mapGaugesPercent)
   }
   private var navStackAlpha: Double { fadeOut(awayFocus) }
   private var tiltColor: Color { (muted || ambient.active) ? Palette.dimText : Palette.tilt }
 
   var body: some View {
     ZStack {
+      // Layer order: street map, route, trail, Group Ride marks, gauges.
+      if scene.drawStreetMap {
+        MapTileLayer(mapView: mapView, mapMoving: mapMoving)
+          .opacity(navStackAlpha * scene.mapAlpha(navFocus: navFocus))
+      }
+
       // Bottom layer: the route ahead and the rider on it, under every gauge and readout. Ambient
       // skips it — the lanes animate their zoom, and a moving map is the most expensive thing the
       // always-on panel could be asked to draw.
@@ -44,7 +55,7 @@ struct WatchMapScene<Gauges: View, Readouts: View>: View {
           focus: navFocus,
           color: muted ? Palette.dimText : navColor
         )
-        .opacity(navStackAlpha)
+        .opacity(navStackAlpha * scene.routeAlpha(navFocus: navFocus))
       }
 
       if scene.drawMap {
@@ -61,13 +72,13 @@ struct WatchMapScene<Gauges: View, Readouts: View>: View {
           focus: navFocus,
           unitSystem: unitSystem
         )
-        .opacity(navStackAlpha)
+        .opacity(navStackAlpha * scene.groupAlpha(navFocus: navFocus))
       }
 
       if scene.drawMap {
         RiderPosition(color: muted ? Palette.dimText : navColor,
           loading: scene.notice != nil && scene.notice != .failed && navStackAlpha > 0)
-          .opacity(navStackAlpha)
+          .opacity(navStackAlpha * scene.riderAlpha(navFocus: navFocus))
       }
 
       gauges()
@@ -90,12 +101,6 @@ struct WatchMapScene<Gauges: View, Readouts: View>: View {
           tiltColor: tiltColor
         )
       } else {
-        // Nav focus with nothing to show would be a blank rectangle. Say why, but only once the
-        // drag is nearly done, so it never flickers under the departing readouts.
-        // A joined Group Ride is something to show on the map page: no "no navigation" over it.
-        if scene.showAbsentHint {
-          NavAbsentHint(focus: navFocus, stackAlpha: navStackAlpha)
-        }
         // No navigation: the tilt badge keeps the distance's slot to itself.
         VStack(spacing: 0) {
           Spacer(minLength: 0)
@@ -111,7 +116,7 @@ struct WatchMapScene<Gauges: View, Readouts: View>: View {
         GroupRideEdgeLayer(
           group: groupRide, mapView: mapView, mapMoving: mapMoving, focus: navFocus, unitSystem: unitSystem
         )
-          .opacity(navStackAlpha)
+          .opacity(navStackAlpha * scene.groupAlpha(navFocus: navFocus))
       }
     }
     .onAppear { retargetMap(animate: false) }

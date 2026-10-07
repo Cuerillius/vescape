@@ -7,6 +7,7 @@ import Foundation
 private final class IOSWatchMirrorTransport: WatchMirrorTransport {
   private let pusher: WatchTelemetryPusher
   private var pushedWeather: WatchWeather?
+  var mapTiles: WatchMapTileTransport { pusher.mapTiles }
   init(record: @escaping (String, [String: Any?]) -> Void) { pusher = WatchTelemetryPusher(record: record) }
   var reachable: Bool { pusher.canPush }
   var requiresWakeReport: Bool { false }
@@ -45,6 +46,12 @@ private final class IOSWatchMirrorSources: WatchMirrorSources {
     else { phase = .ready }
     return WatchRouteStatus(phase: phase, routeId: WatchRouteMirror.shared.desiredRouteId)
   }
+  func mapRoute() -> WatchMapRouteProgress? {
+    guard let route = WatchRouteMirror.shared.mapRoute, let progress = NavigationController.shared.currentProgress else {
+      return nil
+    }
+    return WatchMapRouteProgress(route: route, remainingM: progress.remainingMeters)
+  }
   func subscribe(
     routeChanged: @escaping () -> Void,
     weatherChanged: @escaping (WatchWeather) -> Void,
@@ -66,13 +73,22 @@ func iosWatchMirror(
   scheduler: Scheduler, snapshot: @escaping () -> WatchSnapshot,
   isStale: @escaping () -> Bool, groupFrame: @escaping () -> GroupRideFrame?,
   command: @escaping (WatchCommand) -> Void,
-  record: @escaping (String, [String: Any?]) -> Void
+  record: @escaping (String, [String: Any?]) -> Void,
+  onNavigatingChanged: @escaping () -> Void
 ) -> WatchMirrorCoordinator {
-  WatchMirrorCoordinator(
-    scheduler: scheduler, nowMs: { Int64(ProcessInfo.processInfo.systemUptime * 1000) },
+  let nowMs = { Int64(ProcessInfo.processInfo.systemUptime * 1000) }
+  let transport = IOSWatchMirrorTransport(record: record)
+  let mapTiles = WatchMapTileSender(
+    scheduler: scheduler, nowMs: nowMs,
+    fetch: { await MapTiles.shared.tile(z: $0.z, x: $0.x, y: $0.y) },
+    transport: transport.mapTiles
+  )
+  return WatchMirrorCoordinator(
+    scheduler: scheduler, nowMs: nowMs,
     snapshot: snapshot, isStale: isStale, groupFrame: groupFrame,
-    transport: IOSWatchMirrorTransport(record: record), sources: IOSWatchMirrorSources(),
-    command: command, record: record
+    transport: transport, sources: IOSWatchMirrorSources(),
+    command: command, record: record, onNavigatingChanged: onNavigatingChanged,
+    mapTiles: { mapTiles.update($0) }
   )
 }
 
@@ -94,6 +110,10 @@ extension WatchMirrorCoordinator {
       boardMoveStrengthPercent: strength,
       navArrowEnabled: (settings["wearNavArrowEnabled"] ?? nil) as? Bool ?? false,
       telemetryTrailEnabled: (settings["wearTelemetryTrailEnabled"] ?? nil) as? Bool ?? true,
+      telemetryGroupEnabled: (settings["wearTelemetryGroupEnabled"] ?? nil) as? Bool ?? true,
+      telemetryRouteEnabled: (settings["wearTelemetryRouteEnabled"] ?? nil) as? Bool ?? true,
+      streetMapEnabled: (settings["wearStreetMapEnabled"] ?? nil) as? Bool ?? true,
+      mapGaugesPercent: WatchMapGauges.percent(settings["wearMapGaugesPercent"] ?? nil) ?? WatchMapGauges.defaultPercent,
       unitSystem: (settings["unitSystem"] ?? nil) as? String == "imperial" ? "imperial" : "metric",
       tiltRatePercent: AppDataRepository.wearTiltRatePercent(settings["wearTiltRatePercent"] ?? nil) ?? watchDefaultTiltRatePercent
     ), intervalMs: Int64(1000 / hz))

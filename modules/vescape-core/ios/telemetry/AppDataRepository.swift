@@ -569,7 +569,10 @@ final class AppDataRepository {
     } else if key == "wearTiltRatePercent" {
       guard let percent = Self.wearTiltRatePercent(rawValue) else { return }
       value = percent
-    } else if key == "wearAutoLaunchOnConnect" || key == "wearNavArrowEnabled" || key == "wearTelemetryTrailEnabled" || key == "groupRidePublicEnabled" {
+    } else if key == "wearMapGaugesPercent" {
+      guard let percent = WatchMapGauges.percent(rawValue) else { return }
+      value = percent
+    } else if key == "wearAutoLaunchOnConnect" || key == "wearNavArrowEnabled" || key == "wearTelemetryTrailEnabled" || key == "wearTelemetryGroupEnabled" || key == "wearTelemetryRouteEnabled" || key == "wearStreetMapEnabled" || key == "groupRidePublicEnabled" {
       // Strict Bool, like Android: a truthy string persisted here would reach the wrist as a
       // setting the rider never chose.
       guard let flag = rawValue as? Bool else { return }
@@ -651,6 +654,10 @@ final class AppDataRepository {
     "wearAutoLaunchOnConnect": true,
     "wearNavArrowEnabled": false,
     "wearTelemetryTrailEnabled": true,
+    "wearTelemetryGroupEnabled": true,
+    "wearTelemetryRouteEnabled": true,
+    "wearStreetMapEnabled": true,
+    "wearMapGaugesPercent": WatchMapGauges.defaultPercent,
     "wearTiltRatePercent": 20,
     "boardMoveStrengthPercent": 60,
     "connectionSoundsEnabled": true,
@@ -698,6 +705,8 @@ final class AppDataRepository {
       wearPushRateHz(settings["wearPushRateHz"]) ?? defaultSettings["wearPushRateHz"]
     normalized["wearTiltRatePercent"] =
       wearTiltRatePercent(settings["wearTiltRatePercent"]) ?? defaultSettings["wearTiltRatePercent"]
+    normalized["wearMapGaugesPercent"] =
+      WatchMapGauges.percent(settings["wearMapGaugesPercent"]) ?? defaultSettings["wearMapGaugesPercent"]
     normalized["rideSplitGapMinutes"] =
       rideSplitGapMinutes(settings["rideSplitGapMinutes"]) ?? defaultSettings["rideSplitGapMinutes"]
     normalized["legalPolicy"] = normalizeLegalPolicy(settings["legalPolicy"]) ?? NSNull()

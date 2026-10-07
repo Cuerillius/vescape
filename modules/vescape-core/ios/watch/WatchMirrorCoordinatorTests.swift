@@ -29,7 +29,9 @@ final class WatchMirrorCoordinatorTests: XCTestCase {
     var subscribed = 0
     var cancelled = 0
     var changed: () -> Void = {}
-    func routeStatus() -> WatchRouteStatus { WatchRouteStatus(phase: .ready, routeId: 1) }
+    var phase: WatchRoutePhase = .ready
+    func routeStatus() -> WatchRouteStatus { WatchRouteStatus(phase: phase, routeId: 1) }
+    func mapRoute() -> WatchMapRouteProgress? { nil }
     func subscribe(
       routeChanged: @escaping () -> Void,
       weatherChanged: @escaping (WatchWeather) -> Void,
@@ -46,11 +48,19 @@ final class WatchMirrorCoordinatorTests: XCTestCase {
     let sources = Sources()
     var board = true
     var commands = 0
+    var navigatingChanges = 0
+    var mapPosition: WatchMapPosition? = WatchMapPosition(latitude: 51.1, longitude: 17)
+    var mapTiles: [WatchMapRider?] = []
     lazy var coordinator = WatchMirrorCoordinator(
       scheduler: scheduler, nowMs: { self.scheduler.currentTimeMs },
-      snapshot: { WatchSnapshot(speed: self.board ? 25 : nil, navBearing: 90, navDistanceM: 100) },
+      snapshot: {
+        WatchSnapshot(speed: self.board ? 25 : nil, navBearing: 90, navDistanceM: 100, routeSpanM: 800,
+          mapPosition: self.mapPosition, riderSpeedMps: 5)
+      },
       isStale: { false }, groupFrame: { GroupRideFrame(courseDeg: 0, spanM: 600, riders: []) },
-      transport: transport, sources: sources, command: { _ in self.commands += 1 }, record: { _, _ in }
+      transport: transport, sources: sources, command: { _ in self.commands += 1 }, record: { _, _ in },
+      onNavigatingChanged: { self.navigatingChanges += 1 },
+      mapTiles: { self.mapTiles.append($0) }
     )
     func active() { coordinator.start(); coordinator.acceptWakeLevel(.active) }
   }
@@ -160,5 +170,70 @@ final class WatchMirrorCoordinatorTests: XCTestCase {
     h.scheduler.advance(0)
     XCTAssertEqual(h.transport.statuses, 1)
     XCTAssertEqual(h.commands, 1)
+  }
+
+  /// Issue #550: the wrist route needs live fixes, so its demand must follow route and wrist edges.
+  func testNavigatingFollowsADrawableRouteOnAReceivingWrist() {
+    let h = Harness()
+    h.coordinator.start()
+    h.scheduler.advance(1000)
+    XCTAssertFalse(h.coordinator.navigating) // Asleep wrist: nothing to keep GPS on for.
+    h.coordinator.acceptWakeLevel(.active)
+    h.scheduler.advance(250)
+    XCTAssertTrue(h.coordinator.navigating)
+    h.sources.phase = .computing
+    h.scheduler.advance(250)
+    XCTAssertFalse(h.coordinator.navigating)
+    h.sources.phase = .ready
+    h.scheduler.advance(250)
+    XCTAssertTrue(h.coordinator.navigating)
+    h.transport.reachable = false
+    h.scheduler.advance(250)
+    XCTAssertFalse(h.coordinator.navigating)
+    h.scheduler.advance(1000)
+    XCTAssertEqual(h.navigatingChanges, 4)
+  }
+
+  /// Issue #551: tiles only reach an awake wrist that draws a map, around a GPS fix.
+  func testStreetMapTilesFollowAnActiveWristOnly() {
+    let h = Harness()
+    h.transport.requiresWakeReport = false // iOS: frames flow without a wake report, tiles do not.
+    h.coordinator.start()
+    h.scheduler.advance(1000)
+    XCTAssertFalse(h.mapTiles.isEmpty)
+    XCTAssertTrue(h.mapTiles.allSatisfy { $0 == nil })
+    h.coordinator.acceptWakeLevel(.active)
+    h.mapTiles = []
+    h.scheduler.advance(250)
+    XCTAssertEqual(h.mapTiles, [WatchMapRider(position: WatchMapPosition(latitude: 51.1, longitude: 17), courseDeg: nil, speedMps: 5, spanM: 800)])
+    h.coordinator.acceptWakeLevel(.ambient)
+    h.mapTiles = []
+    h.scheduler.advance(WATCH_FRAME_AMBIENT_INTERVAL_MS)
+    XCTAssertEqual(h.mapTiles, [nil])
+    h.coordinator.acceptWakeLevel(.active)
+    h.mapPosition = nil
+    h.mapTiles = []
+    h.scheduler.advance(250)
+    XCTAssertEqual(h.mapTiles, [nil]) // No fix to plan around.
+    h.mapTiles = []
+    h.coordinator.stop()
+    XCTAssertEqual(h.mapTiles, [nil])
+  }
+
+  /// Issue #554: the Street map setting pauses tiles to an active wrist and resumes them.
+  func testStreetMapSettingOffPausesTilesAndOnResumesThem() {
+    let h = Harness()
+    h.coordinator.start()
+    h.coordinator.acceptWakeLevel(.active)
+    h.coordinator.applySettings(WatchSettings(streetMapEnabled: false), intervalMs: 250)
+    h.mapTiles = []
+    h.scheduler.advance(1000)
+    XCTAssertFalse(h.mapTiles.isEmpty)
+    XCTAssertTrue(h.mapTiles.allSatisfy { $0 == nil })
+    XCTAssertFalse(h.transport.frames.isEmpty) // Only the map pauses; frames keep flowing.
+    h.coordinator.applySettings(WatchSettings(streetMapEnabled: true), intervalMs: 250)
+    h.mapTiles = []
+    h.scheduler.advance(250)
+    XCTAssertEqual(h.mapTiles, [WatchMapRider(position: WatchMapPosition(latitude: 51.1, longitude: 17), courseDeg: nil, speedMps: 5, spanM: 800)])
   }
 }
