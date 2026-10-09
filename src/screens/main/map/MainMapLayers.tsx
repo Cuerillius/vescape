@@ -8,6 +8,11 @@ import { PrivacyZonesMapLayer } from '@/modules/history/components/PrivacyZonesM
 import { LegalLimitsMapLayer } from '@/modules/legal/components/LegalLimitsMapLayer'
 import { MapPin } from '@/modules/map/components/MapPin'
 import { MAP_DEFAULTS } from '@/modules/map/constants/mapStyles'
+import {
+  SWISSTOPO_ATTRIBUTION,
+  SWISSTOPO_BOUNDS,
+  SWISSTOPO_TILE_URL_TEMPLATE,
+} from '@/modules/map/lib/swisstopoTiles'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
 import { getMapPointKindIcon } from '@/modules/map-points/constants/mapPointIcons'
 import { RadarRangeRings } from '@/modules/weather/components/RadarRangeRings'
@@ -29,9 +34,10 @@ export { HistoryMapLayers }
 
 function BaseTerrainLayers({
   isMapy,
+  isSwisstopo,
   isOneDark,
   showBuildings3d,
-}: Pick<MainMapLayersProps, 'isMapy' | 'isOneDark' | 'showBuildings3d'>) {
+}: Pick<MainMapLayersProps, 'isMapy' | 'isSwisstopo' | 'isOneDark' | 'showBuildings3d'>) {
   return (
     <>
       {showBuildings3d && (
@@ -65,6 +71,22 @@ function BaseTerrainLayers({
           />
         </RasterSource>
       ) : null}
+      {isSwisstopo ? (
+        <RasterSource
+          id="center-swisstopo-tiles"
+          tileUrlTemplates={[SWISSTOPO_TILE_URL_TEMPLATE]}
+          tileSize={256}
+          maxZoomLevel={MAP_DEFAULTS.maxZoom}
+          sourceBounds={SWISSTOPO_BOUNDS}
+          attribution={SWISSTOPO_ATTRIBUTION}
+        >
+          <RasterLayer
+            id="center-swisstopo-tiles-layer"
+            sourceID="center-swisstopo-tiles"
+            style={{ rasterOpacity: 1 }}
+          />
+        </RasterSource>
+      ) : null}
     </>
   )
 }
@@ -94,6 +116,7 @@ export function MainMapLayers(props: MainMapLayersProps) {
   const {
     historyActive,
     isMapy,
+    isSwisstopo,
     isOneDark,
     isSatellite,
     showBuildings3d,
@@ -107,7 +130,12 @@ export function MainMapLayers(props: MainMapLayersProps) {
 
   return (
     <>
-      <BaseTerrainLayers isMapy={isMapy} isOneDark={isOneDark} showBuildings3d={showBuildings3d} />
+      <BaseTerrainLayers
+        isMapy={isMapy}
+        isSwisstopo={isSwisstopo}
+        isOneDark={isOneDark}
+        showBuildings3d={showBuildings3d}
+      />
       <RainViewerOverlay visible={weatherActive} />
       <RadarRangeRings visible={weatherActive} fix={props.accuracyFix} />
       {legalLimitsActive ? <LegalLimitsMapLayer onSelectCountry={onSelectLegalCountry} /> : null}

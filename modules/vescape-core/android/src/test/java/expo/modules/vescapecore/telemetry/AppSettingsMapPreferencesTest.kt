@@ -19,6 +19,7 @@ class AppSettingsMapPreferencesTest {
     assertEquals("outdoors", validMapStyleKey("outdoors"))
     assertEquals("satellite", validMapStyleKey("satellite"))
     assertEquals("mapy", validMapStyleKey("mapy"))
+    assertEquals("swisstopo", validMapStyleKey("swisstopo"))
     assertNull(validMapStyleKey("invalid"))
     assertNull(validMapStyleKey(1))
   }

@@ -188,6 +188,7 @@ export function MainMapScene({
               historyActive={historyActive}
               expandSelectedMapPoints={mode === 'map'}
               isMapy={mapStyle.isMapy}
+              isSwisstopo={mapStyle.isSwisstopo}
               isOneDark={mapStyle.isOneDark}
               isSatellite={mapStyle.isSatelliteOverlay}
               showBuildings3d={mapStyle.showBuildings3d && !mapStyle.isMapy}

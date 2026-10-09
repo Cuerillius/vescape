@@ -1548,7 +1548,7 @@ export interface AppSettings {
   /** App appearance source. `sun` resolves from local daylight at the last GPS fix. */
   unitSystem: 'metric' | 'imperial'
   themeMode: 'system' | 'light' | 'dark' | 'sun'
-  mapStyleKey: 'onedark' | 'outdoors' | 'satellite' | 'mapy'
+  mapStyleKey: 'onedark' | 'outdoors' | 'satellite' | 'mapy' | 'swisstopo'
   /** Use the custom satellite overlay style instead of the stock satellite style. */
   satelliteOverlayEnabled: boolean
   /** Satellite basemap imagery opacity, 0.1-1.0. Labels and app overlays stay full opacity. */

@@ -19,7 +19,7 @@ The app has adaptive light and dark appearances. The durable `themeMode` setting
 - `dark` — always dark.
 - `sun` — light between local sunrise and sunset, dark otherwise, using the current or last known GPS location. It falls back to the system appearance when no location is available.
 
-App theme and map style are independent preferences. Selecting a map never changes `themeMode`. The Streets option renders One Dark in dark appearance and Outdoors in light appearance, including System and Sunrise & sunset transitions. Existing saved `onedark` and `outdoors` selections both represent Streets; theme changes do not rewrite the saved map choice. Satellite and Mapy.cz remain selected across appearance changes.
+App theme and map style are independent preferences. Selecting a map never changes `themeMode`. The Streets option renders One Dark in dark appearance and Outdoors in light appearance, including System and Sunrise & sunset transitions. Existing saved `onedark` and `outdoors` selections both represent Streets; theme changes do not rewrite the saved map choice. Satellite, Mapy.cz and Swisstopo remain selected across appearance changes. Swisstopo only has data for Switzerland and Liechtenstein, so it renders as Streets (following the appearance as above) with the Swisstopo raster confined to that footprint; everywhere else the map is plain Streets.
 
 Neutral UI colors come from `theme.neutral`, while accent UI colors come from `theme.palette.<hue>`. Both are backed by iOS dynamic colors and Android day/night resources, so values captured by `StyleSheet.create` still update when the active appearance changes. `theme.palette.slate` remains a raw dark swatch for fixed dark map styles; do not use it for app surfaces or text.
 

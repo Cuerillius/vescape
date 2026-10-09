@@ -80,13 +80,14 @@ export default function MapComponentsShowcase() {
     })
   }, [])
 
-  const renderedStyleKey = mapStyleForTheme(styleKey, resolvedTheme)
+  const isSwisstopo = styleKey === 'swisstopo'
+  const renderedStyleKey = mapStyleForTheme(isSwisstopo ? 'onedark' : styleKey, resolvedTheme)
   const selectedStyle = MAP_STYLES.find((s) => s.key === styleKey) ?? MAP_STYLES[0]
   const isMapy = renderedStyleKey === 'mapy'
   const isOneDark = renderedStyleKey === 'onedark'
   const isSatellite = renderedStyleKey === 'satellite'
   const useCustomJSON = isMapy || isOneDark || isSatellite
-  const showBuildings3d = renderedStyleKey === 'outdoors' || isOneDark
+  const showBuildings3d = !isSwisstopo && (renderedStyleKey === 'outdoors' || isOneDark)
 
   return (
     <View style={styles.container}>
@@ -130,6 +131,7 @@ export default function MapComponentsShowcase() {
           historyActive={false}
           expandSelectedMapPoints
           isMapy={isMapy}
+          isSwisstopo={isSwisstopo}
           isOneDark={isOneDark}
           isSatellite={isSatellite}
           showBuildings3d={showBuildings3d}

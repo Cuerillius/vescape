@@ -1,5 +1,5 @@
 import Mapbox from '@rnmapbox/maps'
-import { MapTrifoldIcon, MountainsIcon, PlanetIcon } from 'phosphor-react-native'
+import { FlagIcon, MapTrifoldIcon, MountainsIcon, PlanetIcon } from 'phosphor-react-native'
 import { theme } from '@/constants/theme'
 
 export const MAP_DEFAULTS = {
@@ -46,6 +46,8 @@ export const MAP_STYLES = [
     Icon: PlanetIcon,
   },
   { key: 'mapy', label: 'Mapy.cz', styleURL: null, Icon: MountainsIcon },
+  /** Swiss topographic map over Streets; Streets alone outside Switzerland. */
+  { key: 'swisstopo', label: 'Swisstopo', styleURL: null, Icon: FlagIcon },
 ] as const
 
 /** Outdoors remains a valid saved key for existing installations. */

@@ -39,7 +39,9 @@ export function useResolvedMapStyle({
 }) {
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme)
   const outdoorLight = useThemeStore((state) => state.outdoorLight)
-  const renderedStyleKey = mapStyleForTheme(mapStyleKey, resolvedTheme)
+  // Swisstopo only covers Switzerland, so it renders as Streets with a raster laid over the country.
+  const isSwisstopo = mapStyleKey === 'swisstopo'
+  const renderedStyleKey = mapStyleForTheme(isSwisstopo ? 'onedark' : mapStyleKey, resolvedTheme)
   const requestedMapStyle =
     renderedStyleKey === 'outdoors'
       ? { key: 'outdoors' as const, styleURL: Mapbox.StyleURL.Outdoors }
@@ -111,12 +113,14 @@ export function useResolvedMapStyle({
     () => ({
       styleKey: selectedMapStyle.key,
       isMapy,
+      isSwisstopo,
       isOneDark,
       isSatellite,
       isSatelliteOverlay,
       mapDetailsVisible,
-      showBuildings3d: selectedMapStyle.key === 'outdoors' || selectedMapStyle.key === 'onedark',
-      styleURL: useCustomJSON ? undefined : selectedMapStyle.styleURL,
+      showBuildings3d:
+        !isSwisstopo && (selectedMapStyle.key === 'outdoors' || selectedMapStyle.key === 'onedark'),
+      styleURL: useCustomJSON ? undefined : (selectedMapStyle.styleURL ?? undefined),
       styleJSON,
       existingLayerIds,
       satelliteImageryPaint,
@@ -125,6 +129,7 @@ export function useResolvedMapStyle({
     }),
     [
       isMapy,
+      isSwisstopo,
       isOneDark,
       isSatellite,
       isSatelliteOverlay,

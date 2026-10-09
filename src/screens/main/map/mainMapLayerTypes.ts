@@ -21,6 +21,7 @@ export interface MainMapLayersProps {
   historyActive: boolean
   expandSelectedMapPoints: boolean
   isMapy: boolean
+  isSwisstopo: boolean
   isOneDark: boolean
   isSatellite: boolean
   showBuildings3d: boolean

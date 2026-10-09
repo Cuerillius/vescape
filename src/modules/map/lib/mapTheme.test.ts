@@ -10,8 +10,8 @@ describe('mapStyleForTheme', () => {
     }
   })
 
-  test('satellite and Mapy survive any effective theme', () => {
-    for (const savedStyle of ['satellite', 'mapy'] as const) {
+  test('satellite, Mapy and Swisstopo survive any effective theme', () => {
+    for (const savedStyle of ['satellite', 'mapy', 'swisstopo'] as const) {
       expect(mapStyleForTheme(savedStyle, 'dark')).toBe(savedStyle)
       expect(mapStyleForTheme(savedStyle, 'light')).toBe(savedStyle)
     }

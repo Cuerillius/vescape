@@ -14,6 +14,7 @@ const MAP_STYLE_LABELS: Record<string, string> = {
   outdoors: 'Streets',
   satellite: 'Satellite',
   mapy: 'Mapy.cz',
+  swisstopo: 'Swisstopo',
 }
 
 interface NavigationDiagnosticsViewModelArgs {

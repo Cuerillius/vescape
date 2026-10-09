@@ -31,7 +31,7 @@ internal enum class AppDataScope(val wire: String) {
 }
 
 internal fun validMapStyleKey(value: Any?): String? =
-  (value as? String)?.takeIf { it in setOf("onedark", "outdoors", "satellite", "mapy") }
+  (value as? String)?.takeIf { it in setOf("onedark", "outdoors", "satellite", "mapy", "swisstopo") }
 
 internal fun validThemeMode(value: Any?): String? =
   (value as? String)?.takeIf { it in setOf("system", "light", "dark", "sun") }
