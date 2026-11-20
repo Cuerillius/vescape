@@ -18,6 +18,8 @@ import {
   getSatelliteImageryPaint,
 } from '@/modules/map/constants/satelliteDarkMapStyle'
 import { ONE_DARK_MAP_STYLE } from '@/modules/map/constants/oneDarkMapStyle'
+import { useSwisstopoStyle } from '@/modules/map/hooks/useSwisstopoStyle'
+import { getSwissMapStyle } from '@/modules/map/constants/swissStyleMapStyle'
 import { theme } from '@/constants/theme'
 import { useThemeStore } from '@/hooks/useTheme'
 import { mapStyleForTheme } from '@/modules/map/lib/mapTheme'
@@ -81,12 +83,13 @@ export default function MapComponentsShowcase() {
   }, [])
 
   const isSwisstopo = styleKey === 'swisstopo'
+  const swisstopoStyleJSON = useSwisstopoStyle(isSwisstopo, resolvedTheme)
   const renderedStyleKey = mapStyleForTheme(isSwisstopo ? 'onedark' : styleKey, resolvedTheme)
   const selectedStyle = MAP_STYLES.find((s) => s.key === styleKey) ?? MAP_STYLES[0]
   const isMapy = renderedStyleKey === 'mapy'
-  const isOneDark = renderedStyleKey === 'onedark'
+  const isOneDark = renderedStyleKey === 'onedark' && !isSwisstopo
   const isSatellite = renderedStyleKey === 'satellite'
-  const useCustomJSON = isMapy || isOneDark || isSatellite
+  const useCustomJSON = isMapy || isOneDark || isSwisstopo || isSatellite
   const showBuildings3d = !isSwisstopo && (renderedStyleKey === 'outdoors' || isOneDark)
 
   return (
@@ -101,13 +104,15 @@ export default function MapComponentsShowcase() {
               : (selectedStyle.styleURL ?? undefined)
         }
         styleJSON={
-          isOneDark
-            ? ONE_DARK_MAP_STYLE
-            : isMapy
-              ? BLANK_STYLE
-              : isSatellite
-                ? getSatelliteDarkMapStyle()
-                : undefined
+          isSwisstopo
+            ? (swisstopoStyleJSON ?? getSwissMapStyle(resolvedTheme))
+            : isOneDark
+              ? ONE_DARK_MAP_STYLE
+              : isMapy
+                ? BLANK_STYLE
+                : isSatellite
+                  ? getSatelliteDarkMapStyle()
+                  : undefined
         }
         pitchEnabled={false}
         rotateEnabled={false}
@@ -131,7 +136,6 @@ export default function MapComponentsShowcase() {
           historyActive={false}
           expandSelectedMapPoints
           isMapy={isMapy}
-          isSwisstopo={isSwisstopo}
           isOneDark={isOneDark}
           isSatellite={isSatellite}
           showBuildings3d={showBuildings3d}

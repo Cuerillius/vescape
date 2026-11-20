@@ -3,8 +3,15 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import {
   ImageSquareIcon,
   MapPinIcon,
+  BicycleIcon,
   MapTrifoldIcon,
+  MountainsIcon,
   PaletteIcon,
+  PawPrintIcon,
+  RoadHorizonIcon,
+  SignpostIcon,
+  SneakerMoveIcon,
+  SnowflakeIcon,
   SlidersHorizontalIcon,
 } from 'phosphor-react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -16,7 +23,19 @@ import { Switch } from '@/components/controls/Switch'
 import { SettingsSectionTitle } from '@/components/settings/SettingsSectionTitle'
 import { Stepper } from '@/components/forms/Stepper'
 import { theme } from '@/constants/theme'
+import { SWISSTOPO_OVERLAYS } from '@/modules/map/constants/swisstopoOverlays'
 import { useSettingsStore } from '@/modules/settings/store/settingsStore'
+
+/** Row icons for the Swiss overlays, keyed like the overlay list. */
+const SWISS_OVERLAY_ROW_STYLE = {
+  swissOverlayTrails: { icon: SignpostIcon, color: theme.palette.green.color },
+  swissOverlayMountainBike: { icon: BicycleIcon, color: theme.palette.amber.color },
+  swissOverlayVelo: { icon: RoadHorizonIcon, color: theme.palette.sky.color },
+  swissOverlaySkating: { icon: SneakerMoveIcon, color: theme.palette.violet.color },
+  swissOverlayAvalanche: { icon: SnowflakeIcon, color: theme.palette.red.color },
+  swissOverlayRockfall: { icon: MountainsIcon, color: theme.palette.red.color },
+  swissOverlayWildlife: { icon: PawPrintIcon, color: theme.palette.cyan.color },
+} as const
 
 export default function MapSettingsScreen() {
   const {
@@ -35,6 +54,9 @@ export default function MapSettingsScreen() {
       hideTelemetryMapDetails: s.hideTelemetryMapDetails,
       set: s.set,
     })),
+  )
+  const swissOverlayValues = useSettingsStore(
+    useShallow((s) => SWISSTOPO_OVERLAYS.map((overlay) => s[overlay.key])),
   )
   const satelliteOpacityPercent = Math.round(satelliteImageryOpacity * 100)
   const satelliteMapOpacityPercent = Math.round(satelliteMapImageryOpacity * 100)
@@ -62,6 +84,25 @@ export default function MapSettingsScreen() {
               />
             }
           />
+        </SettingsCard>
+
+        <SettingsSectionTitle>Swiss overlays</SettingsSectionTitle>
+        <SettingsCard>
+          {SWISSTOPO_OVERLAYS.map((overlay, index) => (
+            <SettingsRow
+              key={overlay.key}
+              icon={SWISS_OVERLAY_ROW_STYLE[overlay.key].icon}
+              iconColor={SWISS_OVERLAY_ROW_STYLE[overlay.key].color}
+              label={overlay.label}
+              hint={overlay.hint}
+              right={
+                <Switch
+                  value={swissOverlayValues[index] ?? false}
+                  onValueChange={(enabled) => void set(overlay.key, enabled)}
+                />
+              }
+            />
+          ))}
         </SettingsCard>
 
         <SettingsSectionTitle>Satellite view</SettingsSectionTitle>

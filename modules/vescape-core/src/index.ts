@@ -1561,6 +1561,20 @@ export interface AppSettings {
   hideTelemetryMapDetails: boolean
   /** Draw Ride History Markers (pauses, connection changes, errors, gaps) on the history route. */
   showHistoryMapMarkers: boolean
+  /** Draw the Swisstopo hiking trail network over the map (Switzerland only). */
+  swissOverlayTrails: boolean
+  /** Draw the Swisstopo Veloland cycling routes over the map (Switzerland only). */
+  swissOverlayVelo: boolean
+  /** Draw the Swisstopo Skatingland routes over the map (Switzerland only). */
+  swissOverlaySkating: boolean
+  /** Draw Swisstopo avalanche hazard zones over the map (Switzerland only). */
+  swissOverlayAvalanche: boolean
+  /** Draw Swisstopo rockfall hazard zones over the map (Switzerland only). */
+  swissOverlayRockfall: boolean
+  /** Draw Swisstopo wildlife quiet zones and hunting-ban reserves over the map (Switzerland only). */
+  swissOverlayWildlife: boolean
+  /** Draw Swisstopo Mountainbikeland routes over the map (Switzerland only). */
+  swissOverlayMountainBike: boolean
   mapOrientationMode: 'northUp' | 'gpsHeading' | 'phoneHeading' | 'freeRotate'
   historyMetricGradientsEnabled: boolean
   historyMetricHotRanges: Partial<

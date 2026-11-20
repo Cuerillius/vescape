@@ -7,6 +7,8 @@ import {
   getSatelliteOverlayMapStyle,
 } from '@/modules/map/constants/satelliteDarkMapStyle'
 import { getOneDarkMapStyle } from '@/modules/map/constants/oneDarkMapStyle'
+import { getSwissMapStyle } from '@/modules/map/constants/swissStyleMapStyle'
+import { useSwisstopoStyle } from '@/modules/map/hooks/useSwisstopoStyle'
 import { resolveMapThemeTone } from '@/modules/map/lib/mapThemeTone'
 import { useThemeStore } from '@/hooks/useTheme'
 import { mapStyleForTheme } from '@/modules/map/lib/mapTheme'
@@ -39,7 +41,8 @@ export function useResolvedMapStyle({
 }) {
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme)
   const outdoorLight = useThemeStore((state) => state.outdoorLight)
-  // Swisstopo only covers Switzerland, so it renders as Streets with a raster laid over the country.
+  // Swisstopo is Streets in the Swisstopo palette with the official Swisstopo map untouched inside
+  // Switzerland; it shows the palette-only Streets until the official style has loaded.
   const isSwisstopo = mapStyleKey === 'swisstopo'
   const renderedStyleKey = mapStyleForTheme(isSwisstopo ? 'onedark' : mapStyleKey, resolvedTheme)
   const requestedMapStyle =
@@ -49,10 +52,10 @@ export function useResolvedMapStyle({
   const selectedMapStyle =
     requestedMapStyle.key === 'mapy' && !IS_MAPY_CONFIGURED ? MAP_STYLES[0] : requestedMapStyle
   const isMapy = selectedMapStyle.key === 'mapy'
-  const isOneDark = selectedMapStyle.key === 'onedark'
+  const isOneDark = selectedMapStyle.key === 'onedark' && !isSwisstopo
   const isSatellite = selectedMapStyle.key === 'satellite'
   const isSatelliteOverlay = isSatellite && satelliteOverlayEnabled
-  const useCustomJSON = isMapy || isOneDark || isSatelliteOverlay
+  const useCustomJSON = isMapy || isOneDark || isSwisstopo || isSatelliteOverlay
   const mapDetailsVisible = mode === 'map' || (mode === 'telemetry' && !hideTelemetryMapDetails)
 
   const effectiveSatelliteImageryOpacity =
@@ -85,6 +88,8 @@ export function useResolvedMapStyle({
     [satelliteTone.imageryContrast, satelliteTone.imageryOpacity, satelliteTone.imagerySaturation],
   )
   const oneDarkStyleJSON = useMemo(() => getOneDarkMapStyle(true, true, false), [])
+  const swissStyleJSON = useMemo(() => getSwissMapStyle(resolvedTheme), [resolvedTheme])
+  const swisstopoStyleJSON = useSwisstopoStyle(isSwisstopo, resolvedTheme)
   const satelliteStyleJSON = useMemo(
     () => getSatelliteOverlayMapStyle(resolvedTheme),
     [resolvedTheme],
@@ -92,11 +97,13 @@ export function useResolvedMapStyle({
 
   const styleJSON = isSatelliteOverlay
     ? satelliteStyleJSON
-    : isOneDark
-      ? oneDarkStyleJSON
-      : isMapy
-        ? BLANK_STYLE
-        : undefined
+    : isSwisstopo
+      ? (isSwisstopo && swisstopoStyleJSON) || swissStyleJSON
+      : isOneDark
+        ? oneDarkStyleJSON
+        : isMapy
+          ? BLANK_STYLE
+          : undefined
   const existingLayerIds = useMemo(() => baseStyleLayerIds(styleJSON), [styleJSON])
 
   // Signed by the style document Mapbox actually receives. A theme change replaces the
@@ -106,14 +113,15 @@ export function useResolvedMapStyle({
       ? 'json:blank'
       : isSatelliteOverlay
         ? `json:satellite:${resolvedTheme}`
-        : 'json:onedark'
+        : isSwisstopo
+          ? `json:${swisstopoStyleJSON ? 'swisstopo' : 'swiss'}:${resolvedTheme}`
+          : 'json:onedark'
     : String(selectedMapStyle.styleURL)
 
   return useMemo(
     () => ({
       styleKey: selectedMapStyle.key,
       isMapy,
-      isSwisstopo,
       isOneDark,
       isSatellite,
       isSatelliteOverlay,
@@ -130,6 +138,7 @@ export function useResolvedMapStyle({
     [
       isMapy,
       isSwisstopo,
+      resolvedTheme,
       isOneDark,
       isSatellite,
       isSatelliteOverlay,

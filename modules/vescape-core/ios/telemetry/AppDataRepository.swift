@@ -646,6 +646,13 @@ final class AppDataRepository {
     "satelliteImagerySaturation": -0.35,
     "hideTelemetryMapDetails": true,
     "showHistoryMapMarkers": false,
+    "swissOverlayTrails": false,
+    "swissOverlayVelo": false,
+    "swissOverlaySkating": false,
+    "swissOverlayAvalanche": false,
+    "swissOverlayRockfall": false,
+    "swissOverlayWildlife": false,
+    "swissOverlayMountainBike": false,
     "telemetryPollRateHz": 20,
     "wearPushRateHz": defaultWearPushRateHz,
     // @platform-diff Opening the Mirror when a board connects is Android-only: watchOS has no

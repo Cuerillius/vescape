@@ -429,6 +429,13 @@ class AppDataRepository private constructor(private val context: Context) {
       satelliteImagerySaturation = req("satelliteImagerySaturation", -0.35, ::validSatelliteImagerySaturation),
       hideTelemetryMapDetails = req("hideTelemetryMapDetails", true) { it as? Boolean },
       showHistoryMapMarkers = req("showHistoryMapMarkers", false) { it as? Boolean },
+      swissOverlayTrails = req("swissOverlayTrails", false) { it as? Boolean },
+      swissOverlayVelo = req("swissOverlayVelo", false) { it as? Boolean },
+      swissOverlaySkating = req("swissOverlaySkating", false) { it as? Boolean },
+      swissOverlayAvalanche = req("swissOverlayAvalanche", false) { it as? Boolean },
+      swissOverlayRockfall = req("swissOverlayRockfall", false) { it as? Boolean },
+      swissOverlayWildlife = req("swissOverlayWildlife", false) { it as? Boolean },
+      swissOverlayMountainBike = req("swissOverlayMountainBike", false) { it as? Boolean },
       mapOrientationMode = req("mapOrientationMode", "northUp", ::validMapOrientationMode),
       historyMetricGradientsEnabled = req("historyMetricGradientsEnabled", true) { it as? Boolean },
       historyMetricHotRanges = req("historyMetricHotRanges", DEFAULT_HISTORY_METRIC_HOT_RANGES, ::validHistoryMetricHotRanges),
@@ -518,6 +525,13 @@ class AppDataRepository private constructor(private val context: Context) {
         validSatelliteImagerySaturation(value) ?: return@withContext
       "hideTelemetryMapDetails" -> value as? Boolean ?: return@withContext
       "showHistoryMapMarkers" -> value as? Boolean ?: return@withContext
+      "swissOverlayTrails" -> value as? Boolean ?: return@withContext
+      "swissOverlayVelo" -> value as? Boolean ?: return@withContext
+      "swissOverlaySkating" -> value as? Boolean ?: return@withContext
+      "swissOverlayAvalanche" -> value as? Boolean ?: return@withContext
+      "swissOverlayRockfall" -> value as? Boolean ?: return@withContext
+      "swissOverlayWildlife" -> value as? Boolean ?: return@withContext
+      "swissOverlayMountainBike" -> value as? Boolean ?: return@withContext
       "mapOrientationMode" ->
         validMapOrientationMode(value) ?: return@withContext
       "historyMetricGradientsEnabled" -> value as? Boolean ?: return@withContext
@@ -589,6 +603,13 @@ class AppDataRepository private constructor(private val context: Context) {
         "satelliteImagerySaturation" -> d.satelliteImagerySaturation
         "hideTelemetryMapDetails" -> d.hideTelemetryMapDetails
         "showHistoryMapMarkers" -> d.showHistoryMapMarkers
+        "swissOverlayTrails" -> d.swissOverlayTrails
+        "swissOverlayVelo" -> d.swissOverlayVelo
+        "swissOverlaySkating" -> d.swissOverlaySkating
+        "swissOverlayAvalanche" -> d.swissOverlayAvalanche
+        "swissOverlayRockfall" -> d.swissOverlayRockfall
+        "swissOverlayWildlife" -> d.swissOverlayWildlife
+        "swissOverlayMountainBike" -> d.swissOverlayMountainBike
         "mapOrientationMode" -> d.mapOrientationMode
         "historyMetricGradientsEnabled" -> d.historyMetricGradientsEnabled
         "historyMetricHotRanges" -> d.historyMetricHotRanges
@@ -972,6 +993,13 @@ fun AppSettings.toMap(): Map<String, Any?> = mapOf(
   "satelliteImagerySaturation" to satelliteImagerySaturation,
   "hideTelemetryMapDetails" to hideTelemetryMapDetails,
   "showHistoryMapMarkers" to showHistoryMapMarkers,
+  "swissOverlayTrails" to swissOverlayTrails,
+  "swissOverlayVelo" to swissOverlayVelo,
+  "swissOverlaySkating" to swissOverlaySkating,
+  "swissOverlayAvalanche" to swissOverlayAvalanche,
+  "swissOverlayRockfall" to swissOverlayRockfall,
+  "swissOverlayWildlife" to swissOverlayWildlife,
+  "swissOverlayMountainBike" to swissOverlayMountainBike,
   "mapOrientationMode" to mapOrientationMode,
   "historyMetricGradientsEnabled" to historyMetricGradientsEnabled,
   "historyMetricHotRanges" to historyMetricHotRanges,

@@ -46,7 +46,7 @@ export const MAP_STYLES = [
     Icon: PlanetIcon,
   },
   { key: 'mapy', label: 'Mapy.cz', styleURL: null, Icon: MountainsIcon },
-  /** Swiss topographic map over Streets; Streets alone outside Switzerland. */
+  /** Swisstopo-styled Streets with the official Swisstopo map cut out over Switzerland. */
   { key: 'swisstopo', label: 'Swisstopo', styleURL: null, Icon: FlagIcon },
 ] as const
 
